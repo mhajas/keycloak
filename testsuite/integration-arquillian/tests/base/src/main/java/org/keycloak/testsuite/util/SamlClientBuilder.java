@@ -29,8 +29,10 @@ import java.util.List;
 import java.util.function.Consumer;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.keycloak.testsuite.util.saml.CreateArtifactMessageStepBuilder;
 import org.keycloak.testsuite.util.saml.CreateAuthnRequestStepBuilder;
 import org.keycloak.testsuite.util.saml.CreateLogoutRequestStepBuilder;
+import org.keycloak.testsuite.util.saml.HandleArtifactStepBuilder;
 import org.keycloak.testsuite.util.saml.IdPInitiatedLoginBuilder;
 import org.keycloak.testsuite.util.saml.LoginBuilder;
 import org.keycloak.testsuite.util.saml.UpdateProfileBuilder;
@@ -105,7 +107,6 @@ public class SamlClientBuilder {
 
     /**
      * Adds a single generic step
-     * @param step
      * @return This builder
      */
     public SamlClientBuilder addStep(Runnable stepWithNoParameters) {
@@ -259,4 +260,20 @@ public class SamlClientBuilder {
           });
     }
 
+    public HandleArtifactStepBuilder handleArtifact(URI authServerSamlUrl, String issuer) {
+        return doNotFollowRedirects()
+                .addStepBuilder(new HandleArtifactStepBuilder(authServerSamlUrl, issuer, this));
+    }
+
+    public HandleArtifactStepBuilder handleArtifact(HandleArtifactStepBuilder handleArtifactStepBuilder) {
+        return doNotFollowRedirects().addStepBuilder(handleArtifactStepBuilder);
+    }
+
+    public CreateArtifactMessageStepBuilder artifactMessage(URI authServerSamlUrl, String issuer, Binding requestBinding) {
+        return addStepBuilder(new CreateArtifactMessageStepBuilder(authServerSamlUrl, issuer, requestBinding,this));
+    }
+
+    public CreateArtifactMessageStepBuilder artifactMessage(CreateArtifactMessageStepBuilder camb) {
+        return addStepBuilder(camb);
+    }
 }
