@@ -20,6 +20,7 @@ package org.keycloak.models.sessions.infinispan.util;
 
 import org.keycloak.common.util.Time;
 import org.keycloak.models.RealmModel;
+import org.keycloak.models.sessions.infinispan.entities.ArtifactResponseEntity;
 import org.keycloak.models.sessions.infinispan.entities.AuthenticatedClientSessionEntity;
 import org.keycloak.models.sessions.infinispan.entities.LoginFailureEntity;
 import org.keycloak.models.sessions.infinispan.entities.UserSessionEntity;
@@ -286,6 +287,29 @@ public class SessionTimeouts {
      * @return
      */
     public static long getLoginFailuresMaxIdleMs(RealmModel realm, LoginFailureEntity loginFailureEntity) {
+        return -1l;
+    }
+
+    /**
+     * Currently we do
+     *
+     * @param realm
+     * @param artifactResponseEntity
+     * @return
+     */
+    public static long getArtifactLifespanMs(RealmModel realm, ArtifactResponseEntity artifactResponseEntity) {
+        return -1l;
+    }
+
+
+    /**
+     * Not using maxIdle for detached login failure  (backwards compatibility with the background cleaner threads, which were used for cleanup of detached login failures)
+     *
+     * @param realm
+     * @param artifactResponseEntity
+     * @return
+     */
+    public static long getArtifactMaxIdleMs(RealmModel realm, ArtifactResponseEntity artifactResponseEntity) {
         return -1l;
     }
 
