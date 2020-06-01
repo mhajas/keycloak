@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
+import org.keycloak.storage.ldap.mappers.membership.MembershipType;
 
 /**
  * Map realm roles or roles of particular client to LDAP groups
@@ -77,7 +78,6 @@ public class RoleLDAPStorageMapper extends AbstractLDAPStorageMapper implements 
     public CommonLDAPGroupMapperConfig getConfig() {
         return config;
     }
-
 
     @Override
     public void onImportUserFromLDAP(LDAPObject ldapUser, UserModel user, RealmModel realm, boolean isCreate) {
@@ -473,5 +473,27 @@ public class RoleLDAPStorageMapper extends AbstractLDAPStorageMapper implements 
         }
     }
 
+    public LDAPObject loadRoleGroupByName(String roleName) {
+        try (LDAPQuery ldapQuery = createRoleQuery(true)) {
+            Condition roleNameCondition = new LDAPQueryConditionsBuilder().equal(config.getRoleNameLdapAttribute(), roleName);
+            ldapQuery.addWhereCondition(roleNameCondition);
+            return ldapQuery.getFirstResult();
+        }
+    }
 
+    @Override
+    public List<UserModel> getRoleMembers(RealmModel realm, RoleModel role, int firstResult, int maxResults) {
+        if (config.getMode() == LDAPGroupMapperMode.IMPORT) {
+            // only results from Keycloak should be returned, or imported LDAP and KC items will duplicate
+            return Collections.emptyList();
+        }
+
+        LDAPObject ldapGroup = loadRoleGroupByName(role.getName());
+        if (ldapGroup == null) {
+            return Collections.emptyList();
+        }
+
+        MembershipType membershipType = config.getMembershipTypeLdapAttribute();
+        return membershipType.getGroupMembers(realm, this, ldapGroup, firstResult, maxResults);
+    }
 }
