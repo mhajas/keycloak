@@ -77,9 +77,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Stateless object that creates tokens and manages oauth access codes
@@ -478,21 +478,21 @@ public class TokenManager {
         } else {
 
             // 1 - Client roles of this client itself
-            Set<RoleModel> scopeMappings = new HashSet<>(client.getRoles());
+            Stream<RoleModel> scopeMappings = client.getRolesStream();
 
             // 2 - Role mappings of client itself + default client scopes + optional client scopes requested by scope parameter (if applyScopeParam is true)
             for (ClientScopeModel clientScope : clientScopes) {
                 if (logger.isTraceEnabled()) {
                     logger.tracef("Adding client scope role mappings of client scope '%s' to client '%s'", clientScope.getName(), client.getClientId());
                 }
-                scopeMappings.addAll(clientScope.getScopeMappings());
+                scopeMappings = Stream.concat(scopeMappings, clientScope.getScopeMappingsStream());
             }
 
             // 3 - Expand scope mappings
-            scopeMappings = RoleUtils.expandCompositeRoles(scopeMappings);
+            scopeMappings = RoleUtils.expandCompositeRolesStream(scopeMappings);
 
             // Intersection of expanded user roles and expanded scopeMappings
-            roleMappings.retainAll(scopeMappings);
+            roleMappings.retainAll(scopeMappings.collect(Collectors.toSet()));
 
             return roleMappings;
         }
