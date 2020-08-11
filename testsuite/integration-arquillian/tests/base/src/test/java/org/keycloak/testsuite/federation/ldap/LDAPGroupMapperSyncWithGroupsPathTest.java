@@ -88,9 +88,7 @@ public class LDAPGroupMapperSyncWithGroupsPathTest extends AbstractLDAPTest {
             RealmModel realm = ctx.getRealm();
 
             GroupModel groupsPathGroup = KeycloakModelUtils.findGroupByPath(realm, LDAP_GROUPS_PATH);
-            for (GroupModel kcGroup : groupsPathGroup.getSubGroups()) {
-                realm.removeGroup(kcGroup);
-            }
+            groupsPathGroup.getSubGroupsStream().forEach(realm::removeGroup);
         });
     }
 
@@ -122,7 +120,7 @@ public class LDAPGroupMapperSyncWithGroupsPathTest extends AbstractLDAPTest {
             GroupModel kcGroup11 = KeycloakModelUtils.findGroupByPath(realm, LDAP_GROUPS_PATH + "/group1/group11");
             GroupModel kcGroup12 = KeycloakModelUtils.findGroupByPath(realm, LDAP_GROUPS_PATH + "/group1/group12");
 
-            Assert.assertEquals(2, kcGroup1.getSubGroups().size());
+            Assert.assertEquals(2, kcGroup1.getSubGroupsStream().count());
 
             Assert.assertEquals("group1 - description", kcGroup1.getFirstAttribute(descriptionAttrName));
             Assert.assertNull(kcGroup11.getFirstAttribute(descriptionAttrName));
@@ -171,7 +169,7 @@ public class LDAPGroupMapperSyncWithGroupsPathTest extends AbstractLDAPTest {
             Assert.assertNotNull(KeycloakModelUtils.findGroupByPath(realm, LDAP_GROUPS_PATH + "/group1/group11"));
             Assert.assertNotNull(KeycloakModelUtils.findGroupByPath(realm, LDAP_GROUPS_PATH + "/group1/group12"));
 
-            Assert.assertEquals(2, kcGroup1.getSubGroups().size());
+            Assert.assertEquals(2, kcGroup1.getSubGroupsStream().count());
 
             // Create some new groups in keycloak
             GroupModel groupsPathGroup = KeycloakModelUtils.findGroupByPath(realm, LDAP_GROUPS_PATH);

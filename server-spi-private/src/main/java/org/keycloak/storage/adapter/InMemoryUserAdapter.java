@@ -29,12 +29,12 @@ import org.keycloak.models.utils.DefaultRoles;
 import org.keycloak.models.utils.RoleUtils;
 import org.keycloak.storage.ReadOnlyException;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 /**
  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
@@ -78,10 +78,7 @@ public class InMemoryUserAdapter extends UserModelDefaultMethods {
     public void addDefaults() {
         DefaultRoles.addDefaultRoles(realm, this);
 
-        for (GroupModel g : realm.getDefaultGroups()) {
-            joinGroup(g);
-        }
-
+        realm.getDefaultGroupsStream().forEach(this::joinGroup);
     }
 
     public void setReadonly(boolean flag) {
@@ -205,13 +202,8 @@ public class InMemoryUserAdapter extends UserModelDefaultMethods {
     }
 
     @Override
-    public Set<GroupModel> getGroups() {
-        if (groupIds.isEmpty()) return new HashSet<>();
-        Set<GroupModel> groups = new HashSet<>();
-        for (String id : groupIds) {
-            groups.add(realm.getGroupById(id));
-        }
-        return groups;
+    public Stream<GroupModel> getGroupsStream() {
+        return groupIds.stream().map(realm::getGroupById);
     }
 
     @Override
@@ -232,8 +224,7 @@ public class InMemoryUserAdapter extends UserModelDefaultMethods {
     public boolean isMemberOf(GroupModel group) {
         if (groupIds == null) return false;
         if (groupIds.contains(group.getId())) return true;
-        Set<GroupModel> groups = getGroups();
-        return RoleUtils.isMember(groups, group);
+        return RoleUtils.isMember(getGroupsStream(), group);
     }
 
     @Override
@@ -291,7 +282,7 @@ public class InMemoryUserAdapter extends UserModelDefaultMethods {
     public boolean hasRole(RoleModel role) {
         Set<RoleModel> roles = getRoleMappings();
         return RoleUtils.hasRole(roles, role)
-                || RoleUtils.hasRoleFromGroup(getGroups(), role, true);
+                || RoleUtils.hasRoleFromGroup(getGroupsStream(), role, true);
     }
 
     @Override
