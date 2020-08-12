@@ -118,6 +118,21 @@ public class OIDCConfigurationRepresentation {
     @JsonProperty("tls_client_certificate_bound_access_tokens")
     private Boolean tlsClientCertificateBoundAccessTokens;
 
+    @JsonProperty("revocation_endpoint")
+    private String revocationEndpoint;
+
+    @JsonProperty("revocation_endpoint_auth_methods_supported")
+    private List<String> revocationEndpointAuthMethodsSupported;
+
+    @JsonProperty("revocation_endpoint_auth_signing_alg_values_supported")
+    private List<String> revocationEndpointAuthSigningAlgValuesSupported;
+
+    @JsonProperty("backchannel_logout_supported")
+    private Boolean backchannelLogoutSupported;
+
+    @JsonProperty("backchannel_logout_session_supported")
+    private Boolean backchannelLogoutSessionSupported;
+
     protected Map<String, Object> otherClaims = new HashMap<String, Object>();
 
     public String getIssuer() {
@@ -347,6 +362,46 @@ public class OIDCConfigurationRepresentation {
         this.tlsClientCertificateBoundAccessTokens = tlsClientCertificateBoundAccessTokens;
     }
 
+    public String getRevocationEndpoint() {
+        return revocationEndpoint;
+    }
+
+    public void setRevocationEndpoint(String revocationEndpoint) {
+        this.revocationEndpoint = revocationEndpoint;
+    }
+
+    public List<String> getRevocationEndpointAuthMethodsSupported() {
+        return revocationEndpointAuthMethodsSupported;
+    }
+
+    public void setRevocationEndpointAuthMethodsSupported(List<String> revocationEndpointAuthMethodsSupported) {
+        this.revocationEndpointAuthMethodsSupported = revocationEndpointAuthMethodsSupported;
+    }
+
+    public List<String> getRevocationEndpointAuthSigningAlgValuesSupported() {
+        return revocationEndpointAuthSigningAlgValuesSupported;
+    }
+
+    public void setRevocationEndpointAuthSigningAlgValuesSupported(List<String> revocationEndpointAuthSigningAlgValuesSupported) {
+        this.revocationEndpointAuthSigningAlgValuesSupported = revocationEndpointAuthSigningAlgValuesSupported;
+    }
+
+    public Boolean getBackchannelLogoutSupported() {
+        return backchannelLogoutSupported;
+    }
+
+    public Boolean getBackchannelLogoutSessionSupported() {
+        return backchannelLogoutSessionSupported;
+    }
+
+    public void setBackchannelLogoutSessionSupported(Boolean backchannelLogoutSessionSupported) {
+        this.backchannelLogoutSessionSupported = backchannelLogoutSessionSupported;
+    }
+
+    public void setBackchannelLogoutSupported(Boolean backchannelLogoutSupported) {
+        this.backchannelLogoutSupported = backchannelLogoutSupported;
+    }
+
     @JsonAnyGetter
     public Map<String, Object> getOtherClaims() {
         return otherClaims;
@@ -356,5 +411,4 @@ public class OIDCConfigurationRepresentation {
     public void setOtherClaims(String name, Object value) {
         otherClaims.put(name, value);
     }
-
 }

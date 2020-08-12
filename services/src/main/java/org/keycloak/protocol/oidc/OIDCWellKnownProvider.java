@@ -43,6 +43,7 @@ import org.keycloak.wellknown.WellKnownProvider;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
 
+import java.net.URI;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -133,6 +134,15 @@ public class OIDCWellKnownProvider implements WellKnownProvider {
         // KEYCLOAK-6771 Certificate Bound Token
         // https://tools.ietf.org/html/draft-ietf-oauth-mtls-08#section-6.2
         config.setTlsClientCertificateBoundAccessTokens(true);
+
+        URI revocationEndpoint = frontendUriBuilder.clone().path(OIDCLoginProtocolService.class, "revoke")
+            .build(realm.getName(), OIDCLoginProtocol.LOGIN_PROTOCOL);
+            config.setRevocationEndpoint(revocationEndpoint.toString());
+            config.setRevocationEndpointAuthMethodsSupported(getClientAuthMethodsSupported());
+            config.setRevocationEndpointAuthSigningAlgValuesSupported(getSupportedClientSigningAlgorithms(false));
+
+        config.setBackchannelLogoutSupported(true);
+        config.setBackchannelLogoutSessionSupported(true);
 
         return config;
     }
