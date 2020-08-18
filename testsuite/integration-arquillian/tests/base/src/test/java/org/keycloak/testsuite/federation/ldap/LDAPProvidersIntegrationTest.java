@@ -72,6 +72,7 @@ import javax.ws.rs.core.Response;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
@@ -730,11 +731,12 @@ public class LDAPProvidersIntegrationTest extends AbstractLDAPTest {
 
     @Test
     public void testHardcodedGroupMapper() {
+        final String uuid = UUID.randomUUID().toString();
         testingClient.server().run(session -> {
             LDAPTestContext ctx = LDAPTestContext.init(session);
             RealmModel appRealm = ctx.getRealm();
 
-            GroupModel hardcodedGroup = appRealm.createGroup("hardcoded-group", "hardcoded-group");
+            GroupModel hardcodedGroup = appRealm.createGroup(uuid, "hardcoded-group");
 
             // assert that user "johnkeycloak" doesn't have hardcoded group
             UserModel john = session.users().getUserByUsername("johnkeycloak", appRealm);
@@ -750,7 +752,7 @@ public class LDAPProvidersIntegrationTest extends AbstractLDAPTest {
             LDAPTestContext ctx = LDAPTestContext.init(session);
             RealmModel appRealm = ctx.getRealm();
 
-            GroupModel hardcodedGroup = appRealm.getGroupById("hardcoded-group");
+            GroupModel hardcodedGroup = appRealm.getGroupById(uuid);
 
             // Assert user is successfully imported in Keycloak DB now with correct firstName and lastName
             UserModel john = session.users().getUserByUsername("johnkeycloak", appRealm);

@@ -40,6 +40,9 @@ import org.keycloak.storage.user.SynchronizationResult;
 import org.keycloak.testsuite.util.LDAPRule;
 import org.keycloak.testsuite.util.LDAPTestUtils;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class LDAPGroupMapperSyncWithGroupsPathTest extends AbstractLDAPTest {
 
@@ -88,7 +91,11 @@ public class LDAPGroupMapperSyncWithGroupsPathTest extends AbstractLDAPTest {
             RealmModel realm = ctx.getRealm();
 
             GroupModel groupsPathGroup = KeycloakModelUtils.findGroupByPath(realm, LDAP_GROUPS_PATH);
-            groupsPathGroup.getSubGroupsStream().forEach(realm::removeGroup);
+            
+            // Subgroup stream needs to be collected, because otherwise we can end up with finding group with id that is
+            // already removed
+            groupsPathGroup.getSubGroupsStream().collect(Collectors.toSet())
+                    .forEach(realm::removeGroup);
         });
     }
 
