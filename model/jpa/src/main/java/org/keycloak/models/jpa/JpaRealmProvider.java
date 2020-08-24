@@ -49,7 +49,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.keycloak.models.ModelException;
+
 import static org.keycloak.common.util.StackUtil.getShortStackTrace;
+import static org.keycloak.utils.StreamsUtil.closing;
 
 
 /**
@@ -260,7 +262,7 @@ public class JpaRealmProvider implements RealmProvider, ClientProvider {
         query.setParameter("realm", realm.getId());
         Stream<String> roles = query.getResultStream();
 
-        return roles.map(realm::getRoleById);
+        return closing(roles.map(realm::getRoleById));
     }
 
     @Override
@@ -297,7 +299,7 @@ public class JpaRealmProvider implements RealmProvider, ClientProvider {
 
         Stream<RoleEntity> results = query.getResultStream();
 
-        return results.map(role -> new RoleAdapter(session, realm, em, role));
+        return closing(results.map(role -> new RoleAdapter(session, realm, em, role)));
     }
     
     @Override
@@ -325,7 +327,7 @@ public class JpaRealmProvider implements RealmProvider, ClientProvider {
         
         Stream<RoleEntity> results = query.getResultStream();
         
-        return results.map(role -> new RoleAdapter(session, realm, em, role));
+        return closing(results.map(role -> new RoleAdapter(session, realm, em, role)));
     }
 
     @Override
@@ -608,7 +610,7 @@ public class JpaRealmProvider implements RealmProvider, ClientProvider {
         query.setParameter("realm", realm.getId());
         Stream<String> clients = query.getResultStream();
 
-        return clients.map(c -> session.clients().getClientById(realm, c)).filter(Objects::nonNull);
+        return closing(clients.map(c -> session.clients().getClientById(realm, c)).filter(Objects::nonNull));
     }
 
     @Override
@@ -617,7 +619,7 @@ public class JpaRealmProvider implements RealmProvider, ClientProvider {
         query.setParameter("realm", realm.getId());
         Stream<String> clientStream = query.getResultStream();
 
-        return clientStream.map(c -> session.clients().getClientById(realm, c)).filter(Objects::nonNull);
+        return closing(clientStream.map(c -> session.clients().getClientById(realm, c)).filter(Objects::nonNull));
     }
 
     @Override
@@ -657,7 +659,7 @@ public class JpaRealmProvider implements RealmProvider, ClientProvider {
         query.setParameter("clientId", clientId);
         query.setParameter("realm", realm.getId());
         Stream<String> results = query.getResultStream();
-        return results.map(c -> session.clients().getClientById(realm, c));
+        return closing(results.map(c -> session.clients().getClientById(realm, c)));
     }
 
     @Override
