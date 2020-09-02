@@ -119,6 +119,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * <p></p>
@@ -275,7 +276,7 @@ public class IdentityBrokerService implements IdentityProvider.AuthenticationCal
 
             // Ensure user has role and client has "role scope" for this role
             ClientSessionContext ctx = DefaultClientSessionContext.fromClientSessionScopeParameter(clientSession, session);
-            Set<RoleModel> userAccountRoles = ctx.getRoles();
+            Set<RoleModel> userAccountRoles = ctx.getRolesStream().collect(Collectors.toSet());
 
             if (!userAccountRoles.contains(manageAccountRole)) {
                 RoleModel linkRole = accountService.getRole(AccountRoles.MANAGE_ACCOUNT_LINKS);
