@@ -17,13 +17,16 @@
 package org.keycloak.storage;
 
 import org.keycloak.Config;
+import org.keycloak.common.util.reflections.Types;
 import org.keycloak.component.ComponentFactory;
 import org.keycloak.component.ComponentModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.provider.Provider;
+import org.keycloak.provider.ProviderFactory;
 import org.keycloak.utils.ServicesUtils;
 
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -45,13 +48,15 @@ public abstract class AbstractStorageManager<ProviderType extends Provider,
     private static final Long STORAGE_PROVIDER_DEFAULT_TIMEOUT = 3000L;
     protected final KeycloakSession session;
     private final Class<ProviderType> providerTypeClass;
+    private final Class<? extends ProviderFactory> factoryTypeClass;
     private final Function<ComponentModel, StorageProviderModelType> toStorageProviderModelTypeFunction;
     private final String configScope;
     private Long storageProviderTimeout;
 
-    public AbstractStorageManager(KeycloakSession session, Class<ProviderType> providerTypeClass, Function<ComponentModel, StorageProviderModelType> toStorageProviderModelTypeFunction, String configScope) {
+    public AbstractStorageManager(KeycloakSession session, Class<? extends ProviderFactory> factoryTypeClass, Class<ProviderType> providerTypeClass, Function<ComponentModel, StorageProviderModelType> toStorageProviderModelTypeFunction, String configScope) {
         this.session = session;
         this.providerTypeClass = providerTypeClass;
+        this.factoryTypeClass = factoryTypeClass;
         this.toStorageProviderModelTypeFunction = toStorageProviderModelTypeFunction;
         this.configScope = configScope;
     }
@@ -78,12 +83,13 @@ public abstract class AbstractStorageManager<ProviderType extends Provider,
      * @param realm realm
      * @return enabled storage providers for realm and @{code getProviderTypeClass()}
      */
-    protected Stream<ProviderType> getEnabledStorageProviders(RealmModel realm) {
+    protected <T> Stream<T> getEnabledStorageProviders(RealmModel realm, Class<T> expectedInterface) {
         return getStorageProviderModels(realm, providerTypeClass)
                 .map(toStorageProviderModelTypeFunction)
                 .filter(StorageProviderModelType::isEnabled)
                 .sorted(StorageProviderModelType.comparator)
-                .map(this::getStorageProviderInstance);
+                .map(storageProviderModelType -> getStorageProviderInstance(storageProviderModelType, expectedInterface))
+                .filter(Objects::nonNull);
     }
 
     /**
@@ -96,8 +102,8 @@ public abstract class AbstractStorageManager<ProviderType extends Provider,
      * @param <R> result of applyFunction
      * @return a stream with all results from all StorageProviders
      */
-    protected <R> Stream<R> applyOnEnabledStorageProvidersWithTimeout(RealmModel realm, Function<ProviderType, ? extends Stream<R>> applyFunction) {
-        return getEnabledStorageProviders(realm).flatMap(ServicesUtils.timeBound(session,
+    protected <R, T> Stream<R> applyOnEnabledStorageProvidersWithTimeout(RealmModel realm, Class<T> expectedInterface, Function<T, ? extends Stream<R>> applyFunction) {
+        return getEnabledStorageProviders(realm, expectedInterface).flatMap(ServicesUtils.timeBound(session,
                     getStorageProviderTimeout(), applyFunction));
     }
 
@@ -107,13 +113,13 @@ public abstract class AbstractStorageManager<ProviderType extends Provider,
      * @param providerId id of ComponentModel within database/storage
      * @return an instance of type CreatedProviderType
      */
-    protected ProviderType getStorageProviderInstance(RealmModel realm, String providerId) {
+    protected <T> T getStorageProviderInstance(RealmModel realm, String providerId, Class<T> expectedInterface) {
         ComponentModel componentModel = realm.getComponent(providerId);
         if (componentModel == null) {
             return null;
         }
         
-        return getStorageProviderInstance(toStorageProviderModelTypeFunction.apply(componentModel));
+        return getStorageProviderInstance(toStorageProviderModelTypeFunction.apply(componentModel), expectedInterface);
     }
 
     /**
@@ -121,23 +127,28 @@ public abstract class AbstractStorageManager<ProviderType extends Provider,
      * @param model StorageProviderModel obtained from database/storage
      * @return an instance of type CreatedProviderType
      */
-    protected ProviderType getStorageProviderInstance(StorageProviderModelType model) {
-        if (model == null || !model.isEnabled()) {
+    protected <T> T getStorageProviderInstance(StorageProviderModelType model, Class<T> expectedInterface) {
+        if (model == null || !model.isEnabled() || expectedInterface == null) {
             return null;
         }
 
         @SuppressWarnings("unchecked")
         ProviderType instance = (ProviderType) session.getAttribute(model.getId());
-        if (instance != null) return instance;
+        if (instance != null && expectedInterface.isAssignableFrom(instance.getClass())) return expectedInterface.cast(instance);
 
         ComponentFactory<? extends ProviderType, ProviderType> factory = getStorageProviderFactory(model.getProviderId());
+
+        if (!Types.supports(expectedInterface, factory, factoryTypeClass)) {
+            return null;
+        }
+
         instance = factory.create(session, model);
         if (instance == null) {
             throw new IllegalStateException("StorageProvideFactory (of type " + factory.getClass().getName() + ") produced a null instance");
         }
         session.enlistForClose(instance);
         session.setAttribute(model.getId(), instance);
-        return instance;
+        return expectedInterface.cast(instance);
     }
 
     /**
