@@ -30,7 +30,7 @@ import java.util.stream.Stream;
  * @author mhajas
  *
  */
-public interface GroupProvider extends Provider, GroupLookupProvider {
+public interface GroupProvider extends GroupLookupProvider {
 
     /**
      * Returns a group from the given realm with the corresponding id

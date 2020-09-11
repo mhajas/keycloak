@@ -18,12 +18,14 @@ package org.keycloak.storage.group;
 
 import org.keycloak.models.GroupModel;
 import org.keycloak.models.RealmModel;
+import org.keycloak.provider.Provider;
+import org.keycloak.storage.StorageProvider;
 
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public interface GroupLookupProvider {
+public interface GroupLookupProvider extends StorageProvider.Capability<GroupStorageProvider> {
 
     /**
      * Returns a group from the given realm with the corresponding id

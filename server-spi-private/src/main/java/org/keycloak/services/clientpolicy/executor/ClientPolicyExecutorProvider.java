@@ -28,7 +28,7 @@ import org.keycloak.services.clientpolicy.ClientPolicyEvent;
  * It is sufficient for the implementer of this executor to implement methods in which they are interested
  * and {@link isEvaluatedOnEvent} method.
  */
-public interface ClientPolicyExecutorProvider extends Provider {
+public interface ClientPolicyExecutorProvider extends Provider.Capability<ClientPolicyExecutorProvider> {
 
     @Override
     default void close() {

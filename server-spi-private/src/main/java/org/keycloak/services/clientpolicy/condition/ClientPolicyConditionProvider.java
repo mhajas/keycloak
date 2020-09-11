@@ -29,7 +29,7 @@ import org.keycloak.services.clientpolicy.ClientPolicyVote;
  * It is sufficient for the implementer of this condition to implement methods in which they are interested
  * and {@link isEvaluatedOnEvent} method.
  */
-public interface ClientPolicyConditionProvider extends Provider {
+public interface ClientPolicyConditionProvider extends Provider.Capability<ClientPolicyConditionProvider> {
 
     @Override
     default void close() {

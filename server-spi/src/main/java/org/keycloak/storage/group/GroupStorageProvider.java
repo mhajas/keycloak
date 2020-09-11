@@ -17,6 +17,7 @@
 package org.keycloak.storage.group;
 
 import org.keycloak.provider.Provider;
+import org.keycloak.storage.StorageProvider;
 
-public interface GroupStorageProvider extends Provider, GroupLookupProvider {
+public interface GroupStorageProvider extends StorageProvider, GroupLookupProvider {
 }

@@ -25,11 +25,12 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.utils.KeycloakModelUtils;
 import org.keycloak.provider.ConfigurationValidationHelper;
+import org.keycloak.provider.Provider;
 
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
  */
-public abstract class AbstractGeneratedSecretKeyProviderFactory<T extends KeyProvider> implements KeyProviderFactory<T> {
+public abstract class AbstractGeneratedSecretKeyProviderFactory<T extends Provider.Capability<KeyProvider>> implements KeyProviderFactory<T> {
 
     @Override
     public void validateConfiguration(KeycloakSession session, RealmModel realm, ComponentModel model) throws ComponentValidationException {

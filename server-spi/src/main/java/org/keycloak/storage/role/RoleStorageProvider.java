@@ -17,11 +17,12 @@
 package org.keycloak.storage.role;
 
 import org.keycloak.provider.Provider;
+import org.keycloak.storage.StorageProvider;
 
 /**
  * Base interface for components that want to provide an alternative storage mechanism for roles
  */
-public interface RoleStorageProvider extends Provider, RoleLookupProvider {
+public interface RoleStorageProvider extends StorageProvider, RoleLookupProvider {
 
 }
 

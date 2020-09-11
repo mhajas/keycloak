@@ -23,11 +23,12 @@ import org.keycloak.component.ComponentModel;
 import org.keycloak.crypto.KeyUse;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
+import org.keycloak.provider.Provider;
 
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
  */
-public interface KeyProviderFactory<T extends KeyProvider> extends ComponentFactory<T, KeyProvider> {
+public interface KeyProviderFactory<T extends Provider.Capability<KeyProvider>> extends ComponentFactory<T, KeyProvider> {
 
     T create(KeycloakSession session, ComponentModel model);
 

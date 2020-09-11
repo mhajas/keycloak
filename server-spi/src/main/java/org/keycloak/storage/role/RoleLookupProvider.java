@@ -20,11 +20,13 @@ import java.util.stream.Stream;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.RoleModel;
+import org.keycloak.provider.Provider;
+import org.keycloak.storage.StorageProvider;
 
 /**
  * Abstraction interface for lookup of both realm roles and client roles by id, name and description.
  */
-public interface RoleLookupProvider {
+public interface RoleLookupProvider extends StorageProvider.Capability<RoleStorageProvider> {
 
     /**
      * Exact search for a role by given name.

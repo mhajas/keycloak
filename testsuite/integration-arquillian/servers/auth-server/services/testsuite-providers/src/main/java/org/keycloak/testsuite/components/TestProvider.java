@@ -25,7 +25,7 @@ import java.util.Map;
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
  */
-public interface TestProvider extends Provider {
+public interface TestProvider extends Provider.Capability<TestProvider> {
 
     DetailsRepresentation getDetails();
 

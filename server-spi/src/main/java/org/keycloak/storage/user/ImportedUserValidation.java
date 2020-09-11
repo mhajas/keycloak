@@ -18,6 +18,8 @@ package org.keycloak.storage.user;
 
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
+import org.keycloak.provider.Provider;
+import org.keycloak.storage.UserStorageProvider;
 
 /**
  * If your UserStorageProvider is importing users into local storage, you can validate that import whenever the
@@ -26,7 +28,7 @@ import org.keycloak.models.UserModel;
  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
  * @version $Revision: 1 $
  */
-public interface ImportedUserValidation {
+public interface ImportedUserValidation extends Provider.Capability<UserStorageProvider> {
     /**
      * If this method returns null, then the user in local storage will be removed
      *

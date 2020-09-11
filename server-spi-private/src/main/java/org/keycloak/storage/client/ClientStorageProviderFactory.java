@@ -24,6 +24,7 @@ import org.keycloak.component.ComponentValidationException;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
 import org.keycloak.models.RealmModel;
+import org.keycloak.provider.Provider;
 import org.keycloak.provider.ProviderConfigProperty;
 
 import java.util.Collections;
@@ -35,7 +36,7 @@ import java.util.Map;
  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
  * @version $Revision: 1 $
  */
-public interface ClientStorageProviderFactory<T extends ClientStorageProvider> extends ComponentFactory<T, ClientStorageProvider> {
+public interface ClientStorageProviderFactory<T extends Provider.Capability<ClientStorageProvider>> extends ComponentFactory<T, ClientStorageProvider> {
 
 
     /**

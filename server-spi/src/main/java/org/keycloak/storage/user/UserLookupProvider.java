@@ -18,6 +18,8 @@ package org.keycloak.storage.user;
 
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
+import org.keycloak.provider.Provider;
+import org.keycloak.storage.UserStorageProvider;
 
 /**
  * Optional capability interface implemented by UserStorageProviders.  This interface is required
@@ -26,7 +28,7 @@ import org.keycloak.models.UserModel;
  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
  * @version $Revision: 1 $
  */
-public interface UserLookupProvider {
+public interface UserLookupProvider extends Provider.Capability<UserStorageProvider> {
     UserModel getUserById(String id, RealmModel realm);
 
     UserModel getUserByUsername(String username, RealmModel realm);

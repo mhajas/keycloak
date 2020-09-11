@@ -22,6 +22,8 @@ package org.keycloak.provider;
  */
 public interface Provider {
 
+    interface Capability <T extends Provider> extends Provider {}
+
     void close();
 
 }

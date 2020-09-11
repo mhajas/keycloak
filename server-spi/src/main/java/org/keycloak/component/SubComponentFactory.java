@@ -29,7 +29,7 @@ import java.util.Map;
  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
  * @version $Revision: 1 $
  */
-public interface SubComponentFactory<CreatedType, ProviderType extends Provider> extends ComponentFactory<CreatedType, ProviderType> {
+public interface SubComponentFactory<CreatedType extends Provider.Capability<ProviderType>, ProviderType extends Provider> extends ComponentFactory<CreatedType, ProviderType> {
     default
     List<ProviderConfigProperty> getConfigProperties(RealmModel realm, ComponentModel parent) {
         return getConfigProperties();

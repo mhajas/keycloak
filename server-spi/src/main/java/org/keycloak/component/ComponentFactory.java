@@ -31,7 +31,7 @@ import java.util.Map;
  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
  * @version $Revision: 1 $
  */
-public interface ComponentFactory<CreatedType, ProviderType extends Provider> extends ProviderFactory<ProviderType>, ConfiguredProvider {
+public interface ComponentFactory<CreatedType extends Provider.Capability<ProviderType>, ProviderType extends Provider> extends ProviderFactory<ProviderType>, ConfiguredProvider {
     CreatedType create(KeycloakSession session, ComponentModel model);
 
     @Override

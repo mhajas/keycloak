@@ -19,6 +19,8 @@ package org.keycloak.storage.user;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.RoleModel;
 import org.keycloak.models.UserModel;
+import org.keycloak.provider.Provider;
+import org.keycloak.storage.UserStorageProvider;
 
 /**
  * Optional capability interface implemented by UserStorageProviders.
@@ -27,7 +29,7 @@ import org.keycloak.models.UserModel;
  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
  * @version $Revision: 1 $
  */
-public interface UserRegistrationProvider {
+public interface UserRegistrationProvider extends Provider.Capability<UserStorageProvider> {
 
     /**
      * All storage providers that implement this interface will be looped through.

@@ -26,7 +26,7 @@ import org.keycloak.services.clientpolicy.executor.ClientPolicyExecutorProvider;
 /**
  * Provides Client Policy which accommodates several Conditions and Executors.
  */
-public interface ClientPolicyProvider extends Provider {
+public interface ClientPolicyProvider extends Provider.Capability<ClientPolicyProvider> {
 
     /**
      * returns the list of conditions which this provider accommodates.

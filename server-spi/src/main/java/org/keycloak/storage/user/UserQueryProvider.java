@@ -20,6 +20,8 @@ import org.keycloak.models.GroupModel;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.RoleModel;
 import org.keycloak.models.UserModel;
+import org.keycloak.provider.Provider;
+import org.keycloak.storage.UserStorageProvider;
 
 import java.util.Collections;
 import java.util.List;
@@ -34,7 +36,7 @@ import java.util.Set;
  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
  * @version $Revision: 1 $
  */
-public interface UserQueryProvider {
+public interface UserQueryProvider extends Provider.Capability<UserStorageProvider> {
 
     /**
      * Returns the number of users, without consider any service account.

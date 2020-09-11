@@ -24,6 +24,7 @@ import org.keycloak.component.ComponentValidationException;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
 import org.keycloak.models.RealmModel;
+import org.keycloak.provider.Provider;
 import org.keycloak.provider.ProviderConfigProperty;
 
 import java.util.Collections;
@@ -31,7 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public interface RoleStorageProviderFactory<T extends RoleStorageProvider> extends ComponentFactory<T, RoleStorageProvider> {
+public interface RoleStorageProviderFactory<T extends Provider.Capability<RoleStorageProvider>> extends ComponentFactory<T, RoleStorageProvider> {
 
 
     /**
