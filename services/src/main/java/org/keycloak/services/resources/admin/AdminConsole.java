@@ -59,7 +59,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
@@ -237,11 +236,10 @@ public class AdminConsole {
     }
 
     private void addMasterRealmAccess(UserModel user, Map<String, Set<String>> realmAdminAccess) {
-        List<RealmModel> realms = session.realms().getRealms();
-        for (RealmModel realm : realms) {
+        session.realms().getRealmsStream().forEach(realm -> {
             ClientModel realmAdminApp = realm.getMasterAdminClient();
             getRealmAdminAccess(realm, realmAdminApp, user, realmAdminAccess);
-        }
+        });
     }
 
 
