@@ -211,8 +211,6 @@ public abstract class AbstractServletsAdapterTest extends AbstractAdapterTest {
     }
 
     protected void setAdapterAndServerTimeOffset(int timeOffset, String... servletUris) {
-        setTimeOffset(timeOffset);
-
         for (String servletUri : servletUris) {
             String timeOffsetUri = UriBuilder.fromUri(servletUri)
                     .queryParam(AdapterActionsFilter.TIME_OFFSET_PARAM, timeOffset)
@@ -223,6 +221,8 @@ public abstract class AbstractServletsAdapterTest extends AbstractAdapterTest {
             String pageSource = DroneUtils.getCurrentDriver().getPageSource();
             System.out.println(pageSource);
         }
+
+        setTimeOffset(timeOffset);
     }
 
 }
