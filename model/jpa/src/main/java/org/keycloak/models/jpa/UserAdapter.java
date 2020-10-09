@@ -21,6 +21,7 @@ import org.keycloak.common.util.MultivaluedHashMap;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.GroupModel;
 import org.keycloak.models.KeycloakSession;
+import org.keycloak.models.ModelDuplicateException;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.RoleModel;
 import org.keycloak.models.UserModel;
@@ -264,12 +265,6 @@ public class UserAdapter implements UserModel.Streams, JpaModel<UserEntity> {
     }
 
     @Override
-    public void addRequiredAction(RequiredAction action) {
-        String actionName = action.name();
-        addRequiredAction(actionName);
-    }
-
-    @Override
     public void addRequiredAction(String actionName) {
         for (UserRequiredActionEntity attr : user.getRequiredActions()) {
             if (attr.getAction().equals(actionName)) {
@@ -281,12 +276,6 @@ public class UserAdapter implements UserModel.Streams, JpaModel<UserEntity> {
         attr.setUser(user);
         em.persist(attr);
         user.getRequiredActions().add(attr);
-    }
-
-    @Override
-    public void removeRequiredAction(RequiredAction action) {
-        String actionName = action.name();
-        removeRequiredAction(actionName);
     }
 
     @Override

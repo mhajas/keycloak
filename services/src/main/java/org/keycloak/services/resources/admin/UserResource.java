@@ -168,6 +168,7 @@ public class UserResource {
 
             updateUserFromRep(user, rep, session, true);
             RepresentationToModel.createCredentials(rep, session, realm, user, true);
+
             adminEvent.operation(OperationType.UPDATE).resourcePath(session.getContext().getUri()).representation(rep).success();
 
             if (session.getTransactionManager().isActive()) {

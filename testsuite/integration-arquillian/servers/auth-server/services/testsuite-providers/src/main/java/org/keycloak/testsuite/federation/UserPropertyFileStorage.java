@@ -173,12 +173,12 @@ public class UserPropertyFileStorage implements UserLookupProvider, UserStorageP
     }
 
     @Override
-    public List<UserModel> searchForUser(String search, RealmModel realm, int firstResult, int maxResults) {
+    public List<UserModel> searchForUser(String search, RealmModel realm, Integer firstResult, Integer maxResults) {
         return searchForUser(search, realm, firstResult, maxResults, username -> username.contains(search));
     }
 
     @Override
-    public List<UserModel> searchForUser(Map<String, String> attributes, RealmModel realm, int firstResult, int maxResults) {
+    public List<UserModel> searchForUser(Map<String, String> attributes, RealmModel realm, Integer firstResult, Integer maxResults) {
         String search = Optional.ofNullable(attributes.get(UserModel.USERNAME))
                 .orElseGet(()-> attributes.get(UserModel.SEARCH));
         if (search == null) return Collections.EMPTY_LIST;
@@ -189,7 +189,7 @@ public class UserPropertyFileStorage implements UserLookupProvider, UserStorageP
     }
 
     @Override
-    public List<UserModel> getGroupMembers(RealmModel realm, GroupModel group, int firstResult, int maxResults) {
+    public List<UserModel> getGroupMembers(RealmModel realm, GroupModel group, Integer firstResult, Integer maxResults) {
         return Collections.EMPTY_LIST;
     }
 

@@ -45,12 +45,13 @@ public class Serialization {
     }
 
 
-    public static <T extends AbstractEntity> T from(T orig) {
+    public static <T> T from(T orig) {
         if (orig == null) {
             return null;
         }
         try {
             // Naive solution but will do.
+            @SuppressWarnings("unchecked")
             final T res = MAPPER.readValue(MAPPER.writeValueAsBytes(orig), (Class<T>) orig.getClass());
             return res;
         } catch (IOException ex) {

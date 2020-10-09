@@ -41,7 +41,7 @@
     },
 
     "user": {
-        "provider": "${keycloak.user.provider:jpa}"
+        "provider": "${keycloak.user.provider:map}"
     },
 
     "client": {

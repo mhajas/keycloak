@@ -23,6 +23,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.keycloak.common.util.Base64;
 import org.keycloak.common.util.MultivaluedHashMap;
@@ -107,16 +108,20 @@ public class CredentialModel implements Serializable {
         this.createdDate = createdDate;
     }
 
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     public String getSecretData() {
         return secretData;
     }
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     public void setSecretData(String secretData) {
         this.secretData = secretData;
     }
 
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     public String getCredentialData() {
         return credentialData;
     }
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     public void setCredentialData(String credentialData) {
         this.credentialData = credentialData;
     }

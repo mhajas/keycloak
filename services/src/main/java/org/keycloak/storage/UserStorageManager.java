@@ -128,15 +128,20 @@ public class UserStorageManager extends AbstractStorageManager<UserStorageProvid
         if (userCache != null) {
             userCache.evict(realm, user);
         }
-        runJobInTransaction(session.getKeycloakSessionFactory(), session -> {
-            RealmModel realmModel = session.realms().getRealm(realm.getId());
-            if (realmModel == null) return;
-            UserModel deletedUser = session.userLocalStorage().getUserById(userId, realmModel);
-            if (deletedUser != null) {
-                new UserManager(session).removeUser(realmModel, deletedUser, session.userLocalStorage());
-                logger.debugf("Removed invalid user '%s'", userName);
-            }
-        });
+//        runJobInTransaction(session.getKeycloakSessionFactory(), new KeycloakSessionTask() {
+//
+//            @Override
+//            public void run(KeycloakSession session) {
+//                RealmModel realmModel = session.realms().getRealm(realm.getId());
+//                if (realmModel == null) return;
+//                UserModel deletedUser = session.userLocalStorage().getUserById(userId, realmModel);
+//                if (deletedUser != null) {
+                    new UserManager(session).removeUser(realm, user, session.userLocalStorage());
+//                    logger.debugf("Removed invalid user '%s'", userName);
+//                }
+//            }
+//
+//        });
     }
 
 
@@ -268,7 +273,7 @@ public class UserStorageManager extends AbstractStorageManager<UserStorageProvid
     }
 
     @Override
-    public Stream<UserModel> getGroupMembersStream(final RealmModel realm, final GroupModel group, int firstResult, int maxResults) {
+    public Stream<UserModel> getGroupMembersStream(final RealmModel realm, final GroupModel group, Integer firstResult, Integer maxResults) {
         Stream<UserModel> results = query((provider) -> {
             if (provider instanceof UserQueryProvider) {
                 return ((UserQueryProvider)provider).getGroupMembersStream(realm, group);
@@ -289,7 +294,7 @@ public class UserStorageManager extends AbstractStorageManager<UserStorageProvid
     }
 
     @Override
-    public Stream<UserModel> getRoleMembersStream(final RealmModel realm, final RoleModel role, int firstResult, int maxResults) {
+    public Stream<UserModel> getRoleMembersStream(final RealmModel realm, final RoleModel role, Integer firstResult, Integer maxResults) {
         Stream<UserModel> results = query((provider) -> {
             if (provider instanceof UserQueryProvider) {
                 return ((UserQueryProvider)provider).getRoleMembersStream(realm, role);
@@ -316,7 +321,7 @@ public class UserStorageManager extends AbstractStorageManager<UserStorageProvid
     }
 
     @Override
-    public Stream<UserModel> getUsersStream(final RealmModel realm, int firstResult, int maxResults, final boolean includeServiceAccounts) {
+    public Stream<UserModel> getUsersStream(final RealmModel realm, Integer firstResult, Integer maxResults, final boolean includeServiceAccounts) {
         Stream<UserModel> results =  query((provider) -> {
             if (provider instanceof UserProvider) { // it is local storage
                 return ((UserProvider) provider).getUsersStream(realm, includeServiceAccounts);
@@ -375,7 +380,7 @@ public class UserStorageManager extends AbstractStorageManager<UserStorageProvid
     }
 
     @Override
-    public Stream<UserModel> searchForUserStream(String search, RealmModel realm, int firstResult, int maxResults) {
+    public Stream<UserModel> searchForUserStream(String search, RealmModel realm, Integer firstResult, Integer maxResults) {
         Stream<UserModel> results = query((provider) -> {
             if (provider instanceof UserQueryProvider) {
                 return ((UserQueryProvider)provider).searchForUserStream(search, realm);
@@ -391,7 +396,7 @@ public class UserStorageManager extends AbstractStorageManager<UserStorageProvid
     }
 
     @Override
-    public Stream<UserModel> searchForUserStream(Map<String, String> attributes, RealmModel realm, int firstResult, int maxResults) {
+    public Stream<UserModel> searchForUserStream(Map<String, String> attributes, RealmModel realm, Integer firstResult, Integer maxResults) {
         Stream<UserModel> results = query((provider) -> {
             if (provider instanceof UserQueryProvider) {
                 if (attributes.containsKey(UserModel.SEARCH)) {

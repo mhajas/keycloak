@@ -1155,6 +1155,9 @@
           ],
           "authType": [
             "simple"
+          ],
+          "enabled": [
+            "false"
           ]
         }
       }

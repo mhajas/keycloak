@@ -315,13 +315,13 @@ public class UserMapStorage implements UserLookupProvider, UserStorageProvider, 
     }
 
     @Override
-    public Stream<UserModel> searchForUserStream(String search, RealmModel realm, int firstResult, int maxResults) {
+    public Stream<UserModel> searchForUserStream(String search, RealmModel realm, Integer firstResult, Integer maxResults) {
         Stream<String> userStream = userPasswords.keySet().stream()
                 .sorted()
                 .filter(userName -> userName.contains(search));
-        if (firstResult > 0)
+        if (firstResult != null && firstResult > 0)
             userStream = userStream.skip(firstResult);
-        if (maxResults >= 0)
+        if (maxResults != null && maxResults >= 0)
             userStream = userStream.limit(maxResults);
         return userStream.map(userName -> createUser(realm, userName));
     }
@@ -332,7 +332,7 @@ public class UserMapStorage implements UserLookupProvider, UserStorageProvider, 
     }
 
     @Override
-    public Stream<UserModel> searchForUserStream(Map<String, String> params, RealmModel realm, int firstResult, int maxResults) {
+    public Stream<UserModel> searchForUserStream(Map<String, String> params, RealmModel realm, Integer firstResult, Integer maxResults) {
         Stream<String> userStream = userPasswords.keySet().stream()
           .sorted();
 
@@ -363,7 +363,7 @@ public class UserMapStorage implements UserLookupProvider, UserStorageProvider, 
     }
 
     @Override
-    public Stream<UserModel> getGroupMembersStream(RealmModel realm, GroupModel group, int firstResult, int maxResults) {
+    public Stream<UserModel> getGroupMembersStream(RealmModel realm, GroupModel group, Integer firstResult, Integer maxResults) {
         return getMembershipStream(realm, group, firstResult, maxResults)
           .map(userName -> createUser(realm, userName));
     }
