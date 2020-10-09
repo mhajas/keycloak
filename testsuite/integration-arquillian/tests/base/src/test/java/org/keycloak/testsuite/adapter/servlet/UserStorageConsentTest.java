@@ -51,6 +51,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.keycloak.storage.UserStorageProviderModel.IMPORT_ENABLED;
 import static org.keycloak.testsuite.util.URLAssert.assertCurrentUrlEquals;
@@ -107,14 +108,14 @@ public class UserStorageConsentTest extends AbstractServletsAdapterTest {
         product.setConsentRequired(true);
         ClientScopeModel clientScope = realm.addClientScope("clientScope");
         clientScope.setProtocol(OIDCLoginProtocol.LOGIN_PROTOCOL);
-        System.err.println("client scope protocol mappers size: " + clientScope.getProtocolMappers().size());
+        System.err.println("client scope protocol mappers size: " + clientScope.getProtocolMappersStream().count());
 
-        for (ProtocolMapperModel mapper : product.getProtocolMappers()) {
+        for (ProtocolMapperModel mapper : product.getProtocolMappersStream().collect(Collectors.toList())) {
             if (mapper.getProtocol().equals(OIDCLoginProtocol.LOGIN_PROTOCOL)) {
                 if (mapper.getName().equals(OIDCLoginProtocolFactory.USERNAME)
                         || mapper.getName().equals(OIDCLoginProtocolFactory.EMAIL)
                         || mapper.getName().equals(OIDCLoginProtocolFactory.GIVEN_NAME)
-                        ) {
+                ) {
                     ProtocolMapperModel copy = new ProtocolMapperModel();
                     copy.setName(mapper.getName());
                     copy.setProtocol(mapper.getProtocol());
