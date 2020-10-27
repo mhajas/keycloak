@@ -669,7 +669,7 @@ public class InfinispanUserSessionProvider implements UserSessionProvider {
         entity.setRealmId(realmId);
 
         SessionUpdateTask<ArtifactResponseEntity> createArtifactResponseTask = Tasks.addIfAbsentSync();
-        artifactTx.addTask(artifact, createArtifactResponseTask, entity);
+        artifactTx.addTask(artifact, createArtifactResponseTask, entity, UserSessionModel.SessionPersistenceState.PERSISTENT);
     }
 
     @Override
