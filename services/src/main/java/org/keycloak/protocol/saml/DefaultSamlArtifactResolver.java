@@ -19,7 +19,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * ArtifactResolver for artifact-04 format.
@@ -78,23 +78,18 @@ public class DefaultSamlArtifactResolver implements ArtifactResolver {
 
 
     @Override
-    public ClientModel selectSourceClient(String artifact, List<ClientModel> clients) throws ArtifactResolverProcessingException {
+    public ClientModel selectSourceClient(String artifact, Stream<ClientModel> clients) throws ArtifactResolverProcessingException {
         try {
             byte[] source = extractSourceFromArtifact(artifact);
 
             MessageDigest sha1Digester = MessageDigest.getInstance("SHA-1");
-
-            for (ClientModel client : clients) {
-                byte[] clientBytes = sha1Digester.digest(client.getClientId().getBytes(Charsets.UTF_8));
-                if (Arrays.equals(source, clientBytes)) {
-                    return client;
-                }
-            }
+            return clients.filter(clientModel -> Arrays.equals(source,
+                    sha1Digester.digest(clientModel.getClientId().getBytes(Charsets.UTF_8))))
+                    .findFirst()
+                    .orElseThrow(() -> new ArtifactResolverProcessingException("No client matching the artifact source found"));
         } catch (NoSuchAlgorithmException e) {
             throw new ArtifactResolverProcessingException(e);
         }
-
-        throw new ArtifactResolverProcessingException("No client matching the artifact source found");
     }
 
     private void assertSupportedArtifactFormat(String artifactString) throws ArtifactResolverProcessingException {

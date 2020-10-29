@@ -323,7 +323,7 @@ public class SamlService extends AuthorizationEndpointBase {
             //Find client
             ClientModel client;
             try {
-                client = getArtifactResolver().selectSourceClient(artifact, realm.getClients());
+                client = getArtifactResolver().selectSourceClient(artifact, realm.getClientsStream());
 
                 Response error = checkClientValidity(client);
                 if (error != null) {

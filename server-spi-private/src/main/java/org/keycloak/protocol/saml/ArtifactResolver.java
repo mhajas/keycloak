@@ -7,7 +7,7 @@ import org.keycloak.models.UserSessionModel;
 import org.keycloak.provider.Provider;
 import org.w3c.dom.Document;
 
-import java.util.List;
+import java.util.stream.Stream;
 
 
 /**
@@ -15,7 +15,7 @@ import java.util.List;
  */
 public interface ArtifactResolver extends Provider {
 
-    ClientModel selectSourceClient(String artifact, List<ClientModel> clients) throws ArtifactResolverProcessingException;
+    ClientModel selectSourceClient(String artifact, Stream<ClientModel> clients) throws ArtifactResolverProcessingException;
 
     String buildAuthnArtifact(String entityId, Document samlDocument, AuthenticatedClientSessionModel clientSession) throws ArtifactResolverProcessingException, ArtifactResolverConfigException;
 
