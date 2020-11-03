@@ -50,7 +50,7 @@
         <arquillian-core.version>1.6.0.Final</arquillian-core.version>
         <!--the version of shrinkwrap_resolver should align with the version in arquillian-bom-->
         <shrinkwrap-resolver.version>3.1.4</shrinkwrap-resolver.version>
-        <selenium.version>3.14.0</selenium.version>
+        <selenium.version>3.141.59</selenium.version>
         <arquillian-drone.version>2.5.1</arquillian-drone.version>
         <arquillian-graphene.version>2.3.2</arquillian-graphene.version>
         <arquillian-wildfly-container.version>2.1.1.Final</arquillian-wildfly-container.version>
