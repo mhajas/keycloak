@@ -168,7 +168,7 @@ public class JpaUserProvider implements UserProvider.Streams, UserCredentialStor
         em.flush();
         // not sure why i have to do a clear() here.  I was getting some messed up errors that Hibernate couldn't
         // un-delete the UserEntity.
-        em.clear();
+        //em.clear();
         user = em.find(UserEntity.class, id, LockModeType.PESSIMISTIC_WRITE);
         if (user != null) {
             em.remove(user);
