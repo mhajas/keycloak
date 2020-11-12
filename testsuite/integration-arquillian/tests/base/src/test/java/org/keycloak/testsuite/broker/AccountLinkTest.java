@@ -22,7 +22,6 @@ import org.junit.Test;
 import org.keycloak.admin.client.resource.RealmResource;
 import org.keycloak.admin.client.resource.UsersResource;
 import org.keycloak.common.util.MultivaluedHashMap;
-import org.keycloak.models.FederatedIdentityModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
@@ -39,8 +38,8 @@ import org.keycloak.testsuite.pages.LoginPage;
 import org.keycloak.testsuite.pages.UpdateAccountInformationPage;
 
 import java.util.List;
-import java.util.Set;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -168,9 +167,7 @@ public class AccountLinkTest extends AbstractKeycloakTest {
     private static void checkEmptyFederatedIdentities(KeycloakSession session) {
         RealmModel realm = session.getContext().getRealm();
         UserModel user = session.users().getUserByUsername("child", realm);
-        Set<FederatedIdentityModel> identities1 = session.users()
-                .getFederatedIdentities(user, realm);
-        assertTrue(identities1.isEmpty());
+        assertEquals(0, session.users().getFederatedIdentitiesStream(user, realm).count());
         assertNull(session.users().getFederatedIdentity(user, PARENT_IDP, realm));
     }
 

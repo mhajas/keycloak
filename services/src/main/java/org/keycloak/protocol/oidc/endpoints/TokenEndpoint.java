@@ -643,10 +643,9 @@ public class TokenEndpoint {
         }
         processor.evaluateRequiredActionTriggers();
         UserModel user = authSession.getAuthenticatedUser();
-        if (user.getRequiredActions() != null && user.getRequiredActions().size() > 0) {
+        if (user.getRequiredActionsStream().count() > 0) {
             event.error(Errors.RESOLVE_REQUIRED_ACTIONS);
             throw new CorsErrorResponseException(cors, OAuthErrorException.INVALID_GRANT, "Account is not fully set up", Response.Status.BAD_REQUEST);
-
         }
 
         AuthenticationManager.setClientScopesInSession(authSession);
