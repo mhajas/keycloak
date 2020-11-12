@@ -165,16 +165,10 @@ public class JpaUserProvider implements UserProvider.Streams, UserCredentialStor
         em.createNamedQuery("deleteFederatedIdentityByUser").setParameter("user", user).executeUpdate();
         em.createNamedQuery("deleteUserConsentClientScopesByUser").setParameter("user", user).executeUpdate();
         em.createNamedQuery("deleteUserConsentsByUser").setParameter("user", user).executeUpdate();
+        em.remove(user);
         em.flush();
         // not sure why i have to do a clear() here.  I was getting some messed up errors that Hibernate couldn't
         // un-delete the UserEntity.
-        //em.clear();
-        user = em.find(UserEntity.class, id, LockModeType.PESSIMISTIC_WRITE);
-        if (user != null) {
-            em.remove(user);
-        }
-
-        em.flush();
     }
 
     @Override
@@ -506,9 +500,9 @@ public class JpaUserProvider implements UserProvider.Streams, UserCredentialStor
 
     @Override
     public Stream<UserModel> getGroupMembersStream(RealmModel realm, GroupModel group) {
-        TypedQuery<UserEntity> query = em.createNamedQuery("groupMembership", UserEntity.class);
+        TypedQuery<String> query = em.createNamedQuery("groupMembership", String.class);
         query.setParameter("groupId", group.getId());
-        return closing(query.getResultStream().map(entity -> new UserAdapter(session, realm, em, entity)));
+        return closing(query.getResultStream().map(id -> session.users().getUserById(id, realm)));
     }
 
     @Override
@@ -526,7 +520,7 @@ public class JpaUserProvider implements UserProvider.Streams, UserCredentialStor
 
     @Override
     public UserModel getUserById(String id, RealmModel realm) {
-        UserEntity userEntity = em.find(UserEntity.class, id);
+        UserEntity userEntity = em.find(UserEntity.class, id, LockModeType.PESSIMISTIC_WRITE);
         if (userEntity == null || !realm.getId().equals(userEntity.getRealmId())) return null;
         return new UserAdapter(session, realm, em, userEntity);
     }
