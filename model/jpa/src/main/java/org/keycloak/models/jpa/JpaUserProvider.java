@@ -81,7 +81,7 @@ import static org.keycloak.utils.StreamsUtil.closing;
  * @version $Revision: 1 $
  */
 @SuppressWarnings("JpaQueryApiInspection")
-public class JpaUserProvider implements UserProvider, UserCredentialStore {
+public class JpaUserProvider implements UserProvider.Streams, UserCredentialStore {
 
     private static final String EMAIL = "email";
     private static final String USERNAME = "username";
