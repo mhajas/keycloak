@@ -35,4 +35,18 @@
         <module>infinispan</module>
         <module>map</module>
     </modules>
+
+    <profiles>
+        <profile>
+            <id>testsuite</id>
+            <activation>
+                <property>
+                    <name>!skipTestsuite</name>
+                </property>
+            </activation>
+            <modules>
+                <module>test</module>
+            </modules>
+        </profile>
+    </profiles>
 </project>
