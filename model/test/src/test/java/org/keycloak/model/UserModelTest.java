@@ -29,10 +29,12 @@ import org.keycloak.storage.UserStorageProviderModel;
 import org.keycloak.storage.user.UserLookupProvider;
 import org.keycloak.storage.user.UserRegistrationProvider;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -232,4 +234,43 @@ public class UserModelTest extends KeycloakModelTest {
     private static final int FIRST_DELETED_USER_INDEX = 10;
     private static final int LAST_DELETED_USER_INDEX = 90;
     private static final int DELETED_USER_COUNT = LAST_DELETED_USER_INDEX - FIRST_DELETED_USER_INDEX;
+
+    @Test
+    public void removeUserAttributeTest() {
+        inComittedTransaction(1, (session, i) -> {
+            RealmModel realm = session.realms().getRealm(realmId);
+            UserModel john = session.users().addUser(realm, "john");
+            john.setSingleAttribute("foo", "val1");
+
+            UserModel john2 = session.users().addUser(realm, "john2");
+            john2.setAttribute("foo", Arrays.asList("val1", "val2"));
+        });
+
+        final CountDownLatch readAttrLatch = new CountDownLatch(4);
+        IntStream.range(0, 4).parallel().forEach(index -> inComittedTransaction(index, (session, i) -> {
+            try {
+                RealmModel realm = session.realms().getRealm(realmId);
+                UserModel john = session.users().getUserByUsername("john", realm);
+                String attrVal = john.getFirstAttribute("foo");
+
+                UserModel john2 = session.users().getUserByUsername("john2", realm);
+                String attrVal2 = john2.getFirstAttribute("foo");
+
+                // Wait until it's read in all threads
+                readAttrLatch.countDown();
+                readAttrLatch.await();
+
+
+                // KEYCLOAK-3296 : Remove user attribute in both threads
+                john.removeAttribute("foo");
+
+                // KEYCLOAK-3494 : Set single attribute in both threads
+                john2.setSingleAttribute("foo", "bar");
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            } finally {
+                readAttrLatch.countDown();
+            }
+        }));
+    }
 }
