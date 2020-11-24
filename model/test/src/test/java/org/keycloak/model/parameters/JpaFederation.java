@@ -22,8 +22,9 @@ import org.keycloak.provider.Spi;
 import org.keycloak.storage.UserStorageProviderSpi;
 import org.keycloak.storage.federated.UserFederatedStorageProviderSpi;
 import org.keycloak.storage.jpa.JpaUserFederatedStorageProviderFactory;
-import org.keycloak.testsuite.federation.BackwardsCompatibilityUserStorageFactory;
 import com.google.common.collect.ImmutableSet;
+import org.keycloak.testsuite.federation.UserMapStorageFactory;
+
 import java.util.Set;
 
 /**
@@ -41,7 +42,7 @@ public class JpaFederation extends KeycloakModelParameters {
 
     static final Set<Class<? extends ProviderFactory>> ALLOWED_FACTORIES = ImmutableSet.<Class<? extends ProviderFactory>>builder()
       .addAll(Jpa.ALLOWED_FACTORIES)
-      .add(BackwardsCompatibilityUserStorageFactory.class)
+      .add(UserMapStorageFactory.class)
       .add(JpaUserFederatedStorageProviderFactory.class)
       .build();
 
