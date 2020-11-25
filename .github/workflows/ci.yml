@@ -29,7 +29,119 @@ jobs:
           path: maven-repo.tgz
 
   test:
-    name: Test
+    name: Base testsuite
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        server: ['quarkus', 'undertow-map', 'wildfly']
+        tests: ['group1','group2','group3']
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Cache Maven packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: cache-1-${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: cache-1-${{ runner.os }}-m2
+
+      - name: Download built keycloak
+        id: download-keycloak
+        uses: actions/download-artifact@v2
+        with:
+          path: ~/.m2/repository/org/keycloak/
+          name: keycloak-artifacts.zip
+
+      # - name: List M2 repo
+      #   run: |
+      #     find ~ -name *dist*.zip
+      #     ls -lR ~/.m2/repository
+
+      - uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+
+      - name: Run base tests
+        run: |
+          declare -A PARAMS TESTGROUP
+          PARAMS["quarkus"]="-Pauth-server-quarkus"
+          PARAMS["undertow-map"]="-Pauth-server-undertow -Dkeycloak.client.provider=map -Dkeycloak.group.provider=map -Dkeycloak.role.provider=map -Dkeycloak.authSession.provider=map"
+          PARAMS["wildfly"]="-Pauth-server-wildfly"
+          TESTGROUP["group1"]="-Dtest=!**.crossdc.**,!**.cluster.**,%regex[org.keycloak.testsuite.(a[abc]|ad[a-l]|[^a-q]).*]"   # Tests alphabetically before admin tests and those after "r"
+          TESTGROUP["group2"]="-Dtest=!**.crossdc.**,!**.cluster.**,%regex[org.keycloak.testsuite.(ad[^a-l]|a[^a-d]|b).*]"      # Admin tests and those starting with "b"
+          TESTGROUP["group3"]="-Dtest=!**.crossdc.**,!**.cluster.**,%regex[org.keycloak.testsuite.([c-q]).*]"                   # All the rest
+
+          mvn clean install -nsu -B ${PARAMS["${{ matrix.server }}"]} ${TESTGROUP["${{ matrix.tests }}"]} -f testsuite/integration-arquillian/tests/base/pom.xml | misc/log/trimmer.sh
+
+          TEST_RESULT=${PIPESTATUS[0]}
+          find . -path '*/target/surefire-reports/*.xml' | zip -q reports-${{ matrix.server }}-base-tests-${{ matrix.tests }}.zip -@
+          exit $TEST_RESULT
+
+      - name: Base test reports
+        uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: reports-${{ matrix.server }}-base-tests-${{ matrix.tests }}
+          retention-days: 14
+          path: reports-${{ matrix.server }}-base-tests-${{ matrix.tests }}.zip
+          if-no-files-found: ignore
+
+  test-cluster:
+    name: Test Clustering
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Check whether this phase should run
+        run: echo "GIT_DIFF=$( git diff --name-only HEAD^ | egrep -ic 'crossdc|infinispan' )" >> $GITHUB_ENV
+
+      - name: Cache Maven packages
+        if: ${{ github.event_name != 'pull_request' || env.GIT_DIFF != 0 }}
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: cache-1-${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: cache-1-${{ runner.os }}-m2
+
+      - name: Cleanup org.keycloak artifacts
+        if: ${{ github.event_name != 'pull_request' || env.GIT_DIFF != 0 }}
+        run: rm -rf ~/.m2/repository/org/keycloak >/dev/null || true
+
+      - name: Download built keycloak
+        if: ${{ github.event_name != 'pull_request' || env.GIT_DIFF != 0 }}
+        id: download-keycloak
+        uses: actions/download-artifact@v2
+        with:
+          path: ~/.m2/repository/org/keycloak/
+          name: keycloak-artifacts.zip
+
+      - uses: actions/setup-java@v1
+        if: ${{ github.event_name != 'pull_request' || env.GIT_DIFF != 0 }}
+        with:
+          java-version: 1.8
+
+      - name: Run cluster tests
+        if: ${{ github.event_name != 'pull_request' || env.GIT_DIFF != 0 }}
+        run: |
+          mvn clean install -nsu -B -Pauth-server-wildfly,auth-server-cluster,db-mysql,jpa -Dsession.cache.owners=2 -Dbackends.console.output=true -Dauth.server.log.check=false -Dfrontend.console.output=true -Dtest=org.keycloak.testsuite.cluster.**.*Test -f testsuite/integration-arquillian/pom.xml | misc/log/trimmer.sh
+          TEST_RESULT=${PIPESTATUS[0]}
+          find . -path '*/target/surefire-reports/*.xml' | zip -q reports-cluster-tests.zip -@
+          exit $TEST_RESULT
+
+      - name: Cluster test reports
+        if: failure()
+        uses: actions/upload-artifact@v2
+        with:
+          name: reports-cluster-tests
+          retention-days: 14
+          path: reports-cluster-tests.zip
+          if-no-files-found: ignore
+
+  test-crossdc:
+    name: Cross-DC Tests
     needs: build
     runs-on: ubuntu-latest
     steps:
