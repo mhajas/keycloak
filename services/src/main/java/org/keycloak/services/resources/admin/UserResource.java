@@ -632,7 +632,7 @@ public class UserResource {
     @Produces(MediaType.APPLICATION_JSON)
     public Stream<CredentialRepresentation> credentials(){
         auth.users().requireManage(user);
-        return session.userCredentialManager().getStoredCredentials(realm, user).stream()
+        return session.userCredentialManager().getStoredCredentialsStream(realm, user)
                 .peek(model -> model.setSecretData(null))
                 .map(ModelToRepresentation::toRepresentation);
     }
@@ -648,11 +648,11 @@ public class UserResource {
     @Path("configured-user-storage-credential-types")
     @NoCache
     @Produces(MediaType.APPLICATION_JSON)
-    public List<String> getConfiguredUserStorageCredentialTypes() {
+    public Stream<String> getConfiguredUserStorageCredentialTypes() {
         // This has "requireManage" due the compatibility with "credentials()" endpoint. Strictly said, it is reading endpoint, not writing,
         // so may be revisited if to rather use "requireView" here in the future.
         auth.users().requireManage(user);
-        return session.userCredentialManager().getConfiguredUserStorageCredentialTypes(realm, user);
+        return session.userCredentialManager().getConfiguredUserStorageCredentialTypesStream(realm, user);
     }
 
 
