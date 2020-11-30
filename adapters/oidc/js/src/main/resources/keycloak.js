@@ -347,7 +347,9 @@
             }
 
             configPromise.then(function () {
-                domReady().then(check3pCookiesSupported).then(processInit)
+                domReady()
+                .then(check3pCookiesSupported)
+                .then(processInit)
                 .catch(function() {
                     promise.setError();
                 });
@@ -1335,7 +1337,12 @@
                 promise.setSuccess();
             }
 
-            return promise.promise;
+            let timeoutPromise = createPromise();
+            setTimeout(function () {
+                timeoutPromise.setError("Timeout getting message from check3p iframe")
+            }, 5000);
+
+            return Promise.race(promise.promise, timeoutPromise.promise);
         }
 
         function loadAdapter(type) {
