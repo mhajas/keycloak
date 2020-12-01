@@ -29,6 +29,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.jboss.resteasy.annotations.cache.NoCache;
 import org.jboss.resteasy.spi.HttpRequest;
@@ -89,33 +90,31 @@ public class SessionResource {
     @NoCache
     public Response devices() {
         Map<String, DeviceRepresentation> reps = new HashMap<>();
-        List<UserSessionModel> sessions = session.sessions().getUserSessions(realm, user);
+        session.sessions().getUserSessionsStream(realm, user).forEach(s -> {
+                DeviceRepresentation device = getAttachedDevice(s);
+                DeviceRepresentation rep = reps
+                        .computeIfAbsent(device.getOs() + device.getOsVersion(), key -> {
+                            DeviceRepresentation representation = new DeviceRepresentation();
 
-        for (UserSessionModel s : sessions) {
-            DeviceRepresentation device = getAttachedDevice(s);
-            DeviceRepresentation rep = reps
-                    .computeIfAbsent(device.getOs() + device.getOsVersion(), key -> {
-                        DeviceRepresentation representation = new DeviceRepresentation();
+                            representation.setLastAccess(device.getLastAccess());
+                            representation.setOs(device.getOs());
+                            representation.setOsVersion(device.getOsVersion());
+                            representation.setDevice(device.getDevice());
+                            representation.setMobile(device.isMobile());
 
-                        representation.setLastAccess(device.getLastAccess());
-                        representation.setOs(device.getOs());
-                        representation.setOsVersion(device.getOsVersion());
-                        representation.setDevice(device.getDevice());
-                        representation.setMobile(device.isMobile());
+                            return representation;
+                        });
 
-                        return representation;
-                    });
+                if (isCurrentSession(s)) {
+                    rep.setCurrent(true);
+                }
 
-            if (isCurrentSession(s)) {
-                rep.setCurrent(true);
-            }
+                if (rep.getLastAccess() == 0 || rep.getLastAccess() < s.getLastSessionRefresh()) {
+                    rep.setLastAccess(s.getLastSessionRefresh());
+                }
 
-            if (rep.getLastAccess() == 0 || rep.getLastAccess() < s.getLastSessionRefresh()) {
-                rep.setLastAccess(s.getLastSessionRefresh());
-            }
-
-            rep.addSession(createSessionRepresentation(s, device));
-        }
+                rep.addSession(createSessionRepresentation(s, device));
+            });
 
         return Cors.add(request, Response.ok(reps.values())).auth().allowedOrigins(auth.getToken()).build();
     }
@@ -131,13 +130,9 @@ public class SessionResource {
     @NoCache
     public Response logout(@QueryParam("current") boolean removeCurrent) {
         auth.require(AccountRoles.MANAGE_ACCOUNT);
-        List<UserSessionModel> userSessions = session.sessions().getUserSessions(realm, user);
-
-        for (UserSessionModel s : userSessions) {
-            if (removeCurrent || !isCurrentSession(s)) {
-                AuthenticationManager.backchannelLogout(session, s, true);
-            }
-        }
+        session.sessions().getUserSessionsStream(realm, user).filter(s -> removeCurrent || !isCurrentSession(s))
+                .collect(Collectors.toList()) // collect to avoid concurrent modification as backchannelLogout removes the user sessions.
+                .forEach(s -> AuthenticationManager.backchannelLogout(session, s, true));
 
         return Cors.add(request, Response.noContent()).auth().allowedOrigins(auth.getToken()).build();
     }
