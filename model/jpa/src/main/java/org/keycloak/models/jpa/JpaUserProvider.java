@@ -96,6 +96,18 @@ public class JpaUserProvider implements UserProvider.Streams, UserCredentialStor
         credentialStore = new JpaUserCredentialStore(session, em);
     }
 
+    private static <T> TypedQuery<T> paginateQuery(TypedQuery<T> query, Integer first, Integer max) {
+        if (first != null && first > 0) {
+            query = query.setFirstResult(first);
+        }
+
+        if (max != null && max >= 0) {
+            query = query.setMaxResults(max);
+        }
+
+        return query;
+    }
+
     @Override
     public UserModel addUser(RealmModel realm, String id, String username, boolean addDefaultRoles, boolean addDefaultRequiredActions) {
         if (id == null) {
@@ -119,13 +131,11 @@ public class JpaUserProvider implements UserProvider.Streams, UserCredentialStor
         }
 
         if (addDefaultRequiredActions) {
-            Optional<String> requiredAction = realm.getRequiredActionProvidersStream()
-                    .filter(RequiredActionProviderModel::isEnabled)
-                    .filter(RequiredActionProviderModel::isDefaultAction)
-                    .map(RequiredActionProviderModel::getAlias)
-                    .findFirst();
-            if (requiredAction.isPresent())
-                userModel.addRequiredAction(requiredAction.get());
+            realm.getRequiredActionProvidersStream()
+                .filter(RequiredActionProviderModel::isEnabled)
+                .filter(RequiredActionProviderModel::isDefaultAction)
+                .map(RequiredActionProviderModel::getAlias)
+                .forEach(userModel::addRequiredAction);
         }
 
         return userModel;
@@ -138,7 +148,7 @@ public class JpaUserProvider implements UserProvider.Streams, UserCredentialStor
 
     @Override
     public boolean removeUser(RealmModel realm, UserModel user) {
-        UserEntity userEntity = em.find(UserEntity.class, user.getId());
+        UserEntity userEntity = em.find(UserEntity.class, user.getId(), LockModeType.PESSIMISTIC_WRITE);
         if (userEntity == null) return false;
         removeUser(userEntity);
         return true;
@@ -148,18 +158,10 @@ public class JpaUserProvider implements UserProvider.Streams, UserCredentialStor
         String id = user.getId();
         em.createNamedQuery("deleteUserRoleMappingsByUser").setParameter("user", user).executeUpdate();
         em.createNamedQuery("deleteUserGroupMembershipsByUser").setParameter("user", user).executeUpdate();
-        em.createNamedQuery("deleteFederatedIdentityByUser").setParameter("user", user).executeUpdate();
         em.createNamedQuery("deleteUserConsentClientScopesByUser").setParameter("user", user).executeUpdate();
         em.createNamedQuery("deleteUserConsentsByUser").setParameter("user", user).executeUpdate();
-        em.flush();
-        // not sure why i have to do a clear() here.  I was getting some messed up errors that Hibernate couldn't
-        // un-delete the UserEntity.
-        em.clear();
-        user = em.find(UserEntity.class, id, LockModeType.PESSIMISTIC_WRITE);
-        if (user != null) {
-            em.remove(user);
-        }
 
+        em.remove(user);
         em.flush();
     }
 
@@ -741,44 +743,29 @@ public class JpaUserProvider implements UserProvider.Streams, UserCredentialStor
     }
 
     @Override
-    public Stream<UserModel> getUsersStream(RealmModel realm, int firstResult, int maxResults, boolean includeServiceAccounts) {
+    public Stream<UserModel> getUsersStream(RealmModel realm, Integer firstResult, Integer maxResults, boolean includeServiceAccounts) {
         String queryName = includeServiceAccounts ? "getAllUsersByRealm" : "getAllUsersByRealmExcludeServiceAccount" ;
 
         TypedQuery<UserEntity> query = em.createNamedQuery(queryName, UserEntity.class);
         query.setParameter("realmId", realm.getId());
-        if (firstResult != -1) {
-            query.setFirstResult(firstResult);
-        }
-        if (maxResults != -1) {
-            query.setMaxResults(maxResults);
-        }
-        return closing(query.getResultStream().map(entity -> new UserAdapter(session, realm, em, entity)));
+
+        return closing(paginateQuery(query, firstResult, maxResults).getResultStream().map(entity -> new UserAdapter(session, realm, em, entity)));
     }
 
     @Override
-    public Stream<UserModel> getGroupMembersStream(RealmModel realm, GroupModel group, int firstResult, int maxResults) {
+    public Stream<UserModel> getGroupMembersStream(RealmModel realm, GroupModel group, Integer firstResult, Integer maxResults) {
         TypedQuery<UserEntity> query = em.createNamedQuery("groupMembership", UserEntity.class);
         query.setParameter("groupId", group.getId());
-        if (firstResult != -1) {
-            query.setFirstResult(firstResult);
-        }
-        if (maxResults != -1) {
-            query.setMaxResults(maxResults);
-        }
-        return closing(query.getResultStream().map(user -> new UserAdapter(session, realm, em, user)));
+
+        return closing(paginateQuery(query, firstResult, maxResults).getResultStream().map(user -> new UserAdapter(session, realm, em, user)));
     }
 
     @Override
-    public Stream<UserModel> getRoleMembersStream(RealmModel realm, RoleModel role, int firstResult, int maxResults) {
+    public Stream<UserModel> getRoleMembersStream(RealmModel realm, RoleModel role, Integer firstResult, Integer maxResults) {
         TypedQuery<UserEntity> query = em.createNamedQuery("usersInRole", UserEntity.class);
         query.setParameter("roleId", role.getId());
-        if (firstResult != -1) {
-            query.setFirstResult(firstResult);
-        }
-        if (maxResults != -1) {
-            query.setMaxResults(maxResults);
-        }
-        return closing(query.getResultStream().map(user -> new UserAdapter(session, realm, em, user)));
+
+        return closing(paginateQuery(query, firstResult, maxResults).getResultStream().map(user -> new UserAdapter(session, realm, em, user)));
     }
 
     @Override
@@ -787,7 +774,7 @@ public class JpaUserProvider implements UserProvider.Streams, UserCredentialStor
     }
 
     @Override
-    public Stream<UserModel> searchForUserStream(String search, RealmModel realm, int firstResult, int maxResults) {
+    public Stream<UserModel> searchForUserStream(String search, RealmModel realm, Integer firstResult, Integer maxResults) {
         Map<String, String> attributes = new HashMap<>();
         attributes.put(UserModel.SEARCH, search);
         session.setAttribute(UserModel.INCLUDE_SERVICE_ACCOUNT, false);
@@ -800,7 +787,7 @@ public class JpaUserProvider implements UserProvider.Streams, UserCredentialStor
     }
 
     @Override
-    public Stream<UserModel> searchForUserStream(Map<String, String> attributes, RealmModel realm, int firstResult, int maxResults) {
+    public Stream<UserModel> searchForUserStream(Map<String, String> attributes, RealmModel realm, Integer firstResult, Integer maxResults) {
         CriteriaBuilder builder = em.getCriteriaBuilder();
         CriteriaQuery<UserEntity> queryBuilder = builder.createQuery(UserEntity.class);
         Root<UserEntity> root = queryBuilder.from(UserEntity.class);
@@ -888,16 +875,9 @@ public class JpaUserProvider implements UserProvider.Streams, UserCredentialStor
 
         TypedQuery<UserEntity> query = em.createQuery(queryBuilder);
 
-        if (firstResult != -1) {
-            query.setFirstResult(firstResult);
-        }
-
-        if (maxResults != -1) {
-            query.setMaxResults(maxResults);
-        }
-
         UserProvider users = session.users();
-        return closing(query.getResultStream().map(userEntity -> users.getUserById(userEntity.getId(), realm)));
+        return closing(paginateQuery(query, firstResult, maxResults).getResultStream())
+                .map(userEntity -> users.getUserById(userEntity.getId(), realm));
     }
 
     @Override
