@@ -120,18 +120,15 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.PublicKey;
-import java.util.Arrays;
-import java.util.Base64;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
 import javax.ws.rs.core.MultivaluedMap;
-import javax.xml.crypto.dsig.XMLSignature;
 import javax.xml.parsers.ParserConfigurationException;
 
-import org.w3c.dom.NodeList;
 
 /**
  * Resource class for the saml connect token service
