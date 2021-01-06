@@ -254,6 +254,15 @@ public class DeploymentArchiveProcessorUtils {
 
         ((WebArchive) archive).addAsResource(truststore);
     }
+    
+    public static void modifySAMLDocument(Document doc) {
+        modifyDocElementAttribute(doc, "SingleSignOnService", "bindingUrl", AUTH_SERVER_REPLACED_URL, getAuthServerContextRoot());
+        modifyDocElementAttribute(doc, "SingleLogoutService", "postBindingUrl", AUTH_SERVER_REPLACED_URL, getAuthServerContextRoot());
+        modifyDocElementAttribute(doc, "SingleLogoutService", "redirectBindingUrl", AUTH_SERVER_REPLACED_URL, getAuthServerContextRoot());
+
+        modifyDocElementAttribute(doc, "SingleSignOnService", "assertionConsumerServiceUrl", AUTH_SERVER_REPLACED_URL, getAppServerContextRoot());
+        modifyDocElementAttribute(doc, "SP", "logoutPage", AUTH_SERVER_REPLACED_URL, getAppServerContextRoot());
+    }
 
     public static void modifySAMLDocument(Document doc) {
         modifyDocElementAttribute(doc, "SingleSignOnService", "bindingUrl", AUTH_SERVER_REPLACED_URL, getAuthServerContextRoot());

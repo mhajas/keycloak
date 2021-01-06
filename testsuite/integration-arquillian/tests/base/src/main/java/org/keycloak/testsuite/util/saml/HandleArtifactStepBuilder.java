@@ -32,6 +32,7 @@ import java.nio.charset.Charset;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -41,23 +42,28 @@ import static org.junit.Assert.assertTrue;
 /**
  * This builder allows the SamlClient to handle a redirect or a POSTed form which contains an artifact (SAMLart)
  */
-public class HandleArtifactStepBuilder extends SamlDocumentStepBuilder<ArtifactResolveType, HandleArtifactStepBuilder> {
+public class HandleArtifactStepBuilder extends SamlDocumentStepBuilder<ArtifactResolveType, HandleArtifactStepBuilder> implements StepWithSessionChecker {
 
     private String signingPrivateKeyPem;
     private String signingPublicKeyPem;
     private String id = IDGenerator.create("ID_");
-    private final String issuer;
+    private String issuer;
     private final URI authServerSamlUrl;
     private boolean verifyRedirect;
     private HttpPost replayPostMessage;
     private boolean replayPost;
+    private boolean replayArtifact;
+    private AtomicReference<String> providedArtifact;
+    private AtomicReference<String> storeArtifact;
+    
+    private SessionStateChecker beforeStepChecker;
+    private SessionStateChecker afterStepChecker;
 
     private final static Pattern artifactPattern = Pattern.compile("NAME=\"SAMLart\" VALUE=\"((?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=))");
 
     /**
      * Standard constructor
-     *
-     * @param authServerSamlUrl the url of the IdP
+     *  @param authServerSamlUrl the url of the IdP
      * @param issuer the value for the issuer
      * @param clientBuilder the current clientBuilder
      */
@@ -79,7 +85,22 @@ public class HandleArtifactStepBuilder extends SamlDocumentStepBuilder<ArtifactR
         this.signingPublicKeyPem = signingPublicKeyPem;
         return this;
     }
+    
+    public HandleArtifactStepBuilder issuer(String issuer) {
+        this.issuer = issuer;
+        return this;
+    }
+    
+    public HandleArtifactStepBuilder setBeforeStepChecks(SessionStateChecker checker) {
+        this.beforeStepChecker = checker;
+        return this;
+    }
 
+    public HandleArtifactStepBuilder setAfterStepChecks(SessionStateChecker checker) {
+        this.afterStepChecker = checker;
+        return this;
+    }
+    
     /**
      * Builder method. Calling this method with "true" will add an assertion to verify that the returned method was a redirect
      * @param verifyRedirect set true to verify redirect
@@ -98,6 +119,16 @@ public class HandleArtifactStepBuilder extends SamlDocumentStepBuilder<ArtifactR
      */
     public HandleArtifactStepBuilder replayPost(boolean mustReplayPost) {
         this.replayPost = mustReplayPost;
+        return this;
+    }
+
+    public HandleArtifactStepBuilder storeArtifact(AtomicReference<String> storeArtifact) {
+        this.storeArtifact = storeArtifact;
+        return this;
+    }
+    
+    public HandleArtifactStepBuilder useArtifact(AtomicReference<String> artifact) {
+        this.providedArtifact = artifact;
         return this;
     }
 
@@ -134,7 +165,9 @@ public class HandleArtifactStepBuilder extends SamlDocumentStepBuilder<ArtifactR
         NameIDType nameIDType = new NameIDType();
         nameIDType.setValue(issuer);
         artifactResolve.setIssuer(nameIDType);
-        artifactResolve.setArtifact(getArtifactFromResponse(currentResponse));
+        String artifact = getArtifactFromResponse(currentResponse);
+        if (storeArtifact != null) storeArtifact.set(artifact);
+        artifactResolve.setArtifact(artifact);
 
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         XMLStreamWriter xmlStreamWriter = StaxUtil.getXMLStreamWriter(bos);
@@ -152,11 +185,21 @@ public class HandleArtifactStepBuilder extends SamlDocumentStepBuilder<ArtifactR
                     .signDocument(doc);
         }
 
-        HttpPost post =  Soap.createMessage().addToBody(doc).buildHttpPost(authServerSamlUrl);
+        String documentAsString = DocumentUtil.getDocumentAsString(doc);
+        String transformed = getTransformer().transform(documentAsString);
+
+        if (transformed == null) return null;
+
+        if (beforeStepChecker != null) {
+            beforeStepChecker.setUserSessionProvider(session -> session.sessions().getArtifactSessionsMapping(artifact).getUserSessionId());
+            beforeStepChecker.setClientSessionProvider(session -> session.sessions().getArtifactSessionsMapping(artifact).getClientSessionId());
+        }
+
+        HttpPost post =  Soap.createMessage().addToBody(DocumentUtil.getDocument(transformed)).buildHttpPost(authServerSamlUrl);
         replayPostMessage = post;
         return post;
     }
-
+    
     /**
      * Extracts the artifact from a response. Can handle both a Redirect and a POSTed form
      * @param currentResponse the response containing the artifact
@@ -165,6 +208,10 @@ public class HandleArtifactStepBuilder extends SamlDocumentStepBuilder<ArtifactR
      */
     private String getArtifactFromResponse(CloseableHttpResponse currentResponse) throws IOException {
 
+        if (providedArtifact != null) {
+            return providedArtifact.get();
+        }
+        
         if (currentResponse.getFirstHeader("location") != null) {
             String location = currentResponse.getFirstHeader("location").getValue();
             List<NameValuePair> params = URLEncodedUtils.parse(URI.create(location), Charset.forName("UTF-8"));
@@ -185,4 +232,13 @@ public class HandleArtifactStepBuilder extends SamlDocumentStepBuilder<ArtifactR
         return m.group(1);
     }
 
+    @Override
+    public SessionStateChecker getBeforeStepChecker() {
+        return beforeStepChecker;
+    }
+
+    @Override
+    public SessionStateChecker getAfterStepChecker() {
+        return afterStepChecker;
+    }
 }

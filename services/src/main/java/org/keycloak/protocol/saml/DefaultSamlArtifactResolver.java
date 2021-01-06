@@ -1,16 +1,12 @@
 package org.keycloak.protocol.saml;
 
 import com.google.common.base.Charsets;
-import org.apache.commons.compress.archivers.dump.DumpArchiveEntry;
+import com.google.common.base.Strings;
 import org.jboss.logging.Logger;
 import org.keycloak.models.AuthenticatedClientSessionModel;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.KeycloakSession;
-import org.keycloak.models.UserSessionModel;
-import org.keycloak.saml.common.exceptions.ConfigurationException;
-import org.keycloak.saml.common.exceptions.ProcessingException;
-import org.keycloak.saml.common.util.DocumentUtil;
-import org.w3c.dom.Document;
+import org.keycloak.saml.common.constants.GeneralConstants;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -36,39 +32,17 @@ public class DefaultSamlArtifactResolver implements ArtifactResolver {
     private KeycloakSession session;
 
     @Override
-    public String buildLogoutArtifact(String entityId, Document samlDocument, UserSessionModel userSession) throws ArtifactResolverProcessingException, ArtifactResolverConfigException {
-        String realmId = userSession.getRealm().getId();
-        return buildArtifact(realmId, entityId, samlDocument);
-    }
+    public String resolveArtifactSessionMappings(AuthenticatedClientSessionModel clientSessionModel, String artifact) throws ArtifactResolverProcessingException {
+        String artifactResponseString = clientSessionModel.getNote(GeneralConstants.SAML_ARTIFACT_KEY + "=" + artifact);
+        clientSessionModel.removeNote(GeneralConstants.SAML_ARTIFACT_KEY + "=" + artifact);
 
-    @Override
-    public String buildAuthnArtifact(String entityId, Document samlDocument, AuthenticatedClientSessionModel clientSession) throws ArtifactResolverProcessingException, ArtifactResolverConfigException {
-        String realmId = clientSession.getRealm().getId();
-        return buildArtifact(realmId, entityId, samlDocument);
-    }
+        logger.tracef("Artifact response for artifact %s, is %s", artifact, artifactResponseString);
 
-    private String buildArtifact(String realmId, String entityId, Document samlDocument) throws ArtifactResolverProcessingException, ArtifactResolverConfigException {
-        try {
-            String artifact = createArtifact(entityId);
-            String artifactResponseStr = DocumentUtil.getDocumentAsString(samlDocument);
-            session.sessions().addArtifactResponse(realmId, artifact, artifactResponseStr);
-            return artifact;
-        } catch (ProcessingException e) {
-            throw new ArtifactResolverProcessingException(e);
-        } catch (ConfigurationException e) {
-            throw new ArtifactResolverConfigException(e);
+        if (Strings.isNullOrEmpty(artifactResponseString)) {
+            throw new ArtifactResolverProcessingException("Artifact not present in ClientSession.");
         }
-    }
 
-    @Override
-    public String resolveArtifact(String artifact) throws ArtifactResolverProcessingException {
-        String res = session.sessions().getArtifactResponse(artifact);
-
-        if (res == null) {
-            throw new ArtifactResolverProcessingException("Cannot find artifact " + artifact + " in cache");
-        }
-        session.sessions().removeArtifactResponse(artifact);
-        return res;
+        return artifactResponseString;
     }
 
     @Override
@@ -90,6 +64,15 @@ public class DefaultSamlArtifactResolver implements ArtifactResolver {
         } catch (NoSuchAlgorithmException e) {
             throw new ArtifactResolverProcessingException(e);
         }
+    }
+
+    @Override
+    public String buildArtifact(AuthenticatedClientSessionModel clientSessionModel, String entityId, String artifactResponse) throws ArtifactResolverProcessingException {
+        String artifact = createArtifact(entityId);
+
+        clientSessionModel.setNote(GeneralConstants.SAML_ARTIFACT_KEY + "=" + artifact, artifactResponse);
+
+        return artifact;
     }
 
     private void assertSupportedArtifactFormat(String artifactString) throws ArtifactResolverProcessingException {

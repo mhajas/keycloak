@@ -37,7 +37,7 @@ import org.keycloak.models.sessions.infinispan.changes.sessions.CrossDCLastSessi
 import org.keycloak.models.sessions.infinispan.changes.sessions.CrossDCLastSessionRefreshStoreFactory;
 import org.keycloak.models.sessions.infinispan.changes.sessions.PersisterLastSessionRefreshStore;
 import org.keycloak.models.sessions.infinispan.changes.sessions.PersisterLastSessionRefreshStoreFactory;
-import org.keycloak.models.sessions.infinispan.entities.ArtifactResponseEntity;
+import org.keycloak.models.sessions.infinispan.entities.ArtifactSessionsMappingEntity;
 import org.keycloak.models.sessions.infinispan.initializer.CacheInitializer;
 import org.keycloak.models.sessions.infinispan.initializer.DBLockBasedCacheInitializer;
 import org.keycloak.models.sessions.infinispan.remotestore.RemoteCacheInvoker;
@@ -100,7 +100,7 @@ public class InfinispanUserSessionProviderFactory implements UserSessionProvider
         Cache<UUID, SessionEntityWrapper<AuthenticatedClientSessionEntity>> clientSessionCache = connections.getCache(InfinispanConnectionProvider.CLIENT_SESSION_CACHE_NAME);
         Cache<UUID, SessionEntityWrapper<AuthenticatedClientSessionEntity>> offlineClientSessionsCache = connections.getCache(InfinispanConnectionProvider.OFFLINE_CLIENT_SESSION_CACHE_NAME);
         Cache<LoginFailureKey, SessionEntityWrapper<LoginFailureEntity>> loginFailures = connections.getCache(InfinispanConnectionProvider.LOGIN_FAILURE_CACHE_NAME);
-        Cache<String, SessionEntityWrapper<ArtifactResponseEntity>> artifacts = connections.getCache(InfinispanConnectionProvider.ARTIFACT_CACHE_NAME);
+        Cache<String, SessionEntityWrapper<ArtifactSessionsMappingEntity>> artifacts = connections.getCache(InfinispanConnectionProvider.ARTIFACT_CACHE_NAME);
 
         return new InfinispanUserSessionProvider(session, remoteCacheInvoker, lastSessionRefreshStore, offlineLastSessionRefreshStore,
                 persisterLastSessionRefreshStore, keyGenerator,
@@ -284,7 +284,7 @@ public class InfinispanUserSessionProviderFactory implements UserSessionProvider
             return Time.toMillis(realm.getMaxDeltaTimeSeconds());
         }, SessionTimeouts::getLoginFailuresLifespanMs, SessionTimeouts::getLoginFailuresMaxIdleMs);
 
-        Cache<String, SessionEntityWrapper<ArtifactResponseEntity>> artifactCache = ispn.getCache(InfinispanConnectionProvider.ARTIFACT_CACHE_NAME);
+        Cache<String, SessionEntityWrapper<ArtifactSessionsMappingEntity>> artifactCache = ispn.getCache(InfinispanConnectionProvider.ARTIFACT_CACHE_NAME);
         checkRemoteCache(session, artifactCache, (RealmModel realm) -> {
             return Time.toMillis(realm.getMaxDeltaTimeSeconds());
         }, SessionTimeouts::getArtifactLifespanMs, SessionTimeouts::getArtifactMaxIdleMs);
