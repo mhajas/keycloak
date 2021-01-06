@@ -18,6 +18,7 @@ package org.keycloak.testsuite.util;
 
 import org.keycloak.dom.saml.v2.SAML2Object;
 import org.keycloak.saml.processing.core.saml.v2.common.SAMLDocumentHolder;
+import org.keycloak.testsuite.client.KeycloakTestingClient;
 import org.keycloak.testsuite.page.AbstractPage;
 import org.keycloak.testsuite.util.SamlClient.Binding;
 import org.keycloak.testsuite.util.SamlClient.DoNotFollowRedirectStep;

@@ -1,12 +1,14 @@
 package org.keycloak.testsuite.util;
 
 import org.keycloak.dom.saml.v2.protocol.ArtifactResolveType;
+import org.keycloak.dom.saml.v2.protocol.ArtifactResponseType;
 import org.keycloak.protocol.saml.SamlProtocolUtils;
 import org.keycloak.protocol.saml.profile.util.Soap;
 import org.keycloak.saml.common.exceptions.ConfigurationException;
 import org.keycloak.saml.common.exceptions.ParsingException;
 import org.keycloak.saml.common.exceptions.ProcessingException;
 import org.keycloak.saml.processing.api.saml.v2.request.SAML2Request;
+import org.keycloak.saml.processing.api.saml.v2.response.SAML2Response;
 import org.keycloak.saml.processing.core.saml.v2.common.SAMLDocumentHolder;
 import org.w3c.dom.Document;
 
@@ -92,7 +94,8 @@ public class ArtifactResolutionService implements Provider<Source>, Runnable {
             } else {
                 lastArtifactResolve = null;
             }
-            Document artifactResponse = SamlProtocolUtils.buildArtifactResponse(responseDocument);
+            ArtifactResponseType artifactResponseType = SamlProtocolUtils.buildArtifactResponse(responseDocument);
+            Document artifactResponse = SamlProtocolUtils.convert(artifactResponseType);
             response = Soap.createMessage().addToBody(artifactResponse).getBytes();
         } catch (ProcessingException | ConfigurationException | TransformerException | ParsingException | IOException e) {
             throw new RuntimeException(e);

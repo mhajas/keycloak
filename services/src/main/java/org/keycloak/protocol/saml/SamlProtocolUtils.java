@@ -27,6 +27,8 @@ import org.keycloak.common.VerificationException;
 import org.keycloak.common.util.PemUtils;
 import org.keycloak.dom.saml.v2.assertion.NameIDType;
 import org.keycloak.dom.saml.v2.protocol.ArtifactResponseType;
+import org.keycloak.dom.saml.v2.protocol.LogoutRequestType;
+import org.keycloak.dom.saml.v2.protocol.ResponseType;
 import org.keycloak.dom.saml.v2.protocol.StatusCodeType;
 import org.keycloak.dom.saml.v2.protocol.StatusType;
 import org.keycloak.models.ClientModel;
@@ -39,6 +41,7 @@ import org.keycloak.saml.common.exceptions.ParsingException;
 import org.keycloak.saml.common.exceptions.ProcessingException;
 import org.keycloak.saml.common.util.DocumentUtil;
 import org.keycloak.saml.common.util.StaxUtil;
+import org.keycloak.saml.processing.api.saml.v2.request.SAML2Request;
 import org.keycloak.saml.processing.api.saml.v2.sig.SAML2Signature;
 import org.keycloak.saml.processing.core.saml.v2.common.IDGenerator;
 import org.keycloak.saml.processing.core.saml.v2.util.XMLTimeUtil;
@@ -236,7 +239,7 @@ public class SamlProtocolUtils {
      * @throws ConfigurationException
      * @throws ProcessingException
      */
-    public static Document buildArtifactResponse(Document samlResponse) throws ConfigurationException, ProcessingException {
+    public static ArtifactResponseType buildArtifactResponse(SAML2Object samlObject, NameIDType issuer) throws ConfigurationException, ProcessingException {
         ArtifactResponseType artifactResponse = new ArtifactResponseType(IDGenerator.create("ID_"),
                 XMLTimeUtil.getIssueInstant());
 
@@ -255,15 +258,22 @@ public class SamlProtocolUtils {
         }
         Element artifactResponseElement = artifactResponseDocument.getDocumentElement();
 
-        Node issuer = artifactResponseDocument.importNode(SamlProtocolUtils.getIssuer(samlResponse), true);
-        if (issuer != null) {
-            artifactResponseElement.appendChild(issuer);
+        artifactResponse.setIssuer(issuer);
+        artifactResponse.setAny(samlObject);
+
+        return artifactResponse;
+    }
+
+    public static ArtifactResponseType buildArtifactResponse(Document document) throws ParsingException, ProcessingException, ConfigurationException {
+        SAML2Object samlObject = SAML2Request.getSAML2ObjectFromDocument(document).getSamlObject();
+
+        if (samlObject instanceof StatusResponseType) {
+            return buildArtifactResponse(samlObject, ((StatusResponseType)samlObject).getIssuer());
+        } else if (samlObject instanceof RequestAbstractType) {
+            return buildArtifactResponse(samlObject, ((RequestAbstractType)samlObject).getIssuer());
         }
-
-        Node samlresponseNode = artifactResponseDocument.importNode(samlResponse.getDocumentElement(), true);
-        artifactResponseElement.appendChild(samlresponseNode);
-
-        return artifactResponseDocument;
+        
+        throw new ProcessingException("SAMLObject was not StatusResponseType or LogoutRequestType");
     }
 
     /**
@@ -276,7 +286,7 @@ public class SamlProtocolUtils {
      * @throws ConfigurationException
      * @throws ProcessingException
      */
-    private static Document convert(ArtifactResponseType responseType) throws ProcessingException, ConfigurationException,
+    public static Document convert(ArtifactResponseType responseType) throws ProcessingException, ConfigurationException,
             ParsingException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         SAMLResponseWriter writer = new SAMLResponseWriter(StaxUtil.getXMLStreamWriter(bos));
