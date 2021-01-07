@@ -84,6 +84,33 @@ public class ArtifactBindingTest extends AbstractSamlTest {
     /************************ LOGIN TESTS ************************/
 
     @Test
+    public void testArtifactBindingWithResponseAndAssertionSignature() throws VerificationException {
+        SAMLDocumentHolder response = new SamlClientBuilder().authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST_ASSERTION_AND_RESPONSE_SIG,
+                SAML_ASSERTION_CONSUMER_URL_SALES_POST_ASSERTION_AND_RESPONSE_SIG, POST)
+                    .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri())
+                    .signWith(SAML_CLIENT_SALES_POST_SIG_PRIVATE_KEY, SAML_CLIENT_SALES_POST_SIG_PUBLIC_KEY)
+                    .build()
+                .login()
+                    .user(bburkeUser)
+                    .build()
+                .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST_ASSERTION_AND_RESPONSE_SIG)
+                    .signWith(SAML_CLIENT_SALES_POST_SIG_PRIVATE_KEY, SAML_CLIENT_SALES_POST_SIG_PUBLIC_KEY)
+                    .build()
+                .doNotFollowRedirects()
+                .executeAndTransform(this::getArtifactResponse);
+
+        assertThat(response.getSamlObject(), instanceOf(ArtifactResponseType.class));
+        ArtifactResponseType artifactResponse = (ArtifactResponseType)response.getSamlObject();
+        assertThat(artifactResponse, isSamlStatusResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
+        assertThat(artifactResponse.getAny(), instanceOf(ResponseType.class));
+        ResponseType samlResponse = (ResponseType)artifactResponse.getAny();
+        assertThat(samlResponse, isSamlStatusResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
+        assertThat(samlResponse.getAssertions().get(0).getAssertion().getSignature(), not(nullValue()));
+        X509Certificate cert = PemUtils.decodeCertificate(adminClient.realm(REALM_NAME).keys().getKeyMetadata().getKeys().stream().filter(x -> x.getType().equals("RSA")).findFirst().get().getCertificate());
+        SamlProtocolUtils.verifyDocumentSignature(response.getSamlDocument(), new HardcodedKeyLocator(cert.getPublicKey())); // Checks the signature of the response as well as the signature of the assertion
+    }
+
+    @Test
     public void testArtifactBindingLoginCheckArtifactWithPost() throws NoSuchAlgorithmException {
         String response = new SamlClientBuilder().authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
                 SAML_ASSERTION_CONSUMER_URL_SALES_POST, SamlClient.Binding.POST)
@@ -155,8 +182,11 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         ArtifactResponseType artifactResponse = (ArtifactResponseType)response.getSamlObject();
         assertThat(artifactResponse, isSamlStatusResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
         assertThat(artifactResponse.getAny(), instanceOf(ResponseType.class));
+        assertThat(artifactResponse.getSignature(), not(nullValue()));
+
         ResponseType samlResponse = (ResponseType)artifactResponse.getAny();
         assertThat(samlResponse, isSamlStatusResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
+        assertThat(samlResponse.getAssertions().get(0).getAssertion().getSignature(), nullValue());
 
     }
 

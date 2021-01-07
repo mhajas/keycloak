@@ -406,7 +406,7 @@ public class SamlService extends AuthorizationEndpointBase {
             } else {
                 if ((requestAbstractType.getProtocolBinding() != null && JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri()
                         .compareTo(requestAbstractType.getProtocolBinding()) == 0)
-                        || new SamlClient(client).forceArtifactBinding()) {
+                        || samlClient.forceArtifactBinding()) {
                     redirect = client.getAttribute(SamlProtocol.SAML_ASSERTION_CONSUMER_URL_ARTIFACT_ATTRIBUTE);
                 } else if (bindingType.equals(SamlProtocol.SAML_POST_BINDING)) {
                     redirect = client.getAttribute(SamlProtocol.SAML_ASSERTION_CONSUMER_URL_POST_ATTRIBUTE);
@@ -1127,7 +1127,7 @@ public class SamlService extends AuthorizationEndpointBase {
         //Sign document if necessary, necessary to do this here, as the "inResponseTo" can only be set at this point
         SamlClient samlClient = new SamlClient(client);
         JaxrsSAML2BindingBuilder bindingBuilder = new JaxrsSAML2BindingBuilder(session);
-        if (samlClient.requiresRealmSignature()) {
+        if (samlClient.requiresRealmSignature() || samlClient.requiresAssertionSignature()) {
             KeyManager keyManager = session.keys();
             KeyManager.ActiveRsaKey keys = keyManager.getActiveRsaKey(realm);
             String keyName = samlClient.getXmlSigKeyInfoKeyNameTransformer().getKeyName(keys.getKid(), keys.getCertificate());
@@ -1135,9 +1135,14 @@ public class SamlService extends AuthorizationEndpointBase {
             if (canonicalization != null) {
                 bindingBuilder.canonicalizationMethod(canonicalization);
             }
-            bindingBuilder.signatureAlgorithm(samlClient.getSignatureAlgorithm()).signWith(keyName, keys.getPrivateKey(), keys.getPublicKey(), keys.getCertificate()).signDocument();
+            bindingBuilder.signatureAlgorithm(samlClient.getSignatureAlgorithm()).signWith(keyName, keys.getPrivateKey(), keys.getPublicKey(), keys.getCertificate());
+                    
+            if (samlClient.requiresRealmSignature()) bindingBuilder.signDocument();
+            if (samlClient.requiresAssertionSignature()) bindingBuilder.signAssertions();
+
             bindingBuilder.postBinding(artifactResponseDocument);
         }
+
         artifactResponse = DocumentUtil.asString(artifactResponseDocument);
 
 
