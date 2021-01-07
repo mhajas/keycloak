@@ -484,21 +484,20 @@ public class SamlProtocol implements LoginProtocol {
         JaxrsSAML2BindingBuilder bindingBuilder = new JaxrsSAML2BindingBuilder(session);
         bindingBuilder.relayState(relayState);
 
-        //Don't sign document here if we're doing artifact binding
-        if (samlClient.requiresRealmSignature() && !"true".equals(clientSession.getNote(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.get()))) {
-            String canonicalization = samlClient.getCanonicalizationMethod();
-            if (canonicalization != null) {
-                bindingBuilder.canonicalizationMethod(canonicalization);
+        // Don't sign here, the signature will be added when the artifact is resolved
+        if (!"true".equals(clientSession.getNote(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.get()))) {
+            if (samlClient.requiresRealmSignature() || samlClient.requiresAssertionSignature()) {
+                String canonicalization = samlClient.getCanonicalizationMethod();
+                if (canonicalization != null) {
+                    bindingBuilder.canonicalizationMethod(canonicalization);
+                }
+                bindingBuilder.signatureAlgorithm(samlClient.getSignatureAlgorithm()).signWith(keyName, keys.getPrivateKey(), keys.getPublicKey(), keys.getCertificate());
+
+                if (samlClient.requiresRealmSignature()) bindingBuilder.signDocument();
+                if (samlClient.requiresAssertionSignature()) bindingBuilder.signAssertions();
             }
-            bindingBuilder.signatureAlgorithm(samlClient.getSignatureAlgorithm()).signWith(keyName, keys.getPrivateKey(), keys.getPublicKey(), keys.getCertificate()).signDocument();
         }
-        if (samlClient.requiresAssertionSignature()) {
-            String canonicalization = samlClient.getCanonicalizationMethod();
-            if (canonicalization != null) {
-                bindingBuilder.canonicalizationMethod(canonicalization);
-            }
-            bindingBuilder.signatureAlgorithm(samlClient.getSignatureAlgorithm()).signWith(keyName, keys.getPrivateKey(), keys.getPublicKey(), keys.getCertificate()).signAssertions();
-        }
+
         if (samlClient.requiresEncryption()) {
             PublicKey publicKey = null;
             try {
