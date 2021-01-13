@@ -634,7 +634,7 @@ public class AuthenticationManager {
                 .setUriInfo(uriInfo)
                 .setEventBuilder(event);
         Response response = protocol.finishLogout(userSession);
-        session.sessions().removeUserSession(realm, userSession);
+        session.sessions().removeUserSession(realm, userSession); // waiting for artifact retrieval
         session.authenticationSessions().removeRootAuthenticationSession(realm, logoutAuthSession.getParentSession());
         return response;
     }

@@ -114,6 +114,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
     public void testArtifactBindingLoginCheckArtifactWithPost() throws NoSuchAlgorithmException {
         String response = new SamlClientBuilder().authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
                 SAML_ASSERTION_CONSUMER_URL_SALES_POST, SamlClient.Binding.POST)
+                .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri())
                 .transformObject(so -> {
                     so.setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri());
                     return so;
@@ -493,7 +494,8 @@ public class ArtifactBindingTest extends AbstractSamlTest {
                 SAMLDocumentHolder samlResponse = builder
                         .authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
                                 SAML_ASSERTION_CONSUMER_URL_SALES_POST, REDIRECT)
-                        .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_REDIRECT_BINDING.getUri()).build()
+                            .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_REDIRECT_BINDING.getUri())
+                            .build()
                         .login().user(bburkeUser).build()
                         .processSamlResponse(REDIRECT)
                         .transformObject(x -> {

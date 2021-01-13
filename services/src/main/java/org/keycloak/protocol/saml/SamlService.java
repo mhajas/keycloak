@@ -17,7 +17,6 @@
 
 package org.keycloak.protocol.saml;
 
-import com.google.common.base.Strings;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -27,6 +26,7 @@ import org.jboss.resteasy.annotations.cache.NoCache;
 import org.jboss.resteasy.specimpl.ResteasyHttpHeaders;
 import org.jboss.resteasy.spi.HttpRequest;
 import org.jboss.resteasy.spi.ResteasyProviderFactory;
+import org.keycloak.broker.saml.SAMLDataMarshaller;
 import org.keycloak.common.ClientConnection;
 import org.keycloak.common.VerificationException;
 import org.keycloak.common.util.PemUtils;
@@ -75,6 +75,7 @@ import org.keycloak.saml.common.exceptions.ProcessingException;
 import org.keycloak.saml.common.util.DocumentUtil;
 import org.keycloak.saml.common.util.StaxUtil;
 import org.keycloak.saml.processing.api.saml.v2.request.SAML2Request;
+import org.keycloak.saml.processing.api.saml.v2.response.SAML2Response;
 import org.keycloak.saml.processing.core.saml.v2.common.IDGenerator;
 import org.keycloak.saml.processing.core.saml.v2.common.SAMLDocumentHolder;
 import org.keycloak.saml.processing.core.saml.v2.util.XMLTimeUtil;
@@ -98,6 +99,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
+import javax.print.Doc;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
@@ -542,12 +544,13 @@ public class SamlService extends AuthorizationEndpointBase {
                 // remove client from logout requests
                 AuthenticatedClientSessionModel clientSession = userSession.getAuthenticatedClientSessionByClient(client.getId());
                 if (clientSession != null) {
-                    clientSession.setAction(AuthenticationSessionModel.Action.LOGGED_OUT.name());
+                    clientSession.setAction(AuthenticationSessionModel.Action.LOGGED_OUT.name()); // change to deffered if artifact binding
 
                     //artifact binding state must be attached to the user session upon logout, as authenticated session
                     //no longer exists when the LogoutResponse message is sent
                     if ("true".equals(clientSession.getNote(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.get()))){
                         userSession.setNote(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.get(), "true");
+                        userSession.setNote(SamlProtocol.SAML_LOGOUT_INITIATOR_CLIENT_ID, client.getId());
                     }
                 }
 
@@ -1064,23 +1067,8 @@ public class SamlService extends AuthorizationEndpointBase {
         return bindingService.authenticate(soapBodyContents);
     }
 
-    /**
-     * Takes an artifact resolve message and returns the artifact response, if the artifact is found belonging to a session
-     * of the issuer.
-     * @param artifactResolveMessage The artifact resolve message sent by the client
-     * @param samlDoc the document containing the artifact resolve message sent by the client
-     * @return a Response containing the SOAP message with the ArifactResponse
-     * @throws ParsingException
-     * @throws ConfigurationException
-     * @throws ProcessingException
-     */
-    public Response artifactResolve(ArtifactResolveType artifactResolveMessage, SAMLDocumentHolder samlDoc) throws ParsingException, ConfigurationException, ProcessingException {
-
-        logger.debug("Received artifactResolve message for artifact " + artifactResolveMessage.getArtifact() + "\n" +
-                "Message: \n" + DocumentUtil.getDocumentAsString(samlDoc.getSamlDocument()));
-
-        String issuer = artifactResolveMessage.getIssuer().getValue();
-        ClientModel client = realm.getClientByClientId(issuer);
+    private ClientModel getAndCheckClientModel(String clientId) throws ProcessingException {
+        ClientModel client = session.clients().getClientByClientId(realm, clientId);
 
         if (client == null) {
             throw new ProcessingException(Errors.CLIENT_NOT_FOUND);
@@ -1094,38 +1082,83 @@ public class SamlService extends AuthorizationEndpointBase {
         if (!client.isStandardFlowEnabled()) {
             throw new ProcessingException(Errors.NOT_ALLOWED);
         }
-        
-        if (new SamlClient(client).requiresClientSignature()) {
-            try {
-                SamlProtocolUtils.verifyDocumentSignature(client, samlDoc.getSamlDocument());
-            } catch (VerificationException e) {
-                SamlService.logger.error("request validation failed", e);
-                throw new ProcessingException(Errors.INVALID_SIGNATURE);
-            }
+
+        return client;
+    }
+    
+    private Document samlObjectToDocument(SAML2Object object) throws ParsingException, ConfigurationException, ProcessingException {
+        if (object instanceof StatusResponseType) {
+            SAML2Response saml2ResponseGenerator = new SAML2Response();
+            return saml2ResponseGenerator.convert((StatusResponseType) object);
+        } else if (object instanceof RequestAbstractType) {
+            return SAML2Request.convert((RequestAbstractType) object);
+        } else {
+            logger.errorf("Type of SAML2Object[%s] was not instanceof StatusResponseType and RequestAbstractType", object.getClass().toString());
+            throw new IllegalStateException("Wrong type of SAML2Object");
         }
+    }
 
+    /**
+     * Takes an artifact resolve message and returns the artifact response, if the artifact is found belonging to a session
+     * of the issuer.
+     * @param artifactResolveMessage The artifact resolve message sent by the client
+     * @param samlDoc the document containing the artifact resolve message sent by the client
+     * @return a Response containing the SOAP message with the ArifactResponse
+     * @throws ParsingException
+     * @throws ConfigurationException
+     * @throws ProcessingException
+     */
+    public Response artifactResolve(ArtifactResolveType artifactResolveMessage, SAMLDocumentHolder artifactResolveHolder) throws ParsingException, ConfigurationException, ProcessingException {
+        logger.debug("Received artifactResolve message for artifact " + artifactResolveMessage.getArtifact() + "\n" +
+                "Message: \n" + DocumentUtil.getDocumentAsString(artifactResolveHolder.getSamlDocument()));
 
-        String artifactResponse = null;
+        // Obtain all necessary objects we will need during making Document from artifact
+        String artifact = artifactResolveMessage.getArtifact(); // Artifact from resolve request
+
+        // When storing artifact, we stored also user and client session ids
+        String artifactResponseString = null;
         try {
-            artifactResponse = getArtifactResolver().resolveArtifact(artifactResolveMessage.getArtifact());
-
-            if (Strings.isNullOrEmpty(artifactResponse)) {
-                throw new ArtifactResolverProcessingException("Artifact resolution returned null or empty value.");
+            artifactResponseString = getArtifactResolver().resolveArtifactResponseString(realm, artifact);
+            
+            if (logger.isTraceEnabled()) {
+                logger.tracef("Artifact response for artifact %s, is %s", artifact, artifactResponseString);
             }
         } catch (ArtifactResolverProcessingException e) {
-            SamlService.logger.error("Failed to resolve artifact", e);
-            throw new ProcessingException(Errors.INVALID_SAML_ARTIFACT);
+            logger.errorf("Failed to resolve artifact: %s.", artifact);
+            throw new ProcessingException(Errors.INVALID_SAML_ARTIFACT, e);
         }
 
-        Document artifactResponseDocument = DocumentUtil.getDocument(artifactResponse);
+        Document artifactResponseDocument = null;
+        try {
+            SAMLDataMarshaller marshaller = new SAMLDataMarshaller();
+            ArtifactResponseType artifactResponseType = marshaller.deserialize(artifactResponseString, ArtifactResponseType.class);
+            artifactResponseDocument = SamlProtocolUtils.convert(artifactResponseType);
+        }  catch (ParsingException | ConfigurationException | ProcessingException e) {
+            logger.errorf("Failed to obtain document from ArtifactResponseString: %s.", artifactResponseString);
+            throw new ProcessingException(Errors.INVALID_SAML_ARTIFACT_RESPONSE, e);
+        }
+        
+        // From client session we can obtain clientModel
+        ClientModel clientModel = getAndCheckClientModel(artifactResolveMessage.getIssuer().getValue());
+        SamlClient samlClient = new SamlClient(clientModel);
 
-        //add "inResponseTo" in artifactResponse
+        // Check signature within ArtifactResolve request if client requires it
+        if (samlClient.requiresClientSignature()) {
+            try {
+                SamlProtocolUtils.verifyDocumentSignature(clientModel, artifactResolveHolder.getSamlDocument());
+            } catch (VerificationException e) {
+                SamlService.logger.error("request validation failed", e);
+                throw new ProcessingException(Errors.INVALID_SIGNATURE, e);
+            }
+        }
+
+        // Add "inResponseTo" in artifactResponse
         if (artifactResolveMessage.getID() != null && !artifactResolveMessage.getID().trim().isEmpty()){
             Element artifactResponseElement = artifactResponseDocument.getDocumentElement();
             artifactResponseElement.setAttribute("InResponseTo", artifactResolveMessage.getID());
         }
-        //Sign document if necessary, necessary to do this here, as the "inResponseTo" can only be set at this point
-        SamlClient samlClient = new SamlClient(client);
+
+        // Sign document/assertion if necessary, necessary to do this here, as the "inResponseTo" can only be set at this point
         JaxrsSAML2BindingBuilder bindingBuilder = new JaxrsSAML2BindingBuilder(session);
         if (samlClient.requiresRealmSignature() || samlClient.requiresAssertionSignature()) {
             KeyManager keyManager = session.keys();
@@ -1143,14 +1176,25 @@ public class SamlService extends AuthorizationEndpointBase {
             bindingBuilder.postBinding(artifactResponseDocument);
         }
 
-        artifactResponse = DocumentUtil.asString(artifactResponseDocument);
-
+        // Encrypt assertion if client requires it
+        if (samlClient.requiresEncryption()) {
+            PublicKey publicKey = null;
+            try {
+                publicKey = SamlProtocolUtils.getEncryptionKey(clientModel);
+            } catch (Exception e) {
+                logger.error("Failed to obtain encryption key for client", e);
+                throw new ProcessingException(Errors.INVALID_CLIENT, e);
+            }
+            bindingBuilder.encrypt(publicKey);
+        }
 
         Soap.SoapMessageBuilder messageBuilder = Soap.createMessage();
         messageBuilder.addToBody(artifactResponseDocument);
 
-        logger.debug("Sending artifactResponse message for artifact " + artifactResolveMessage.getArtifact() + "\n" +
-                "Message: \n" + artifactResponse);
+        if (logger.isDebugEnabled()) {
+            String artifactResponse = DocumentUtil.asString(artifactResponseDocument);
+            logger.debugf("Sending artifactResponse message for artifact %s. Message: \n %s", artifactResolveMessage.getArtifact(), artifactResponse);
+        }
 
         return messageBuilder.build();
     }
@@ -1214,6 +1258,7 @@ public class SamlService extends AuthorizationEndpointBase {
         }
 
 
+        // TODO: Fix usage of event builder. The problem is, that in method that calls this runnable the main transaction is rolled back, however, calling event.error() tries to use JPA.
         public void run(KeycloakSession session){
             // Initialize context
             Resteasy.pushContext(UriInfo.class, uri);
@@ -1248,9 +1293,9 @@ public class SamlService extends AuthorizationEndpointBase {
                 result = httpClient.execute(httpPost);
 
             } catch (IOException e) {
-                event.event(EventType.LOGIN);
-                event.detail(Details.REASON, e.getMessage());
-                event.error(Errors.IDENTITY_PROVIDER_ERROR);
+                //event.event(EventType.LOGIN);
+                //event.detail(Details.REASON, e.getMessage());
+                //event.error(Errors.IDENTITY_PROVIDER_ERROR);
                 asyncResponse.resume(ErrorPage.error(session, null, Response.Status.INTERNAL_SERVER_ERROR, Messages.ARTIFACT_RESOLUTION_SERVICE_ERROR));
                 return;
             }
@@ -1303,15 +1348,15 @@ public class SamlService extends AuthorizationEndpointBase {
                 }
 
             } catch (IOException | ProcessingException | ParsingException e) {
-                event.event(EventType.LOGIN);
-                event.detail(Details.REASON, e.getMessage());
-                event.error(Errors.IDENTITY_PROVIDER_ERROR);
+                //event.event(EventType.LOGIN);
+                //event.detail(Details.REASON, e.getMessage());
+                //event.error(Errors.IDENTITY_PROVIDER_ERROR);
                 asyncResponse.resume(ErrorPage.error(session, null, Response.Status.INTERNAL_SERVER_ERROR, Messages.ARTIFACT_RESOLUTION_SERVICE_INVALID_RESPONSE));
                 return;
             } catch(ConfigurationException e) {
-                event.event(EventType.LOGIN);
-                event.detail(Details.REASON, e.getMessage());
-                event.error(Errors.IDENTITY_PROVIDER_ERROR);
+                //event.event(EventType.LOGIN);
+                //event.detail(Details.REASON, e.getMessage());
+                //event.error(Errors.IDENTITY_PROVIDER_ERROR);
                 asyncResponse.resume(ErrorPage.error(session, null, Response.Status.INTERNAL_SERVER_ERROR, Messages.UNEXPECTED_ERROR_HANDLING_REQUEST));
                 return;
             }
