@@ -1,6 +1,7 @@
 package org.keycloak.protocol.saml;
 
 import org.junit.Test;
+import org.keycloak.dom.saml.v2.protocol.ArtifactResponseType;
 import org.keycloak.dom.saml.v2.protocol.ResponseType;
 import org.keycloak.saml.SAML2LoginResponseBuilder;
 import org.keycloak.saml.common.constants.JBossSAMLURIConstants;
@@ -9,6 +10,7 @@ import org.keycloak.saml.common.exceptions.ParsingException;
 import org.keycloak.saml.common.exceptions.ProcessingException;
 import org.keycloak.saml.common.util.DocumentUtil;
 import org.keycloak.saml.common.util.StaxUtil;
+import org.keycloak.saml.processing.api.saml.v2.response.SAML2Response;
 import org.keycloak.saml.processing.core.saml.v2.common.IDGenerator;
 import org.keycloak.saml.processing.core.saml.v2.writers.SAMLResponseWriter;
 import org.w3c.dom.Document;
@@ -44,8 +46,9 @@ public class SamlProtocolUtilsTest {
         writer.write(response);
         Document responseDoc = DocumentUtil.getDocument(new ByteArrayInputStream(bos.toByteArray()));
 
-        Document artifactResponseDoc = SamlProtocolUtils.buildArtifactResponse(responseDoc);
-        String artifactResponse = DocumentUtil.asString(artifactResponseDoc);
+        ArtifactResponseType artifactResponseType = SamlProtocolUtils.buildArtifactResponse(responseDoc);
+        SAML2Response saml2Response = new SAML2Response();
+        String artifactResponse = DocumentUtil.asString(saml2Response.convert(artifactResponseType));
 
         assertThat(artifactResponse, containsString("samlp:ArtifactResponse"));
         assertThat(artifactResponse, containsString("samlp:Response"));

@@ -1,15 +1,21 @@
 package org.keycloak.protocol.saml;
 
 import com.google.common.base.Charsets;
-import org.apache.commons.compress.archivers.dump.DumpArchiveEntry;
+import com.google.common.base.Strings;
 import org.jboss.logging.Logger;
+import org.keycloak.broker.saml.SAMLDataMarshaller;
+import org.keycloak.dom.saml.v2.protocol.ArtifactResponseType;
+import org.keycloak.events.Errors;
 import org.keycloak.models.AuthenticatedClientSessionModel;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.KeycloakSession;
+import org.keycloak.models.RealmModel;
+import org.keycloak.models.SamlArtifactSessionMappingModel;
 import org.keycloak.models.UserSessionModel;
+import org.keycloak.saml.common.constants.GeneralConstants;
 import org.keycloak.saml.common.exceptions.ConfigurationException;
+import org.keycloak.saml.common.exceptions.ParsingException;
 import org.keycloak.saml.common.exceptions.ProcessingException;
-import org.keycloak.saml.common.util.DocumentUtil;
 import org.w3c.dom.Document;
 
 import java.io.ByteArrayOutputStream;
@@ -36,39 +42,52 @@ public class DefaultSamlArtifactResolver implements ArtifactResolver {
     private KeycloakSession session;
 
     @Override
-    public String buildLogoutArtifact(String entityId, Document samlDocument, UserSessionModel userSession) throws ArtifactResolverProcessingException, ArtifactResolverConfigException {
+    public String buildLogoutArtifact(String entityId, String samlDocument, UserSessionModel userSession) throws ArtifactResolverProcessingException, ArtifactResolverConfigException {
         String realmId = userSession.getRealm().getId();
         return buildArtifact(realmId, entityId, samlDocument);
     }
 
     @Override
-    public String buildAuthnArtifact(String entityId, Document samlDocument, AuthenticatedClientSessionModel clientSession) throws ArtifactResolverProcessingException, ArtifactResolverConfigException {
+    public String buildAuthnArtifact(String entityId, String samlDocument, AuthenticatedClientSessionModel clientSession) throws ArtifactResolverProcessingException, ArtifactResolverConfigException {
         String realmId = clientSession.getRealm().getId();
         return buildArtifact(realmId, entityId, samlDocument);
     }
 
-    private String buildArtifact(String realmId, String entityId, Document samlDocument) throws ArtifactResolverProcessingException, ArtifactResolverConfigException {
-        try {
-            String artifact = createArtifact(entityId);
-            String artifactResponseStr = DocumentUtil.getDocumentAsString(samlDocument);
-            session.sessions().addArtifactResponse(realmId, artifact, artifactResponseStr);
-            return artifact;
-        } catch (ProcessingException e) {
-            throw new ArtifactResolverProcessingException(e);
-        } catch (ConfigurationException e) {
-            throw new ArtifactResolverConfigException(e);
-        }
+    private String buildArtifact(String realmId, String entityId, String samlDocument) throws ArtifactResolverProcessingException, ArtifactResolverConfigException {
+        String artifact = createArtifact(entityId);
+        session.sessions().addArtifactSessionsMapping(realmId, artifact, samlDocument, null);
+        return artifact;
     }
 
     @Override
-    public String resolveArtifact(String artifact) throws ArtifactResolverProcessingException {
-        String res = session.sessions().getArtifactResponse(artifact);
+    public String resolveArtifactResponseString(RealmModel realm, String artifact) throws ArtifactResolverProcessingException {
+        SamlArtifactSessionMappingModel sessionsMapping = session.sessions().getArtifactSessionsMapping(artifact);
 
-        if (res == null) {
+        if (sessionsMapping == null) {
             throw new ArtifactResolverProcessingException("Cannot find artifact " + artifact + " in cache");
         }
         session.sessions().removeArtifactResponse(artifact);
-        return res;
+
+        UserSessionModel userSessionModel = session.sessions().getUserSession(realm, sessionsMapping.getUserSessionId());
+        if (userSessionModel == null) {
+            logger.errorf("UserSession with id: %s, that corresponds to artifact: %s does not exist.", sessionsMapping.getUserSessionId(), artifact);
+            throw new ArtifactResolverProcessingException("Unable to get UserSession.");
+        }
+
+        AuthenticatedClientSessionModel clientSessionModel = userSessionModel.getAuthenticatedClientSessions().get(sessionsMapping.getClientSessionId());
+        if (clientSessionModel == null) {
+            logger.errorf("ClientSession with id: %s, that corresponds to artifact: %s and UserSession: %s does not exist.", sessionsMapping.getClientSessionId(), artifact, sessionsMapping.getUserSessionId());
+            throw new ArtifactResolverProcessingException("Unable to get ClientSession.");
+        }
+
+        String artifactResponse = clientSessionModel.getNote(GeneralConstants.SAML_ARTIFACT_KEY + "=" + artifact);
+        clientSessionModel.removeNote(GeneralConstants.SAML_ARTIFACT_KEY + "=" + artifact);
+        logger.tracef("ArtifactResponse obtained from clientSession is: %s", artifactResponse);
+        if (Strings.isNullOrEmpty(artifactResponse)) {
+            throw new ArtifactResolverProcessingException("Artifact not present in ClientSession.");
+        }
+        
+        return artifactResponse;
     }
 
     @Override
@@ -90,6 +109,17 @@ public class DefaultSamlArtifactResolver implements ArtifactResolver {
         } catch (NoSuchAlgorithmException e) {
             throw new ArtifactResolverProcessingException(e);
         }
+    }
+
+    @Override
+    public String buildArtifact(String entityId, AuthenticatedClientSessionModel clientSessionModel, String artifactResponse) throws ArtifactResolverProcessingException {
+        String artifact = createArtifact(entityId);
+        UserSessionModel userSessionModel = clientSessionModel.getUserSession();
+        session.sessions().addArtifactSessionsMapping(userSessionModel.getRealm().getId(), artifact, userSessionModel.getId(), clientSessionModel.getClient().getId());
+
+        clientSessionModel.setNote(GeneralConstants.SAML_ARTIFACT_KEY + "=" + artifact, artifactResponse);
+
+        return artifact;
     }
 
     private void assertSupportedArtifactFormat(String artifactString) throws ArtifactResolverProcessingException {
