@@ -844,4 +844,11 @@ public class BackchannelLogoutTest extends AbstractNestedBrokerTest {
         oauth.updateAccountInformation(nbc.getUserLogin(), nbc.getUserEmail());
         oauth.linkUsers(nbc.getUserLogin(), USER_PASSWORD_CONSUMER_REALM);
     }
+
+    private String getClientId(String realm, String clientId) {
+        return adminClient.realm(realm).clients().findByClientId(clientId).stream()
+                .findAny()
+                .map(ClientRepresentation::getId)
+                .orElse(null);
+    }
 }
