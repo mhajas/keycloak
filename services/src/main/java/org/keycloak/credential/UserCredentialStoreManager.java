@@ -264,7 +264,7 @@ public class UserCredentialStoreManager implements UserCredentialManager.Streams
             if (user.getFederationLink() != null) {
                 UserStorageProvider provider = UserStorageManager.getStorageProvider(session, realm, user.getFederationLink());
                 if (provider instanceof CredentialInputUpdater) {
-                    if (!UserStorageManager.isStorageProviderEnabled(realm, user.getFederationLink())) return Collections.EMPTY_SET;
+                    if (!UserStorageManager.isStorageProviderEnabled(realm, user.getFederationLink())) return Stream.empty();
                     types = ((CredentialInputUpdater) provider).getDisableableCredentialTypesStream(realm, user);
                 }
             }
@@ -340,17 +340,27 @@ public class UserCredentialStoreManager implements UserCredentialManager.Streams
                 realm, input);
     }
 
+    public CredentialValidationOutput authenticate(Stream<CredentialAuthentication> storageProviders,
+                                                   RealmModel realm, CredentialInput input) {
+        return storageProviders
+                .filter(auth -> auth.supportsCredentialAuthenticationFor(input.getType()))
+                .map(auth -> auth.authenticate(realm, input))
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
+    }
+
     @Override
     public void onCache(RealmModel realm, CachedUserModel user, UserModel delegate) {
         getCredentialProviders(session, OnUserCache.class).forEach(validator -> validator.onCache(realm, user, delegate));
     }
 
     @Override
-    public List<String> getConfiguredUserStorageCredentialTypes(RealmModel realm, UserModel user) {
+    public Stream<String> getConfiguredUserStorageCredentialTypesStream(RealmModel realm, UserModel user) {
         return getCredentialProviders(session, CredentialProvider.class).map(CredentialProvider::getType)
-                .filter(credentialType -> UserStorageCredentialConfigured.CONFIGURED == isConfiguredThroughUserStorage(realm, user, credentialType))
-                .collect(Collectors.toList());
+                .filter(credentialType -> UserStorageCredentialConfigured.CONFIGURED == isConfiguredThroughUserStorage(realm, user, credentialType));
     }
+
 
     @Override
     public void close() {

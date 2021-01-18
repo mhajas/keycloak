@@ -27,6 +27,7 @@ import org.keycloak.models.FederatedIdentityModel;
 import org.keycloak.models.GroupModel;
 import org.keycloak.models.IdentityProviderModel;
 import org.keycloak.models.KeycloakSession;
+import org.keycloak.models.KeycloakSessionTask;
 import org.keycloak.models.ModelException;
 import org.keycloak.models.ProtocolMapperModel;
 import org.keycloak.models.RealmModel;
@@ -134,12 +135,6 @@ public class UserStorageManager implements UserProvider.Streams, OnUserCache, On
                 .map(model -> type.cast(getStorageProviderInstance(session, model, getUserStorageProviderFactory(model, session))));
     }
 
-
-    @Override
-    public UserModel addUser(RealmModel realm, String id, String username, boolean addDefaultRoles, boolean addDefaultRequiredActions) {
-        return localStorage().addUser(realm, id, username.toLowerCase(), addDefaultRoles, addDefaultRequiredActions);
-    }
-
     @Override
     public UserModel addUser(RealmModel realm, String username) {
         UserModel user = getEnabledStorageProviders(session, realm, UserRegistrationProvider.class)
@@ -199,103 +194,12 @@ public class UserStorageManager implements UserProvider.Streams, OnUserCache, On
     }
 
     @Override
-    public void addFederatedIdentity(RealmModel realm, UserModel user, FederatedIdentityModel socialLink) {
-        if (StorageId.isLocalStorage(user)) {
-            localStorage().addFederatedIdentity(realm, user, socialLink);
-        } else {
-            getFederatedStorage().addFederatedIdentity(realm, user.getId(), socialLink);
-        }
-    }
-
-    public void updateFederatedIdentity(RealmModel realm, UserModel federatedUser, FederatedIdentityModel federatedIdentityModel) {
-        if (StorageId.isLocalStorage(federatedUser)) {
-            localStorage().updateFederatedIdentity(realm, federatedUser, federatedIdentityModel);
-
-        } else {
-            getFederatedStorage().updateFederatedIdentity(realm, federatedUser.getId(), federatedIdentityModel);
-        }
-    }
-
-    @Override
-    public boolean removeFederatedIdentity(RealmModel realm, UserModel user, String socialProvider) {
-        if (StorageId.isLocalStorage(user)) {
-            return localStorage().removeFederatedIdentity(realm, user, socialProvider);
-        } else {
-            return getFederatedStorage().removeFederatedIdentity(realm, user.getId(), socialProvider);
-        }
-    }
-
-    @Override
-    public void preRemove(RealmModel realm, IdentityProviderModel provider) {
-        localStorage().preRemove(realm, provider);
-        getFederatedStorage().preRemove(realm, provider);
-    }
-
-
-    @Override
-    public void addConsent(RealmModel realm, String userId, UserConsentModel consent) {
-        if (StorageId.isLocalStorage(userId)) {
-            localStorage().addConsent(realm, userId, consent);
-        } else {
-            getFederatedStorage().addConsent(realm, userId, consent);
-        }
-
-    }
-
-    @Override
-    public UserConsentModel getConsentByClient(RealmModel realm, String userId, String clientInternalId) {
-        if (StorageId.isLocalStorage(userId)) {
-            return localStorage().getConsentByClient(realm, userId, clientInternalId);
-        } else {
-            return getFederatedStorage().getConsentByClient(realm, userId, clientInternalId);
-        }
-    }
-
-    @Override
     public List<UserConsentModel> getConsents(RealmModel realm, String userId) {
         if (StorageId.isLocalStorage(userId)) {
             return localStorage().getConsents(realm, userId);
 
         } else {
             return getFederatedStorage().getConsents(realm, userId);
-        }
-    }
-
-    @Override
-    public void updateConsent(RealmModel realm, String userId, UserConsentModel consent) {
-        if (StorageId.isLocalStorage(userId)) {
-            localStorage().updateConsent(realm, userId, consent);
-        } else {
-            getFederatedStorage().updateConsent(realm, userId, consent);
-        }
-
-    }
-
-    @Override
-    public boolean revokeConsentForClient(RealmModel realm, String userId, String clientInternalId) {
-        if (StorageId.isLocalStorage(userId)) {
-            return localStorage().revokeConsentForClient(realm, userId, clientInternalId);
-        } else {
-            return getFederatedStorage().revokeConsentForClient(realm, userId, clientInternalId);
-        }
-    }
-
-    @Override
-    public void setNotBeforeForUser(RealmModel realm, UserModel user, int notBefore) {
-        if (StorageId.isLocalStorage(user)) {
-            localStorage().setNotBeforeForUser(realm, user, notBefore);
-        } else {
-            getFederatedStorage().setNotBeforeForUser(realm, user.getId(), notBefore);
-        }
-    }
-
-    @Override
-    public int getNotBeforeOfUser(RealmModel realm, UserModel user) {
-        if (StorageId.isLocalStorage(user)) {
-            return localStorage().getNotBeforeOfUser(realm, user);
-
-        } else {
-            return getFederatedStorage().getNotBeforeOfUser(realm, user.getId());
         }
     }
 
@@ -464,17 +368,17 @@ public class UserStorageManager implements UserProvider.Streams, OnUserCache, On
     }
 
     @Override
-    public List<UserModel> getUsers(RealmModel realm, boolean includeServiceAccounts) {
-        return getUsers(realm, 0, Integer.MAX_VALUE - 1, includeServiceAccounts);
+    public Stream<UserModel> getUsersStream(RealmModel realm, boolean includeServiceAccounts) {
+        return getUsersStream(realm, 0, Integer.MAX_VALUE - 1, includeServiceAccounts);
     }
 
     @Override
     public List<UserModel> getUsers(final RealmModel realm, int firstResult, int maxResults, final boolean includeServiceAccounts) {
         Stream<UserModel> results =  query((provider) -> {
                     if (provider instanceof UserProvider) { // it is local storage
-                        return ((UserProvider) provider).getUsers(realm, includeServiceAccounts).stream();
+                        return ((UserProvider) provider).getUsersStream(realm, includeServiceAccounts);
                     } else if (provider instanceof UserQueryProvider) {
-                        return ((UserQueryProvider)provider).getUsers(realm).stream();
+                        return ((UserQueryProvider)provider).getUsersStream(realm);
                     }
                     return Stream.empty();
                 }
@@ -563,7 +467,7 @@ public class UserStorageManager implements UserProvider.Streams, OnUserCache, On
     }
 
     @Override
-    public List<UserModel> searchForUser(String search, RealmModel realm, int firstResult, int maxResults) {
+    public Stream<UserModel> searchForUserStream(String search, RealmModel realm, Integer firstResult, Integer maxResults) {
         Stream<UserModel> results = query((provider) -> {
             if (provider instanceof UserQueryProvider) {
                 return ((UserQueryProvider)provider).searchForUserStream(search, realm);
@@ -571,12 +475,12 @@ public class UserStorageManager implements UserProvider.Streams, OnUserCache, On
             }
             return Stream.empty();
         }, realm, firstResult, maxResults);
-        return importValidation(realm, results).collect(Collectors.toList());
+        return importValidation(realm, results);
     }
 
     @Override
-    public List<UserModel> searchForUser(Map<String, String> attributes, RealmModel realm) {
-        return searchForUser(attributes, realm, 0, Integer.MAX_VALUE - 1);
+    public Stream<UserModel> searchForUserStream(Map<String, String> params, RealmModel realm) {
+        return searchForUserStream(params, realm, 0, Integer.MAX_VALUE - 1);
     }
 
     @Override
@@ -642,54 +546,10 @@ public class UserStorageManager implements UserProvider.Streams, OnUserCache, On
     }
 
     @Override
-    public FederatedIdentityModel getFederatedIdentity(UserModel user, String socialProvider, RealmModel realm) {
-        if (user == null) throw new IllegalStateException("Federated user no longer valid");
-        if (StorageId.isLocalStorage(user)) {
-            FederatedIdentityModel model = localStorage().getFederatedIdentity(user, socialProvider, realm);
-            if (model != null) return model;
-        }
-        if (getFederatedStorage() != null) return getFederatedStorage().getFederatedIdentity(user.getId(), socialProvider, realm);
-        else return null;
-    }
-
-    @Override
     public void grantToAllUsers(RealmModel realm, RoleModel role) {
         Stream.concat(Stream.of(localStorage()), getEnabledStorageProviders(session, realm, UserBulkUpdateProvider.class))
                 .forEachOrdered(provider -> provider.grantToAllUsers(realm, role));
     }
-
-    @Override
-    public List<UserModel> getGroupMembers(final RealmModel realm, final GroupModel group, int firstResult, int maxResults) {
-        List<UserModel> results = query((provider, first, max) -> {
-            if (provider instanceof UserQueryProvider) {
-                return ((UserQueryProvider)provider).getGroupMembers(realm, group, first, max);
-
-            } else if (provider instanceof UserFederatedStorageProvider) {
-                List<String> ids = ((UserFederatedStorageProvider)provider).getMembership(realm, group, first, max);
-                List<UserModel> rs = new LinkedList<UserModel>();
-                for (String id : ids) {
-                    UserModel user = getUserById(id, realm);
-                    if (user != null) rs.add(user);
-                }
-                return rs;
-
-            }
-            return Collections.EMPTY_LIST;
-        }, realm, firstResult, maxResults);
-        return importValidation(realm, results);
-    }
-
-    @Override
-    public List<UserModel> getRoleMembers(final RealmModel realm, final RoleModel role, int firstResult, int maxResults) {
-        List<UserModel> results = query((provider, first, max) -> {
-            if (provider instanceof UserQueryProvider) {
-                return ((UserQueryProvider)provider).getRoleMembers(realm, role, first, max);
-            }
-            return Collections.EMPTY_LIST;
-        }, realm, firstResult, maxResults);
-        return importValidation(realm, results);
-    }
-
 
     @Override
     public void preRemove(RealmModel realm) {
@@ -844,17 +704,6 @@ public class UserStorageManager implements UserProvider.Streams, OnUserCache, On
     @Override
     public UserModel getServiceAccount(ClientModel client) {
         return localStorage().getServiceAccount(client);
-    }
-
-    @Override
-    public Set<FederatedIdentityModel> getFederatedIdentities(UserModel user, RealmModel realm) {
-        if (user == null) throw new IllegalStateException("Federated user no longer valid");
-        Set<FederatedIdentityModel> set = new HashSet<>();
-        if (StorageId.isLocalStorage(user)) {
-            set.addAll(localStorage().getFederatedIdentities(user, realm));
-        }
-        if (getFederatedStorage() != null) set.addAll(getFederatedStorage().getFederatedIdentities(user.getId(), realm));
-        return set;
     }
 
     @Override
