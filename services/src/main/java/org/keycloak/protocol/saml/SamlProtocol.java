@@ -719,7 +719,7 @@ public class SamlProtocol implements LoginProtocol {
         String logoutRequestString = null;
         try {
             LogoutRequestType logoutRequest = createLogoutRequest(logoutUrl, clientSession, client);
-            JaxrsSAML2BindingBuilder binding = createBindingBuilder(samlClient, "true".equals(clientSession.getNote(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.get())));
+            JaxrsSAML2BindingBuilder binding = createBindingBuilder(samlClient, false);
             // This is POST binding, hence KeyID is included in dsig:KeyInfo/dsig:KeyName, no need to add <samlp:Extensions> element
             logoutRequestString = binding.postBinding(SAML2Request.convert(logoutRequest)).encoded();
         } catch (Exception e) {

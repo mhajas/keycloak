@@ -152,7 +152,12 @@ public class HandleArtifactStepBuilder extends SamlDocumentStepBuilder<ArtifactR
                     .signDocument(doc);
         }
 
-        HttpPost post =  Soap.createMessage().addToBody(doc).buildHttpPost(authServerSamlUrl);
+        String documentAsString = DocumentUtil.getDocumentAsString(doc);
+        String transformed = getTransformer().transform(documentAsString);
+
+        if (transformed == null) return null;
+
+        HttpPost post =  Soap.createMessage().addToBody(DocumentUtil.getDocument(transformed)).buildHttpPost(authServerSamlUrl);
         replayPostMessage = post;
         return post;
     }
