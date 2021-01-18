@@ -13,6 +13,10 @@ import org.keycloak.dom.saml.v2.assertion.AssertionType;
 import org.keycloak.dom.saml.v2.assertion.AuthnStatementType;
 import org.keycloak.dom.saml.v2.assertion.NameIDType;
 import org.keycloak.dom.saml.v2.protocol.*;
+import org.keycloak.models.AuthenticatedClientSessionModel;
+import org.keycloak.models.RealmModel;
+import org.keycloak.models.SamlArtifactSessionMappingModel;
+import org.keycloak.models.UserSessionModel;
 import org.keycloak.protocol.saml.SamlConfigAttributes;
 import org.keycloak.protocol.saml.SamlProtocol;
 import org.keycloak.protocol.saml.SamlProtocolUtils;
@@ -28,6 +32,7 @@ import org.keycloak.saml.common.exceptions.ProcessingException;
 import org.keycloak.saml.common.util.DocumentUtil;
 import org.keycloak.saml.processing.api.saml.v2.request.SAML2Request;
 import org.keycloak.saml.processing.core.saml.v2.common.SAMLDocumentHolder;
+import org.keycloak.sessions.CommonClientSessionModel;
 import org.keycloak.testsuite.util.ArtifactResolutionService;
 import org.keycloak.testsuite.util.ClientBuilder;
 import org.keycloak.testsuite.util.SamlClient;
@@ -48,6 +53,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
@@ -67,6 +74,9 @@ public class ArtifactBindingTest extends AbstractSamlTest {
 
     private final AtomicReference<NameIDType> nameIdRef = new AtomicReference<>();
     private final AtomicReference<String> sessionIndexRef = new AtomicReference<>();
+
+    private static final AtomicReference<String> userSessionId = new AtomicReference<>();
+    private static final AtomicReference<String> clientSessionId = new AtomicReference<>();
 
     @After
     public void cleanup() {
@@ -702,6 +712,87 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         assertThat(artifactResponse.getSignature(), nullValue());
         assertThat(artifactResponse, isSamlStatusResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
         assertThat(artifactResponse.getAny(), instanceOf(LogoutRequestType.class));
+    }
+
+    @Test
+    public void testSessionStateDuringArtifactBindingLogout() {
+        ClientRepresentation salesRep = adminClient.realm(REALM_NAME).clients().findByClientId(SAML_CLIENT_ID_SALES_POST).get(0);
+        final String clientId = salesRep.getId();
+
+        adminClient.realm(REALM_NAME)
+                .clients().get(salesRep.getId())
+                .update(ClientBuilder.edit(salesRep)
+                        .attribute(SamlConfigAttributes.SAML_ARTIFACT_BINDING, "true")
+                        .frontchannelLogout(true)
+                        .attribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_POST_ATTRIBUTE, "http://url")
+                        .build());
+
+        userSessionId.set(null);
+        clientSessionId.set(null);
+        
+        SAMLDocumentHolder response = new SamlClientBuilder().authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
+                SAML_ASSERTION_CONSUMER_URL_SALES_POST, POST)
+                .build()
+                .login().user(bburkeUser)
+                .build()
+                .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST)
+                    .transformObject(o -> {
+                        String artifact = o.getArtifact();
+
+                        testingClient.server().run(session -> {
+                            SamlArtifactSessionMappingModel mappingModel = session.sessions().getArtifactSessionsMapping(artifact);
+                            assertThat(mappingModel, notNullValue());
+                            assertThat(mappingModel.getUserSessionId(), notNullValue());
+                            assertThat(mappingModel.getClientSessionId(), notNullValue());
+                            assertThat(mappingModel.getClientSessionId(), equalTo(clientId));
+
+                            userSessionId.set(mappingModel.getUserSessionId());
+                            clientSessionId.set(mappingModel.getClientSessionId());
+                        });
+                    })
+                    .build()
+                .logoutRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST, POST).build()
+                .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST)
+                    .transformObject(o -> {
+                        String artifact = o.getArtifact();
+
+                        testingClient.server().run(session -> {
+                            RealmModel realm = session.realms().getRealmByName(REALM_NAME);
+                            SamlArtifactSessionMappingModel mappingModel = session.sessions().getArtifactSessionsMapping(artifact);
+                            assertThat(mappingModel, notNullValue());
+                            assertThat(mappingModel.getUserSessionId(), notNullValue());
+                            assertThat(mappingModel.getUserSessionId(), equalTo(userSessionId.get()));
+                            assertThat(mappingModel.getClientSessionId(), notNullValue());
+                            assertThat(mappingModel.getClientSessionId(), equalTo(clientSessionId.get()));
+
+                            UserSessionModel userSessionModel = session.sessions().getUserSession(realm, userSessionId.get());
+                            assertThat(userSessionModel, notNullValue());
+                            assertThat(userSessionModel.getAuthenticatedClientSessions().values(), hasSize(1));
+                            assertThat(userSessionModel.getState(), equalTo(UserSessionModel.State.LOGGED_OUT_UNCONFIRMED));
+                            
+                            AuthenticatedClientSessionModel clientSessionModel = userSessionModel.getAuthenticatedClientSessionByClient(clientSessionId.get());
+                            assertThat(clientSessionModel.getAction(), equalTo(CommonClientSessionModel.Action.LOGGED_OUT_UNCONFIRMED.name()));
+                        });
+                    })
+                    .build()
+                .doNotFollowRedirects().executeAndTransform(this::getArtifactResponse);
+
+        testingClient.server().run(session -> {
+            RealmModel realm = session.realms().getRealmByName(REALM_NAME);
+            UserSessionModel userSessionModel = session.sessions().getUserSession(realm, userSessionId.get());
+            assertThat(userSessionModel, nullValue());
+        });
+
+        assertThat(response.getSamlObject(), instanceOf(ArtifactResponseType.class));
+        ArtifactResponseType artifactResponse = (ArtifactResponseType)response.getSamlObject();
+        assertThat(artifactResponse, isSamlStatusResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
+        assertThat(artifactResponse.getSignature(), nullValue());
+        assertThat(artifactResponse.getAny(), not(instanceOf(ResponseType.class)));
+        assertThat(artifactResponse.getAny(), not(instanceOf(ArtifactResponseType.class)));
+        assertThat(artifactResponse.getAny(), not(instanceOf(NameIDMappingResponseType.class)));
+        assertThat(artifactResponse.getAny(), instanceOf(StatusResponseType.class));
+        StatusResponseType samlResponse = (StatusResponseType)artifactResponse.getAny();
+        assertThat(samlResponse, isSamlStatusResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
     }
 
 
