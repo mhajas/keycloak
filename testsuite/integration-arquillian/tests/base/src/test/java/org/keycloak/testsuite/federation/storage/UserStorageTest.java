@@ -66,11 +66,8 @@ import java.util.stream.Stream;
 import static java.util.Calendar.DAY_OF_WEEK;
 import static java.util.Calendar.HOUR_OF_DAY;
 import static java.util.Calendar.MINUTE;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.keycloak.models.UserModel.RequiredAction.UPDATE_PROFILE;
@@ -423,8 +420,8 @@ public class UserStorageTest extends AbstractAuthTest {
 
         // test searchForUser
         List<UserRepresentation> users = testRealmResource().users().search("tbrady", 0, Integer.MAX_VALUE);
-        assertThat(users, hasSize(1));
-        assertThat(users.get(0).getUsername(), equalTo("tbrady"));
+        Assert.assertTrue(users.size() == 1);
+        Assert.assertTrue(users.get(0).getUsername().equals("tbrady"));
 
         // test getGroupMembers()
         GroupRepresentation g = new GroupRepresentation();
@@ -476,9 +473,9 @@ public class UserStorageTest extends AbstractAuthTest {
 
     @Test
     public void testQueryExactMatch() {
-        Assert.assertThat(testRealmResource().users().search("a", true), hasSize(0));
-        Assert.assertThat(testRealmResource().users().search("apollo", true), hasSize(1));
-        Assert.assertThat(testRealmResource().users().search("tbrady", true), hasSize(1));
+        Assert.assertThat(testRealmResource().users().search("a", true), Matchers.hasSize(0));
+        Assert.assertThat(testRealmResource().users().search("apollo", true), Matchers.hasSize(1));
+        Assert.assertThat(testRealmResource().users().search("tbrady", true), Matchers.hasSize(1));
     }
 
     private void setDailyEvictionTime(int hour, int minutes) {

@@ -16,7 +16,6 @@
  */
 package org.keycloak.storage;
 
-import org.jboss.logging.Logger;
 import org.keycloak.Config;
 import org.keycloak.common.util.reflections.Types;
 import org.keycloak.component.ComponentFactory;
@@ -28,7 +27,6 @@ import org.keycloak.provider.ProviderFactory;
 import org.keycloak.utils.ServicesUtils;
 
 import java.util.Objects;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -42,8 +40,6 @@ import java.util.stream.Stream;
  */
 public abstract class AbstractStorageManager<ProviderType extends Provider,
         StorageProviderModelType extends CacheableStorageProviderModel> {
-
-    private static final Logger LOG = Logger.getLogger(AbstractStorageManager.class);
 
     /**
      * Timeouts are used as time boundary for obtaining models from an external storage. Default value is set
@@ -95,7 +91,7 @@ public abstract class AbstractStorageManager<ProviderType extends Provider,
                 .map(toStorageProviderModelTypeFunction)
                 .filter(StorageProviderModelType::isEnabled)
                 .sorted(StorageProviderModelType.comparator)
-                .map(storageProviderModelType -> getStorageProviderInstance(storageProviderModelType, capabilityInterface, false))
+                .map(storageProviderModelType -> getStorageProviderInstance(storageProviderModelType, capabilityInterface))
                 .filter(Objects::nonNull);
     }
 
@@ -112,48 +108,9 @@ public abstract class AbstractStorageManager<ProviderType extends Provider,
      * @param <R> result of applyFunction
      * @return a stream with all results from all StorageProviders
      */
-    protected <R, T> Stream<R> flatMapEnabledStorageProvidersWithTimeout(RealmModel realm, Class<T> capabilityInterface, Function<T, ? extends Stream<R>> applyFunction) {
-        return getEnabledStorageProviders(realm, capabilityInterface)
-                .flatMap(ServicesUtils.timeBound(session, getStorageProviderTimeout(), applyFunction));
-    }
-
-    /**
-     * Gets all enabled StorageProviders that implements the capabilityInterface, applies applyFunction on each of
-     * them and returns the stream.
-     *
-     * !! Each StorageProvider has a limited time to respond, if it fails to do it, null is returned !!
-     *
-     * @param realm realm
-     * @param capabilityInterface class of desired capabilityInterface.
-     *                            For example, {@code GroupLookupProvider} or {@code UserQueryProvider}
-     * @param applyFunction function that is applied on StorageProviders
-     * @param <R> Result of applyFunction
-     * @return First result from StorageProviders
-     */
-    protected <R, T> Stream<R> mapEnabledStorageProvidersWithTimeout(RealmModel realm, Class<T> capabilityInterface, Function<T, R> applyFunction) {
-        return getEnabledStorageProviders(realm, capabilityInterface)
-                .map(ServicesUtils.timeBoundOne(session, getStorageProviderTimeout(), applyFunction))
-                .filter(Objects::nonNull);
-    }
-
-    /**
-     * Gets all enabled StorageProviders that implements the capabilityInterface and call applyFunction on each
-     *
-     * !! Each StorageProvider has a limited time for consuming !!
-     *
-     * @param realm realm
-     * @param capabilityInterface class of desired capabilityInterface.
-     *                            For example, {@code GroupLookupProvider} or {@code UserQueryProvider}
-     * @param consumer function that is applied on StorageProviders
-     */
-    protected <T> void consumeEnabledStorageProvidersWithTimeout(RealmModel realm, Class<T> capabilityInterface, Consumer<T> consumer) {
-        getEnabledStorageProviders(realm, capabilityInterface)
-                .forEachOrdered(ServicesUtils.consumeWithTimeBound(session, getStorageProviderTimeout(), consumer));
-    }
-
-
-    protected <T> T getStorageProviderInstance(RealmModel realm, String providerId, Class<T> capabilityInterface) {
-        return getStorageProviderInstance(realm, providerId, capabilityInterface, false);
+    protected <R, T> Stream<R> applyOnEnabledStorageProvidersWithTimeout(RealmModel realm, Class<T> capabilityInterface, Function<T, ? extends Stream<R>> applyFunction) {
+        return getEnabledStorageProviders(realm, capabilityInterface).flatMap(ServicesUtils.timeBound(session,
+                    getStorageProviderTimeout(), applyFunction));
     }
 
     /**
@@ -166,50 +123,24 @@ public abstract class AbstractStorageManager<ProviderType extends Provider,
      *                            For example, {@code GroupLookupProvider} or {@code UserQueryProvider}
      * @return an instance of type CreatedProviderType or null if storage provider with providerId doesn't implement capabilityInterface
      */
-    protected <T> T getStorageProviderInstance(RealmModel realm, String providerId, Class<T> capabilityInterface, boolean includeDisabled) {
-        if (providerId == null || capabilityInterface == null) return null;
-        return getStorageProviderInstance(getStorageProviderModel(realm, providerId), capabilityInterface, includeDisabled);
-    }
-
-    /**
-     * Returns an instance of StorageProvider model corresponding realm and providerId
-     * @param realm Realm.
-     * @param providerId Id of desired provider.
-     * @return An instance of type StorageProviderModelType
-     */
-    protected StorageProviderModelType getStorageProviderModel(RealmModel realm, String providerId) {
+    protected <T> T getStorageProviderInstance(RealmModel realm, String providerId, Class<T> capabilityInterface) {
         ComponentModel componentModel = realm.getComponent(providerId);
         if (componentModel == null) {
             return null;
         }
-
-        return toStorageProviderModelTypeFunction.apply(componentModel);
+        
+        return getStorageProviderInstance(toStorageProviderModelTypeFunction.apply(componentModel), capabilityInterface);
     }
 
     /**
      * Returns an instance of provider for the model or null if storage provider based on the model doesn't implement capabilityInterface.
-     *
      * @param model StorageProviderModel obtained from database/storage
      * @param capabilityInterface class of desired capabilityInterface.
      *                            For example, {@code GroupLookupProvider} or {@code UserQueryProvider}
-     * @param <T> Required capability interface type
-     * @return an instance of type T or null if storage provider based on the model doesn't exist or doesn't implement the capabilityInterface.
+     * @return an instance of type CreatedProviderType or null if storage provider based on the model doesn't implement capabilityInterface.
      */
     protected <T> T getStorageProviderInstance(StorageProviderModelType model, Class<T> capabilityInterface) {
-        return getStorageProviderInstance(model, capabilityInterface, false);
-    }
-
-    /**
-     * Returns an instance of provider for the model or null if storage provider based on the model doesn't implement capabilityInterface.
-     *
-     * @param model StorageProviderModel obtained from database/storage
-     * @param capabilityInterface class of desired capabilityInterface.
-     *                            For example, {@code GroupLookupProvider} or {@code UserQueryProvider}
-     * @param includeDisabled If set to true, the method will return also disabled providers.
-     * @return an instance of type T or null if storage provider based on the model doesn't exist or doesn't implement the capabilityInterface.
-     */
-    protected <T> T getStorageProviderInstance(StorageProviderModelType model, Class<T> capabilityInterface, boolean includeDisabled) {
-        if (model == null || (!model.isEnabled() && !includeDisabled) || capabilityInterface == null) {
+        if (model == null || !model.isEnabled() || capabilityInterface == null) {
             return null;
         }
 
@@ -218,10 +149,7 @@ public abstract class AbstractStorageManager<ProviderType extends Provider,
         if (instance != null && capabilityInterface.isAssignableFrom(instance.getClass())) return capabilityInterface.cast(instance);
 
         ComponentFactory<? extends ProviderType, ProviderType> factory = getStorageProviderFactory(model.getProviderId());
-        if (factory == null) {
-            LOG.warnv("Configured StorageProvider {0} of provider id {1} does not exist", model.getName(), model.getProviderId());
-            return null;
-        }
+
         if (!Types.supports(capabilityInterface, factory, factoryTypeClass)) {
             return null;
         }

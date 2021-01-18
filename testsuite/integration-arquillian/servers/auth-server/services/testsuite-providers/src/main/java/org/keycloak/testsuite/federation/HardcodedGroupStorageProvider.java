@@ -58,7 +58,6 @@ public class HardcodedGroupStorageProvider implements GroupStorageProvider {
             Thread.sleep(5000l);
         } catch (InterruptedException ex) {
             Logger.getLogger(HardcodedGroupStorageProvider.class).warn(ex.getCause());
-            return Stream.empty();
         }
         if (search != null && this.groupName.toLowerCase().contains(search.toLowerCase())) {
             return Stream.of(new HardcodedGroupAdapter(realm));
