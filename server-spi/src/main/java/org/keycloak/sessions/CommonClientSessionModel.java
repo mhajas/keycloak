@@ -43,7 +43,7 @@ public interface CommonClientSessionModel {
         OAUTH_GRANT,
         AUTHENTICATE,
         LOGGED_OUT,
-        LOGGED_OUT_UNCONFIRMED, // Used, for example, when a saml artifact was sent, but is not resolved yet
+        LOGGED_OUT_UNCONFIRMED, // Used, for example, when a saml artifact was sent, but not resolved yet
         LOGGING_OUT,
         REQUIRED_ACTIONS
     }

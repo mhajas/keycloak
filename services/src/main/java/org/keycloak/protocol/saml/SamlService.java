@@ -1117,7 +1117,7 @@ public class SamlService extends AuthorizationEndpointBase {
      * Takes an artifact resolve message and returns the artifact response, if the artifact is found belonging to a session
      * of the issuer.
      * @param artifactResolveMessage The artifact resolve message sent by the client
-     * @param samlDoc the document containing the artifact resolve message sent by the client
+     * @param artifactResolveHolder the document containing the artifact resolve message sent by the client
      * @return a Response containing the SOAP message with the ArifactResponse
      * @throws ParsingException
      * @throws ConfigurationException
@@ -1146,6 +1146,12 @@ public class SamlService extends AuthorizationEndpointBase {
             if (clientSessionModel == null) {
                 logger.errorf("ClientSession with id: %s, that corresponds to artifact: %s and UserSession: %s does not exist.", sessionMapping.getClientSessionId(), artifact, sessionMapping.getUserSessionId());
                 throw new ArtifactResolverProcessingException("Unable to get ClientSession.");
+            }
+
+            if (!clientSessionModel.getClient().getClientId().equals(artifactResolveMessage.getIssuer().getValue())) {
+                logger.errorf("Resolve message with wrong issuer. Artifact was issued for client %s, however ArtifactResolve came from client %s.", 
+                        clientSessionModel.getClient().getClientId(), artifactResolveMessage.getIssuer().getValue());
+                throw new ArtifactResolverProcessingException("Wrong issuer.");
             }
 
             artifactResponseString = clientSessionModel.getNote(GeneralConstants.SAML_ARTIFACT_KEY + "=" + artifact);
