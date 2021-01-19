@@ -33,19 +33,28 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.keycloak.common.util.KeyUtils;
+import org.keycloak.dom.saml.v2.protocol.ArtifactResponseType;
 import org.keycloak.dom.saml.v2.protocol.AuthnRequestType;
+import org.keycloak.dom.saml.v2.protocol.RequestAbstractType;
+import org.keycloak.dom.saml.v2.protocol.ResponseType;
+import org.keycloak.protocol.saml.profile.util.Soap;
 import org.keycloak.saml.BaseSAML2BindingBuilder;
 import org.keycloak.saml.SAMLRequestParser;
 import org.keycloak.saml.SignatureAlgorithm;
 import org.keycloak.saml.common.constants.GeneralConstants;
 import org.keycloak.saml.common.constants.JBossSAMLURIConstants;
 import org.keycloak.saml.common.exceptions.ConfigurationException;
+import org.keycloak.saml.common.exceptions.ParsingException;
 import org.keycloak.saml.common.exceptions.ProcessingException;
+import org.keycloak.saml.common.util.DocumentUtil;
 import org.keycloak.saml.processing.api.saml.v2.request.SAML2Request;
 import org.keycloak.saml.processing.core.saml.v2.common.SAMLDocumentHolder;
+import org.keycloak.testsuite.util.saml.SessionStateChecker;
+import org.keycloak.testsuite.util.saml.StepWithSessionChecker;
 import org.w3c.dom.Document;
 
 import javax.ws.rs.core.Response;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
@@ -311,6 +320,87 @@ public class SamlClient {
                     throw new RuntimeException(ex);
                 }
             }
+        },
+        ARTIFACT_RESPONSE {
+            private Document extractSoapMessage(CloseableHttpResponse response) throws IOException {
+                ByteArrayInputStream bais = new ByteArrayInputStream(EntityUtils.toByteArray(response.getEntity()));
+                Document soapBody = Soap.extractSoapMessage(bais);
+                response.close();
+                return soapBody;
+            }
+            
+            @Override
+            public SAMLDocumentHolder extractResponse(CloseableHttpResponse response, String realmPublicKey) throws IOException {
+                assertThat(response, statusCodeIsHC(Response.Status.OK));
+                Document soapBodyContents = extractSoapMessage(response);
+
+                SAMLDocumentHolder samlDoc = null;
+                try {
+                    samlDoc = SAML2Request.getSAML2ObjectFromDocument(soapBodyContents);
+                } catch (ProcessingException | ParsingException e) {
+                    throw new RuntimeException("Unable to get documentHolder from soapBodyResponse: " + DocumentUtil.asString(soapBodyContents));
+                }
+                if (!(samlDoc.getSamlObject() instanceof ArtifactResponseType)) {
+                    throw new RuntimeException("Message received from ArtifactResolveService isn't an ArtifactResponseMessage");
+                }
+
+                ArtifactResponseType art = (ArtifactResponseType) samlDoc.getSamlObject();
+
+                try {
+                    Object artifactResponseContent = art.getAny();
+                    if (artifactResponseContent instanceof ResponseType) {
+                        Document doc = SAML2Request.convert((ResponseType) artifactResponseContent);
+                        return new SAMLDocumentHolder((ResponseType) artifactResponseContent, doc);
+                    } else if (artifactResponseContent instanceof RequestAbstractType) {
+                        Document doc = SAML2Request.convert((RequestAbstractType) art.getAny());
+                        return new SAMLDocumentHolder((RequestAbstractType) artifactResponseContent, doc);
+                    } else {
+                        throw new RuntimeException("Cannot recognise message contained in ArtifactResponse");
+                    }
+                } catch (ParsingException | ConfigurationException | ProcessingException e) {
+                    throw new RuntimeException("Can't obtain document from artifact response: " + DocumentUtil.asString(soapBodyContents));
+                }
+            }
+
+            @Override
+            public HttpUriRequest createSamlUnsignedRequest(URI samlEndpoint, String relayState, Document samlRequest) {
+                return null;
+            }
+
+            @Override
+            public HttpUriRequest createSamlSignedRequest(URI samlEndpoint, String relayState, Document samlRequest, String realmPrivateKey, String realmPublicKey) {
+                return null;
+            }
+
+            @Override
+            public HttpUriRequest createSamlSignedRequest(URI samlEndpoint, String relayState, Document samlRequest, String realmPrivateKey, String realmPublicKey, String certificateStr) {
+                return null;
+            }
+
+            @Override
+            public URI getBindingUri() {
+                return JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri();
+            }
+
+            @Override
+            public HttpUriRequest createSamlUnsignedResponse(URI samlEndpoint, String relayState, Document samlRequest) {
+                return null;
+            }
+
+            @Override
+            public HttpUriRequest createSamlSignedResponse(URI samlEndpoint, String relayState, Document samlRequest, String realmPrivateKey, String realmPublicKey) {
+                return null;
+            }
+
+            @Override
+            public HttpUriRequest createSamlSignedResponse(URI samlEndpoint, String relayState, Document samlRequest, String realmPrivateKey, String realmPublicKey, String certificateStr) {
+                return null;
+            }
+
+            @Override
+            public String extractRelayState(CloseableHttpResponse response) throws IOException {
+                return null;
+            }
         };
 
         public abstract SAMLDocumentHolder extractResponse(CloseableHttpResponse response, String realmPublicKey) throws IOException;
@@ -508,8 +598,19 @@ public class SamlClient {
                 }
 
                 LOG.infof("Executing HTTP request to %s", request.getURI());
+                
+                if (s instanceof StepWithSessionChecker) {
+                    SessionStateChecker beforeChecker = ((StepWithSessionChecker) s).getBeforeStepChecker();
+                    if (beforeChecker != null) beforeChecker.run();
+                }
+                
                 currentResponse = client.execute(request, context);
 
+                if (s instanceof StepWithSessionChecker) {
+                    SessionStateChecker afterChecker = ((StepWithSessionChecker) s).getAfterStepChecker();
+                    if (afterChecker != null) afterChecker.run();
+                }
+                
                 currentUri = request.getURI();
                 List<URI> locations = context.getRedirectLocations();
                 if (locations != null && ! locations.isEmpty()) {

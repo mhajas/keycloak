@@ -616,6 +616,7 @@ public class SamlProtocol implements LoginProtocol {
 
             //If this session uses artifact binding, send an artifact instread of the LogoutRequest
             if ("true".equals(clientSession.getNote(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.get()))) {
+                clientSession.setAction(CommonClientSessionModel.Action.LOGGED_OUT_UNCONFIRMED.name());
                 return buildArtifactAuthenticatedResponse(clientSession, bindingUri, logoutRequest, binding);
             }
 
