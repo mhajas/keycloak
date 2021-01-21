@@ -17,7 +17,6 @@
 
 package org.keycloak.protocol.saml;
 
-import com.google.common.base.Strings;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -69,6 +68,7 @@ import org.keycloak.saml.SAML2LogoutResponseBuilder;
 import org.keycloak.saml.SAMLRequestParser;
 import org.keycloak.saml.SignatureAlgorithm;
 import org.keycloak.saml.common.constants.GeneralConstants;
+import org.keycloak.saml.common.constants.JBossSAMLConstants;
 import org.keycloak.saml.common.constants.JBossSAMLURIConstants;
 import org.keycloak.saml.common.exceptions.ConfigurationException;
 import org.keycloak.saml.common.exceptions.ParsingException;
@@ -545,12 +545,11 @@ public class SamlService extends AuthorizationEndpointBase {
                 // remove client from logout requests
                 AuthenticatedClientSessionModel clientSession = userSession.getAuthenticatedClientSessionByClient(client.getId());
                 if (clientSession != null) {
-                    clientSession.setAction(AuthenticationSessionModel.Action.LOGGED_OUT.name());
+                    clientSession.setAction(AuthenticationSessionModel.Action.LOGGING_OUT.name());
 
                     //artifact binding state must be attached to the user session upon logout, as authenticated session
                     //no longer exists when the LogoutResponse message is sent
                     if ("true".equals(clientSession.getNote(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.get()))){
-                        clientSession.setAction(AuthenticationSessionModel.Action.LOGGED_OUT_UNCONFIRMED.name());
                         userSession.setNote(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.get(), "true");
                         userSession.setNote(SamlProtocol.SAML_LOGOUT_INITIATOR_CLIENT_ID, client.getId());
                     }
@@ -1069,8 +1068,8 @@ public class SamlService extends AuthorizationEndpointBase {
         return bindingService.authenticate(soapBodyContents);
     }
 
-    private ClientModel getAndCheckClientModel(String clientId) throws ProcessingException {
-        ClientModel client = session.clients().getClientByClientId(realm, clientId);
+    private ClientModel getAndCheckClientModel(String clientSessionId, String clientId) throws ProcessingException {
+        ClientModel client = session.clients().getClientById(realm, clientSessionId);
 
         if (client == null) {
             throw new ProcessingException(Errors.CLIENT_NOT_FOUND);
@@ -1083,6 +1082,11 @@ public class SamlService extends AuthorizationEndpointBase {
         }
         if (!client.isStandardFlowEnabled()) {
             throw new ProcessingException(Errors.NOT_ALLOWED);
+        }
+        if (!client.getClientId().equals(clientId)) {
+            logger.errorf("Resolve message with wrong issuer. Artifact was issued for client %s, " +
+                            "however ArtifactResolveMessage came from client %s.", client.getClientId(), clientId);
+            throw new ProcessingException(Errors.INVALID_SAML_ARTIFACT);
         }
 
         return client;
@@ -1100,19 +1104,6 @@ public class SamlService extends AuthorizationEndpointBase {
         }
     }
 
-    private void cleanSessions(UserSessionModel userSessionModel, AuthenticatedClientSessionModel clientSession) throws ArtifactResolverProcessingException {
-        clientSession.setAction(CommonClientSessionModel.Action.LOGGED_OUT.name());
-
-        if (UserSessionModel.State.LOGGED_OUT_UNCONFIRMED.equals(userSessionModel.getState())) {
-            if (userSessionModel.getAuthenticatedClientSessions().values().stream().anyMatch(cs -> !CommonClientSessionModel.Action.LOGGED_OUT.name().equals(cs.getAction()))) {
-                logger.errorf("UserSession with id %s has more client sessions to log out, while in state LOGGED_OUT_UNCONFIRMED.", userSessionModel.getId());
-                throw new ArtifactResolverProcessingException("Invalid user session");
-            }
-
-            session.sessions().removeUserSession(realm, userSessionModel);
-        }
-    }
-
     /**
      * Takes an artifact resolve message and returns the artifact response, if the artifact is found belonging to a session
      * of the issuer.
@@ -1127,64 +1118,69 @@ public class SamlService extends AuthorizationEndpointBase {
         logger.debug("Received artifactResolve message for artifact " + artifactResolveMessage.getArtifact() + "\n" +
                 "Message: \n" + DocumentUtil.getDocumentAsString(artifactResolveHolder.getSamlDocument()));
 
-        // Obtain all necessary objects we will need during making Document from artifact
         String artifact = artifactResolveMessage.getArtifact(); // Artifact from resolve request
 
-        // When storing artifact, we stored also user and client session ids
+        // Obtain details of session that issued artifact and check if it corresponds to issuer of Resolve message
         SamlArtifactSessionMappingModel sessionMapping;
+        sessionMapping = session.sessions().getArtifactSessionsMapping(artifact);
+
+        if (sessionMapping == null) {
+            logger.errorf("No data stored for artifact %s", artifact);
+            throw new ProcessingException(Errors.INVALID_SAML_ARTIFACT);
+        }
+
+        UserSessionModel userSessionModel = session.sessions().getUserSession(realm, sessionMapping.getUserSessionId());
+        if (userSessionModel == null) {
+            logger.errorf("UserSession with id: %s, that corresponds to artifact: %s does not exist.", sessionMapping.getUserSessionId(), artifact);
+            throw new ProcessingException(Errors.INVALID_SAML_ARTIFACT);
+        }
+
+        AuthenticatedClientSessionModel clientSessionModel = userSessionModel.getAuthenticatedClientSessions().get(sessionMapping.getClientSessionId());
+        if (clientSessionModel == null) {
+            logger.errorf("ClientSession with id: %s, that corresponds to artifact: %s and UserSession: %s does not exist.", sessionMapping.getClientSessionId(), artifact, sessionMapping.getUserSessionId());
+            throw new ProcessingException(Errors.INVALID_SAML_ARTIFACT);
+        }
+
+        ClientModel clientModel = getAndCheckClientModel(sessionMapping.getClientSessionId(), artifactResolveMessage.getIssuer().getValue());
+        SamlClient samlClient = new SamlClient(clientModel);
+
+        // When storing artifact, we stored also user and client session ids
         String artifactResponseString;
         try {
-            sessionMapping = getArtifactResolver().resolveArtifactSessionMappings(artifact);
-
-            UserSessionModel userSessionModel = session.sessions().getUserSession(realm, sessionMapping.getUserSessionId());
-            if (userSessionModel == null) {
-                logger.errorf("UserSession with id: %s, that corresponds to artifact: %s does not exist.", sessionMapping.getUserSessionId(), artifact);
-                throw new ArtifactResolverProcessingException("Unable to get UserSession.");
-            }
-
-            AuthenticatedClientSessionModel clientSessionModel = userSessionModel.getAuthenticatedClientSessions().get(sessionMapping.getClientSessionId());
-            if (clientSessionModel == null) {
-                logger.errorf("ClientSession with id: %s, that corresponds to artifact: %s and UserSession: %s does not exist.", sessionMapping.getClientSessionId(), artifact, sessionMapping.getUserSessionId());
-                throw new ArtifactResolverProcessingException("Unable to get ClientSession.");
-            }
-
-            if (!clientSessionModel.getClient().getClientId().equals(artifactResolveMessage.getIssuer().getValue())) {
-                logger.errorf("Resolve message with wrong issuer. Artifact was issued for client %s, however ArtifactResolve came from client %s.", 
-                        clientSessionModel.getClient().getClientId(), artifactResolveMessage.getIssuer().getValue());
-                throw new ArtifactResolverProcessingException("Wrong issuer.");
-            }
-
-            artifactResponseString = clientSessionModel.getNote(GeneralConstants.SAML_ARTIFACT_KEY + "=" + artifact);
-            clientSessionModel.removeNote(GeneralConstants.SAML_ARTIFACT_KEY + "=" + artifact);
-
-            logger.tracef("Artifact response for artifact %s, is %s", artifact, artifactResponseString);
-
-            if (Strings.isNullOrEmpty(artifactResponseString)) {
-                throw new ArtifactResolverProcessingException("Artifact not present in ClientSession.");
-            }
-
-            // When we have all details about response to artifact we can freely remove sessions if logging out
-            if (CommonClientSessionModel.Action.LOGGED_OUT_UNCONFIRMED.name().equals(clientSessionModel.getAction())) {
-                cleanSessions(userSessionModel, clientSessionModel);
-            }
+            artifactResponseString = getArtifactResolver().resolveArtifactSessionMappings(clientSessionModel, artifact);
         } catch (ArtifactResolverProcessingException e) {
             logger.errorf("Failed to resolve artifact: %s.", artifact);
             throw new ProcessingException(Errors.INVALID_SAML_ARTIFACT, e);
         }
 
+        // Artifact is resolved, we can remove session mapping from storage
+        session.sessions().removeArtifactResponse(artifact);
+
         Document artifactResponseDocument = null;
+        ArtifactResponseType artifactResponseType = null;
         try {
             SAMLDataMarshaller marshaller = new SAMLDataMarshaller();
-            ArtifactResponseType artifactResponseType = marshaller.deserialize(artifactResponseString, ArtifactResponseType.class);
+            artifactResponseType = marshaller.deserialize(artifactResponseString, ArtifactResponseType.class);
             artifactResponseDocument = SamlProtocolUtils.convert(artifactResponseType);
         }  catch (ParsingException | ConfigurationException | ProcessingException e) {
             logger.errorf("Failed to obtain document from ArtifactResponseString: %s.", artifactResponseString);
             throw new ProcessingException(Errors.INVALID_SAML_ARTIFACT_RESPONSE, e);
         }
-        
-        // From client session we can obtain clientModel
-        ClientModel clientModel = getAndCheckClientModel(artifactResolveMessage.getIssuer().getValue());
-        SamlClient samlClient = new SamlClient(clientModel);
+
+        // If clientSession is in LOGGING_OUT action, now we can move it to LOGGED_OUT
+        if (CommonClientSessionModel.Action.LOGGING_OUT.name().equals(clientSessionModel.getAction())) {
+            clientSessionModel.setAction(CommonClientSessionModel.Action.LOGGED_OUT.name());
+
+            // If Keycloak sent LogoutRequest we need to also finish UserSession
+            if (artifactResponseType.getAny() instanceof StatusResponseType
+                    && artifactResponseString.contains(JBossSAMLConstants.LOGOUT_RESPONSE.get())) {
+                if (!UserSessionModel.State.LOGGED_OUT_UNCONFIRMED.equals(userSessionModel.getState())) {
+                    logger.warnf("Keycloak issued LogoutResponse for clientSession %s, however user session %s was not in LOGGED_OUT_UNCONFIRMED state.",
+                            clientSessionModel.getId(), userSessionModel.getId());
+                }
+                AuthenticationManager.finishUnconfirmedUserSession(session, realm, userSessionModel);
+            }
+        }
 
         // Check signature within ArtifactResolve request if client requires it
         if (samlClient.requiresClientSignature()) {
