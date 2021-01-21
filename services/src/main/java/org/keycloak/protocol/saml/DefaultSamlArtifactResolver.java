@@ -6,8 +6,6 @@ import org.jboss.logging.Logger;
 import org.keycloak.models.AuthenticatedClientSessionModel;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.KeycloakSession;
-import org.keycloak.models.SamlArtifactSessionMappingModel;
-import org.keycloak.models.UserSessionModel;
 import org.keycloak.saml.common.constants.GeneralConstants;
 
 import java.io.ByteArrayOutputStream;
@@ -34,15 +32,17 @@ public class DefaultSamlArtifactResolver implements ArtifactResolver {
     private KeycloakSession session;
 
     @Override
-    public SamlArtifactSessionMappingModel resolveArtifactSessionMappings(String artifact) throws ArtifactResolverProcessingException {
-        SamlArtifactSessionMappingModel sessionsMapping = session.sessions().getArtifactSessionsMapping(artifact);
+    public String resolveArtifactSessionMappings(AuthenticatedClientSessionModel clientSessionModel, String artifact) throws ArtifactResolverProcessingException {
+        String artifactResponseString = clientSessionModel.getNote(GeneralConstants.SAML_ARTIFACT_KEY + "=" + artifact);
+        clientSessionModel.removeNote(GeneralConstants.SAML_ARTIFACT_KEY + "=" + artifact);
 
-        if (sessionsMapping == null) {
-            throw new ArtifactResolverProcessingException("Cannot find artifact " + artifact + " in cache");
+        logger.tracef("Artifact response for artifact %s, is %s", artifact, artifactResponseString);
+
+        if (Strings.isNullOrEmpty(artifactResponseString)) {
+            throw new ArtifactResolverProcessingException("Artifact not present in ClientSession.");
         }
-        session.sessions().removeArtifactResponse(artifact);
 
-        return sessionsMapping;
+        return artifactResponseString;
     }
 
     @Override
@@ -67,10 +67,8 @@ public class DefaultSamlArtifactResolver implements ArtifactResolver {
     }
 
     @Override
-    public String buildArtifact(String entityId, AuthenticatedClientSessionModel clientSessionModel, String artifactResponse) throws ArtifactResolverProcessingException {
+    public String buildArtifact(AuthenticatedClientSessionModel clientSessionModel, String entityId, String artifactResponse) throws ArtifactResolverProcessingException {
         String artifact = createArtifact(entityId);
-        UserSessionModel userSessionModel = clientSessionModel.getUserSession();
-        session.sessions().addArtifactSessionsMapping(userSessionModel.getRealm().getId(), artifact, userSessionModel.getId(), clientSessionModel.getClient().getId());
 
         clientSessionModel.setNote(GeneralConstants.SAML_ARTIFACT_KEY + "=" + artifact, artifactResponse);
 

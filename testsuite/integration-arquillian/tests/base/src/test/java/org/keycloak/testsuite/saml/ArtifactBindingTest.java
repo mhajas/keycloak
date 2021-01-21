@@ -758,7 +758,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
                         .expectedUserSession(userSessionId)
                         .expectedState(UserSessionModel.State.LOGGED_OUT_UNCONFIRMED)
                         .expectedNumberOfClientSessions(1)
-                        .expectedAction(clientId, CommonClientSessionModel.Action.LOGGED_OUT_UNCONFIRMED))
+                        .expectedAction(clientId, CommonClientSessionModel.Action.LOGGING_OUT))
                     .setAfterStepChecks(new SessionStateChecker(testingClient.server())
                         .consumeUserSession(userSessionModel -> assertThat(userSessionModel, nullValue()))
                         .setUserSessionProvider(session -> userSessionId.get()))
@@ -806,7 +806,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
                 .authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST2, SAML_ASSERTION_CONSUMER_URL_SALES_POST2, REDIRECT)
                 .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_REDIRECT_BINDING.getUri()).build()
                 .login().user(bburkeUser).build()
-                .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST)
+                .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST2)
                     .setBeforeStepChecks(new SessionStateChecker(testingClient.server())
                         .storeUserSessionId(userSessionId)
                         .expectedClientSession(salesRep2Id)
@@ -843,8 +843,8 @@ public class ArtifactBindingTest extends AbstractSamlTest {
                         .expectedState(UserSessionModel.State.LOGGING_OUT)
                         .expectedClientSession(salesRepId)
                         .expectedNumberOfClientSessions(2)
-                        .expectedAction(salesRep2Id, CommonClientSessionModel.Action.LOGGED_OUT_UNCONFIRMED)
-                        .expectedAction(salesRepId, CommonClientSessionModel.Action.LOGGED_OUT_UNCONFIRMED))
+                        .expectedAction(salesRep2Id, CommonClientSessionModel.Action.LOGGING_OUT)
+                        .expectedAction(salesRepId, CommonClientSessionModel.Action.LOGGING_OUT))
                     .verifyRedirect(true)
                     .build()
                 .doNotFollowRedirects()
@@ -853,6 +853,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
                 .processSamlResponse(ARTIFACT_RESPONSE)
                     .transformDocument(doc -> {
 
+                        // TODO: remove
                         // Check session state. The only difference is, that during artifact resolving, session action of sales_post was changed to LOGGED_OUT
                         testingClient.server().run(session -> {
                             RealmModel realm = session.realms().getRealmByName(REALM_NAME);
@@ -864,7 +865,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
                             AuthenticatedClientSessionModel clientSessionModel = userSessionModel.getAuthenticatedClientSessionByClient(salesRepId);
                             assertThat(clientSessionModel.getAction(), equalTo(CommonClientSessionModel.Action.LOGGED_OUT.name()));
                             AuthenticatedClientSessionModel clientSessionModel2 = userSessionModel.getAuthenticatedClientSessionByClient(salesRep2Id);
-                            assertThat(clientSessionModel2.getAction(), equalTo(CommonClientSessionModel.Action.LOGGED_OUT_UNCONFIRMED.name()));
+                            assertThat(clientSessionModel2.getAction(), equalTo(CommonClientSessionModel.Action.LOGGING_OUT.name()));
                         });
 
                         // Send LogoutResponse
@@ -889,7 +890,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
                         .expectedState(UserSessionModel.State.LOGGED_OUT_UNCONFIRMED)
                         .expectedNumberOfClientSessions(2)
                         .expectedAction(salesRepId, CommonClientSessionModel.Action.LOGGED_OUT)
-                        .expectedAction(salesRep2Id, CommonClientSessionModel.Action.LOGGED_OUT_UNCONFIRMED))
+                        .expectedAction(salesRep2Id, CommonClientSessionModel.Action.LOGGING_OUT))
                     .setAfterStepChecks(new SessionStateChecker(testingClient.server())
                         .consumeUserSession(userSessionModel -> assertThat(userSessionModel, nullValue()))
                         .setUserSessionProvider(session -> userSessionId.get()))

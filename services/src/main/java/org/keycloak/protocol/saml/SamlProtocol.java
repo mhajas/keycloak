@@ -23,7 +23,6 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.message.BasicNameValuePair;
 import org.jboss.logging.Logger;
-import org.keycloak.broker.provider.DefaultDataMarshaller;
 import org.keycloak.broker.saml.SAMLDataMarshaller;
 import org.keycloak.common.util.KeycloakUriBuilder;
 import org.keycloak.connections.httpclient.HttpClientProvider;
@@ -615,11 +614,13 @@ public class SamlProtocol implements LoginProtocol {
             LogoutRequestType logoutRequest = createLogoutRequest(bindingUri, clientSession, client, extensions);
             JaxrsSAML2BindingBuilder binding = createBindingBuilder(samlClient, "true".equals(clientSession.getNote(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.get())));
 
-            //If this session uses artifact binding, send an artifact instread of the LogoutRequest
+            //If this session uses artifact binding, send an artifact instead of the LogoutRequest
             if ("true".equals(clientSession.getNote(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.get()))) {
-                clientSession.setAction(CommonClientSessionModel.Action.LOGGED_OUT_UNCONFIRMED.name());
+                clientSession.setAction(CommonClientSessionModel.Action.LOGGING_OUT.name());
                 return buildArtifactAuthenticatedResponse(clientSession, bindingUri, logoutRequest, binding);
             }
+
+            clientSession.setAction(AuthenticationSessionModel.Action.LOGGED_OUT.name());
 
             Document samlDocument = SAML2Request.convert(logoutRequest);
             if (postBinding) {
@@ -889,8 +890,12 @@ public class SamlProtocol implements LoginProtocol {
         ArtifactResponseType artifactResponseType = SamlProtocolUtils.buildArtifactResponse(saml2Object, SAML2NameIDBuilder.value(getResponseIssuer(realm)).build());
 
 
+        // Create artifact and store session mapping
         SAMLDataMarshaller marshaller = new SAMLDataMarshaller();
-        return getArtifactResolver().buildArtifact(entityId, clientSessionModel, marshaller.serialize(artifactResponseType));
+        String artifact = getArtifactResolver().buildArtifact(clientSessionModel, entityId, marshaller.serialize(artifactResponseType));
+        UserSessionModel userSessionModel = clientSessionModel.getUserSession();
+        session.sessions().addArtifactSessionsMapping(userSessionModel.getRealm().getId(), artifact, userSessionModel.getId(), clientSessionModel.getClient().getId());
+        return artifact;
     }
 
     /**
