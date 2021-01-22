@@ -606,7 +606,7 @@ public class SamlService extends AuthorizationEndpointBase {
                 }
             }
             try {
-                if (postBinding) {
+                if (postBinding) { // TODO: missing artifact binding? This is always after backchannel logout of all sessions and I am not sure why there is forced backchannel logout
                     return binding.postBinding(builder.buildDocument()).response(logoutBindingUri);
                 } else {
                     return binding.redirectBinding(builder.buildDocument()).response(logoutBindingUri);
@@ -1302,7 +1302,6 @@ public class SamlService extends AuthorizationEndpointBase {
         }
 
 
-        // TODO: Fix usage of event builder. The problem is, that in method that calls this runnable the main transaction is rolled back, however, calling event.error() tries to use JPA.
         public void run(KeycloakSession session){
             // Initialize context
             Resteasy.pushContext(UriInfo.class, uri);
@@ -1324,6 +1323,7 @@ public class SamlService extends AuthorizationEndpointBase {
             }
             session.getContext().setRealm(realm);
 
+            EventBuilder event = new EventBuilder(realm, session, clientConnection);
             // Call Artifact Resolution Service
             HttpResponse result;
 
@@ -1335,11 +1335,10 @@ public class SamlService extends AuthorizationEndpointBase {
 
                 HttpPost httpPost = Soap.createMessage().addToBody(doc).buildHttpPost(clientArtifactBindingURI);
                 result = httpClient.execute(httpPost);
-
             } catch (IOException e) {
-                //event.event(EventType.LOGIN);
-                //event.detail(Details.REASON, e.getMessage());
-                //event.error(Errors.IDENTITY_PROVIDER_ERROR);
+                event.event(EventType.LOGIN);
+                event.detail(Details.REASON, e.getMessage());
+                event.error(Errors.IDENTITY_PROVIDER_ERROR); // TODO: not sure this should be marked IDENTITY_PROVIDER_ERROR
                 asyncResponse.resume(ErrorPage.error(session, null, Response.Status.INTERNAL_SERVER_ERROR, Messages.ARTIFACT_RESOLUTION_SERVICE_ERROR));
                 return;
             }
@@ -1392,15 +1391,15 @@ public class SamlService extends AuthorizationEndpointBase {
                 }
 
             } catch (IOException | ProcessingException | ParsingException e) {
-                //event.event(EventType.LOGIN);
-                //event.detail(Details.REASON, e.getMessage());
-                //event.error(Errors.IDENTITY_PROVIDER_ERROR);
+                event.event(EventType.LOGIN);
+                event.detail(Details.REASON, e.getMessage());
+                event.error(Errors.IDENTITY_PROVIDER_ERROR);
                 asyncResponse.resume(ErrorPage.error(session, null, Response.Status.INTERNAL_SERVER_ERROR, Messages.ARTIFACT_RESOLUTION_SERVICE_INVALID_RESPONSE));
                 return;
             } catch(ConfigurationException e) {
-                //event.event(EventType.LOGIN);
-                //event.detail(Details.REASON, e.getMessage());
-                //event.error(Errors.IDENTITY_PROVIDER_ERROR);
+                event.event(EventType.LOGIN);
+                event.detail(Details.REASON, e.getMessage());
+                event.error(Errors.IDENTITY_PROVIDER_ERROR);
                 asyncResponse.resume(ErrorPage.error(session, null, Response.Status.INTERNAL_SERVER_ERROR, Messages.UNEXPECTED_ERROR_HANDLING_REQUEST));
                 return;
             }

@@ -68,7 +68,6 @@ import org.keycloak.protocol.oidc.BackchannelLogoutResponse;
 import org.keycloak.protocol.oidc.OIDCAdvancedConfigWrapper;
 import org.keycloak.protocol.oidc.OIDCLoginProtocol;
 import org.keycloak.protocol.oidc.TokenManager;
-import org.keycloak.protocol.saml.ArtifactResolverProcessingException;
 import org.keycloak.protocol.saml.SamlClient;
 import org.keycloak.representations.AccessToken;
 import org.keycloak.services.ServicesLogger;
@@ -91,7 +90,6 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -644,7 +642,7 @@ public class AuthenticationManager {
         expireIdentityCookie(realm, uriInfo, connection);
         expireRememberMeCookie(realm, uriInfo, connection);
 
-        // By setting LOGGED_OUT_UNCONFIRMED state we are saying that anybody will turn the last client session into
+        // By setting LOGGED_OUT_UNCONFIRMED state we are saying that anybody who will turn the last client session into
         // LOGGED_OUT action can remove UserSession
         if (numberOfUnconfirmedSessions >= 1) {
             userSession.setState(UserSessionModel.State.LOGGED_OUT_UNCONFIRMED);
