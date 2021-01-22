@@ -32,6 +32,7 @@ import java.nio.charset.Charset;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -46,11 +47,14 @@ public class HandleArtifactStepBuilder extends SamlDocumentStepBuilder<ArtifactR
     private String signingPrivateKeyPem;
     private String signingPublicKeyPem;
     private String id = IDGenerator.create("ID_");
-    private final String issuer;
+    private String issuer;
     private final URI authServerSamlUrl;
     private boolean verifyRedirect;
     private HttpPost replayPostMessage;
     private boolean replayPost;
+    private boolean replayArtifact;
+    private AtomicReference<String> providedArtifact;
+    private AtomicReference<String> storeArtifact;
     
     private SessionStateChecker beforeStepChecker;
     private SessionStateChecker afterStepChecker;
@@ -82,6 +86,11 @@ public class HandleArtifactStepBuilder extends SamlDocumentStepBuilder<ArtifactR
         return this;
     }
     
+    public HandleArtifactStepBuilder issuer(String issuer) {
+        this.issuer = issuer;
+        return this;
+    }
+    
     public HandleArtifactStepBuilder setBeforeStepChecks(SessionStateChecker checker) {
         this.beforeStepChecker = checker;
         return this;
@@ -110,6 +119,16 @@ public class HandleArtifactStepBuilder extends SamlDocumentStepBuilder<ArtifactR
      */
     public HandleArtifactStepBuilder replayPost(boolean mustReplayPost) {
         this.replayPost = mustReplayPost;
+        return this;
+    }
+
+    public HandleArtifactStepBuilder storeArtifact(AtomicReference<String> storeArtifact) {
+        this.storeArtifact = storeArtifact;
+        return this;
+    }
+    
+    public HandleArtifactStepBuilder useArtifact(AtomicReference<String> artifact) {
+        this.providedArtifact = artifact;
         return this;
     }
 
@@ -147,6 +166,7 @@ public class HandleArtifactStepBuilder extends SamlDocumentStepBuilder<ArtifactR
         nameIDType.setValue(issuer);
         artifactResolve.setIssuer(nameIDType);
         String artifact = getArtifactFromResponse(currentResponse);
+        if (storeArtifact != null) storeArtifact.set(artifact);
         artifactResolve.setArtifact(artifact);
 
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -188,6 +208,10 @@ public class HandleArtifactStepBuilder extends SamlDocumentStepBuilder<ArtifactR
      */
     private String getArtifactFromResponse(CloseableHttpResponse currentResponse) throws IOException {
 
+        if (providedArtifact != null) {
+            return providedArtifact.get();
+        }
+        
         if (currentResponse.getFirstHeader("location") != null) {
             String location = currentResponse.getFirstHeader("location").getValue();
             List<NameValuePair> params = URLEncodedUtils.parse(URI.create(location), Charset.forName("UTF-8"));
