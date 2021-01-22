@@ -4,25 +4,25 @@ import com.google.common.base.Charsets;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.util.EntityUtils;
 import org.hamcrest.Matchers;
-import org.junit.After;
 import org.junit.Test;
-import org.keycloak.common.VerificationException;
-import org.keycloak.common.util.PemUtils;
+import org.keycloak.adapters.saml.SamlDeployment;
 import org.keycloak.dom.saml.v2.SAML2Object;
 import org.keycloak.dom.saml.v2.assertion.AssertionType;
 import org.keycloak.dom.saml.v2.assertion.AuthnStatementType;
 import org.keycloak.dom.saml.v2.assertion.NameIDType;
-import org.keycloak.dom.saml.v2.protocol.*;
+import org.keycloak.dom.saml.v2.protocol.ArtifactResponseType;
+import org.keycloak.dom.saml.v2.protocol.AuthnRequestType;
+import org.keycloak.dom.saml.v2.protocol.LogoutRequestType;
+import org.keycloak.dom.saml.v2.protocol.NameIDMappingResponseType;
+import org.keycloak.dom.saml.v2.protocol.ResponseType;
+import org.keycloak.dom.saml.v2.protocol.StatusResponseType;
 import org.keycloak.events.Errors;
-import org.keycloak.models.AuthenticatedClientSessionModel;
-import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserSessionModel;
 import org.keycloak.protocol.saml.SamlConfigAttributes;
 import org.keycloak.protocol.saml.SamlProtocol;
 import org.keycloak.protocol.saml.SamlProtocolUtils;
 import org.keycloak.protocol.saml.profile.util.Soap;
 import org.keycloak.representations.idm.ClientRepresentation;
-import org.keycloak.rotation.HardcodedKeyLocator;
 import org.keycloak.saml.SAML2LogoutRequestBuilder;
 import org.keycloak.saml.SAML2LogoutResponseBuilder;
 import org.keycloak.saml.common.constants.GeneralConstants;
@@ -34,6 +34,7 @@ import org.keycloak.saml.common.util.DocumentUtil;
 import org.keycloak.saml.processing.api.saml.v2.request.SAML2Request;
 import org.keycloak.saml.processing.core.parsers.saml.SAMLParser;
 import org.keycloak.saml.processing.core.saml.v2.common.SAMLDocumentHolder;
+import org.keycloak.saml.processing.core.saml.v2.util.AssertionUtil;
 import org.keycloak.sessions.CommonClientSessionModel;
 import org.keycloak.testsuite.updaters.ClientAttributeUpdater;
 import org.keycloak.testsuite.util.ArtifactResolutionService;
@@ -51,7 +52,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
@@ -59,7 +59,6 @@ import java.util.regex.Pattern;
 
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -84,7 +83,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
     /************************ LOGIN TESTS ************************/
 
     @Test
-    public void testArtifactBindingWithResponseAndAssertionSignature() throws VerificationException {
+    public void testArtifactBindingWithResponseAndAssertionSignature() throws Exception {
         SAMLDocumentHolder response = new SamlClientBuilder().authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST_ASSERTION_AND_RESPONSE_SIG,
                 SAML_ASSERTION_CONSUMER_URL_SALES_POST_ASSERTION_AND_RESPONSE_SIG, POST)
                     .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri())
@@ -106,8 +105,37 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         ResponseType samlResponse = (ResponseType)artifactResponse.getAny();
         assertThat(samlResponse, isSamlStatusResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
         assertThat(samlResponse.getAssertions().get(0).getAssertion().getSignature(), not(nullValue()));
-        X509Certificate cert = PemUtils.decodeCertificate(adminClient.realm(REALM_NAME).keys().getKeyMetadata().getKeys().stream().filter(x -> x.getType().equals("RSA")).findFirst().get().getCertificate());
-        SamlProtocolUtils.verifyDocumentSignature(response.getSamlDocument(), new HardcodedKeyLocator(cert.getPublicKey())); // Checks the signature of the response as well as the signature of the assertion
+
+        SamlDeployment deployment = getSamlDeploymentForClient("sales-post-assertion-and-response-sig");
+        SamlProtocolUtils.verifyDocumentSignature(response.getSamlDocument(), deployment.getIDP().getSignatureValidationKeyLocator()); // Checks the signature of the response as well as the signature of the assertion
+    }
+
+    @Test
+    public void testArtifactBindingWithEncryptedAssertion() throws Exception {
+        SAMLDocumentHolder response = new SamlClientBuilder().authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST_ENC,
+                SAML_ASSERTION_CONSUMER_URL_SALES_POST_ENC, POST)
+                .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri())
+                .signWith(SAML_CLIENT_SALES_POST_ENC_PRIVATE_KEY, SAML_CLIENT_SALES_POST_ENC_PUBLIC_KEY)
+                .build()
+                .login().user(bburkeUser).build()
+                .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST_ENC)
+                .signWith(SAML_CLIENT_SALES_POST_ENC_PRIVATE_KEY, SAML_CLIENT_SALES_POST_ENC_PUBLIC_KEY)
+                .build()
+                .doNotFollowRedirects()
+                .executeAndTransform(ARTIFACT_RESPONSE::extractResponse);
+
+        assertThat(response.getSamlObject(), instanceOf(ResponseType.class));
+        ResponseType loginResponse = (ResponseType) response.getSamlObject();
+        assertThat(loginResponse, isSamlStatusResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
+        assertThat(loginResponse.getAssertions().get(0).getAssertion(), nullValue());
+        assertThat(loginResponse.getAssertions().get(0).getEncryptedAssertion(), not(nullValue()));
+
+        SamlDeployment deployment = getSamlDeploymentForClient("sales-post-enc");
+        AssertionUtil.decryptAssertion(response, loginResponse, deployment.getDecryptionKey());
+
+        assertThat(loginResponse.getAssertions().get(0).getAssertion(), not(nullValue()));
+        assertThat(loginResponse.getAssertions().get(0).getEncryptedAssertion(), nullValue());
+        assertThat(loginResponse.getAssertions().get(0).getAssertion().getIssuer().getValue(), equalTo(getAuthServerRealmBase(REALM_NAME).toString()));
     }
 
     @Test
@@ -253,7 +281,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
     }
 
     @Test
-    public void testArtifactBindingLoginSignedArtifactResponse() throws VerificationException {
+    public void testArtifactBindingLoginSignedArtifactResponse() throws Exception {
         getCleanup()
             .addCleanup(ClientAttributeUpdater.forClient(adminClient, REALM_NAME, SAML_CLIENT_ID_SALES_POST)
                     .setAttribute(SamlConfigAttributes.SAML_ARTIFACT_BINDING, "true")
@@ -276,8 +304,9 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         assertThat(artifactResponse.getInResponseTo(), not(isEmptyOrNullString()));
         ResponseType samlResponse = (ResponseType)artifactResponse.getAny();
         assertThat(samlResponse, isSamlStatusResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
-        X509Certificate cert = PemUtils.decodeCertificate(adminClient.realm(REALM_NAME).keys().getKeyMetadata().getKeys().stream().filter(x -> x.getType().equals("RSA")).findFirst().get().getCertificate());
-        SamlProtocolUtils.verifyDocumentSignature(response.getSamlDocument(), new HardcodedKeyLocator(cert.getPublicKey()));
+
+        SamlDeployment deployment = getSamlDeploymentForClient("sales-post");
+        SamlProtocolUtils.verifyDocumentSignature(response.getSamlDocument(), deployment.getIDP().getSignatureValidationKeyLocator());
     }
 
     @Test
@@ -606,7 +635,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
     }
 
     @Test
-    public void testArtifactBindingLogoutTwoClientsPostWithSig() throws VerificationException {
+    public void testArtifactBindingLogoutTwoClientsPostWithSig() throws Exception {
         getCleanup()
             .addCleanup(ClientAttributeUpdater.forClient(adminClient, REALM_NAME, SAML_CLIENT_ID_SALES_POST_SIG)
                     .setAttribute(SamlConfigAttributes.SAML_ARTIFACT_BINDING, "true")
@@ -637,8 +666,9 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         assertThat(artifactResponse, isSamlStatusResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
         assertThat(artifactResponse.getSignature(), notNullValue());
         assertThat(artifactResponse.getAny(), instanceOf(LogoutRequestType.class));
-        X509Certificate cert = PemUtils.decodeCertificate(adminClient.realm(REALM_NAME).keys().getKeyMetadata().getKeys().stream().filter(x -> x.getType().equals("RSA")).findFirst().get().getCertificate());
-        SamlProtocolUtils.verifyDocumentSignature(response.getSamlDocument(), new HardcodedKeyLocator(cert.getPublicKey()));
+
+        SamlDeployment deployment = getSamlDeploymentForClient("sales-post");
+        SamlProtocolUtils.verifyDocumentSignature(response.getSamlDocument(), deployment.getIDP().getSignatureValidationKeyLocator());
     }
 
     @Test
@@ -738,7 +768,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
             );
 
         AtomicReference<String> userSessionId = new AtomicReference<>();
-        
+
         SAMLDocumentHolder response = new SamlClientBuilder().authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
                 SAML_ASSERTION_CONSUMER_URL_SALES_POST, POST)
                 .build()
@@ -843,8 +873,14 @@ public class ArtifactBindingTest extends AbstractSamlTest {
                         .expectedState(UserSessionModel.State.LOGGING_OUT)
                         .expectedClientSession(salesRepId)
                         .expectedNumberOfClientSessions(2)
-                        .expectedAction(salesRep2Id, CommonClientSessionModel.Action.LOGGING_OUT)
-                        .expectedAction(salesRepId, CommonClientSessionModel.Action.LOGGING_OUT))
+                        .expectedAction(salesRepId, CommonClientSessionModel.Action.LOGGING_OUT)
+                        .expectedAction(salesRep2Id, CommonClientSessionModel.Action.LOGGING_OUT))
+                    .setAfterStepChecks(new SessionStateChecker(testingClient.server())
+                        .setUserSessionProvider(session -> userSessionId.get())
+                        .expectedState(UserSessionModel.State.LOGGING_OUT)
+                        .expectedNumberOfClientSessions(2)
+                        .expectedAction(salesRepId, CommonClientSessionModel.Action.LOGGED_OUT)
+                        .expectedAction(salesRep2Id, CommonClientSessionModel.Action.LOGGING_OUT))
                     .verifyRedirect(true)
                     .build()
                 .doNotFollowRedirects()
@@ -852,22 +888,6 @@ public class ArtifactBindingTest extends AbstractSamlTest {
                 // Respond with LogoutResponse so that logout flow can continue with logging out client2
                 .processSamlResponse(ARTIFACT_RESPONSE)
                     .transformDocument(doc -> {
-
-                        // TODO: remove
-                        // Check session state. The only difference is, that during artifact resolving, session action of sales_post was changed to LOGGED_OUT
-                        testingClient.server().run(session -> {
-                            RealmModel realm = session.realms().getRealmByName(REALM_NAME);
-                            UserSessionModel userSessionModel = session.sessions().getUserSession(realm, userSessionId.get());
-                            assertThat(userSessionModel, notNullValue());
-                            assertThat(userSessionModel.getAuthenticatedClientSessions().values(), hasSize(2));
-                            assertThat(userSessionModel.getState(), equalTo(UserSessionModel.State.LOGGING_OUT));
-
-                            AuthenticatedClientSessionModel clientSessionModel = userSessionModel.getAuthenticatedClientSessionByClient(salesRepId);
-                            assertThat(clientSessionModel.getAction(), equalTo(CommonClientSessionModel.Action.LOGGED_OUT.name()));
-                            AuthenticatedClientSessionModel clientSessionModel2 = userSessionModel.getAuthenticatedClientSessionByClient(salesRep2Id);
-                            assertThat(clientSessionModel2.getAction(), equalTo(CommonClientSessionModel.Action.LOGGING_OUT.name()));
-                        });
-
                         // Send LogoutResponse
                         SAML2Object so = (SAML2Object) SAMLParser.getInstance().parse(new DOMSource(doc));
                         return new SAML2LogoutResponseBuilder()

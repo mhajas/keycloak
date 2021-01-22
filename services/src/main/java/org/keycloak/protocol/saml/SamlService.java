@@ -1144,7 +1144,17 @@ public class SamlService extends AuthorizationEndpointBase {
         ClientModel clientModel = getAndCheckClientModel(sessionMapping.getClientSessionId(), artifactResolveMessage.getIssuer().getValue());
         SamlClient samlClient = new SamlClient(clientModel);
 
-        // When storing artifact, we stored also user and client session ids
+        // Check signature within ArtifactResolve request if client requires it
+        if (samlClient.requiresClientSignature()) {
+            try {
+                SamlProtocolUtils.verifyDocumentSignature(clientModel, artifactResolveHolder.getSamlDocument());
+            } catch (VerificationException e) {
+                SamlService.logger.error("request validation failed", e);
+                throw new ProcessingException(Errors.INVALID_SIGNATURE, e);
+            }
+        }
+
+        // Obtain artifactResponse from clientSessionModel
         String artifactResponseString;
         try {
             artifactResponseString = getArtifactResolver().resolveArtifactSessionMappings(clientSessionModel, artifact);
@@ -1153,7 +1163,7 @@ public class SamlService extends AuthorizationEndpointBase {
             throw new ProcessingException(Errors.INVALID_SAML_ARTIFACT, e);
         }
 
-        // Artifact is resolved, we can remove session mapping from storage
+        // Artifact is successfully resolved, we can remove session mapping from storage
         session.sessions().removeArtifactResponse(artifact);
 
         Document artifactResponseDocument = null;
@@ -1171,7 +1181,7 @@ public class SamlService extends AuthorizationEndpointBase {
         if (CommonClientSessionModel.Action.LOGGING_OUT.name().equals(clientSessionModel.getAction())) {
             clientSessionModel.setAction(CommonClientSessionModel.Action.LOGGED_OUT.name());
 
-            // If Keycloak sent LogoutRequest we need to also finish UserSession
+            // If Keycloak sent LogoutResponse we need to also remove UserSession
             if (artifactResponseType.getAny() instanceof StatusResponseType
                     && artifactResponseString.contains(JBossSAMLConstants.LOGOUT_RESPONSE.get())) {
                 if (!UserSessionModel.State.LOGGED_OUT_UNCONFIRMED.equals(userSessionModel.getState())) {
@@ -1182,17 +1192,7 @@ public class SamlService extends AuthorizationEndpointBase {
             }
         }
 
-        // Check signature within ArtifactResolve request if client requires it
-        if (samlClient.requiresClientSignature()) {
-            try {
-                SamlProtocolUtils.verifyDocumentSignature(clientModel, artifactResolveHolder.getSamlDocument());
-            } catch (VerificationException e) {
-                SamlService.logger.error("request validation failed", e);
-                throw new ProcessingException(Errors.INVALID_SIGNATURE, e);
-            }
-        }
-
-        // Add "inResponseTo" in artifactResponse
+        // Add "inResponseTo" to artifactResponse
         if (artifactResolveMessage.getID() != null && !artifactResolveMessage.getID().trim().isEmpty()){
             Element artifactResponseElement = artifactResponseDocument.getDocumentElement();
             artifactResponseElement.setAttribute("InResponseTo", artifactResolveMessage.getID());
@@ -1212,8 +1212,6 @@ public class SamlService extends AuthorizationEndpointBase {
                     
             if (samlClient.requiresRealmSignature()) bindingBuilder.signDocument();
             if (samlClient.requiresAssertionSignature()) bindingBuilder.signAssertions();
-
-            bindingBuilder.postBinding(artifactResponseDocument);
         }
 
         // Encrypt assertion if client requires it
@@ -1227,6 +1225,8 @@ public class SamlService extends AuthorizationEndpointBase {
             }
             bindingBuilder.encrypt(publicKey);
         }
+
+        bindingBuilder.postBinding(artifactResponseDocument);
 
         Soap.SoapMessageBuilder messageBuilder = Soap.createMessage();
         messageBuilder.addToBody(artifactResponseDocument);
