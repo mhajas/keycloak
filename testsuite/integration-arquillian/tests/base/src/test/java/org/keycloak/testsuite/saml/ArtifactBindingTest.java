@@ -36,12 +36,14 @@ import org.keycloak.saml.processing.core.parsers.saml.SAMLParser;
 import org.keycloak.saml.processing.core.saml.v2.common.SAMLDocumentHolder;
 import org.keycloak.saml.processing.core.saml.v2.util.AssertionUtil;
 import org.keycloak.sessions.CommonClientSessionModel;
+import org.keycloak.testsuite.arquillian.annotation.AuthServerContainerExclude;
 import org.keycloak.testsuite.updaters.ClientAttributeUpdater;
 import org.keycloak.testsuite.util.ArtifactResolutionService;
 import org.keycloak.testsuite.util.SamlClient;
 import org.keycloak.testsuite.util.SamlClientBuilder;
 import org.keycloak.testsuite.util.saml.CreateArtifactMessageStepBuilder;
 import org.keycloak.testsuite.util.saml.HandleArtifactStepBuilder;
+import org.keycloak.testsuite.util.saml.SamlDocumentStepBuilder;
 import org.keycloak.testsuite.util.saml.SessionStateChecker;
 import org.keycloak.testsuite.utils.io.IOUtil;
 import org.w3c.dom.Document;
@@ -152,7 +154,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
 
         Pattern artifactPattern = Pattern.compile("NAME=\"SAMLart\" VALUE=\"((?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=))");
         Matcher m = artifactPattern.matcher(response);
-        assertThat(true, is(m.find()));
+        assertThat(m.find(), is(true));
 
         String artifactB64 = m.group(1);
         assertThat(artifactB64,not(isEmptyOrNullString()));
@@ -165,7 +167,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         assertThat(artifact[3], is((byte)0));
 
         MessageDigest sha1Digester = MessageDigest.getInstance("SHA-1");
-        byte[] source = sha1Digester.digest("https://localhost:8543/auth/realms/demo".getBytes(Charsets.UTF_8));
+        byte[] source = sha1Digester.digest(getAuthServerRealmBase(REALM_NAME).toString().getBytes(Charsets.UTF_8));
         for (int i = 0; i < 20; i++) {
             assertThat(source[i], is(artifact[i+4]));
         }
@@ -223,15 +225,18 @@ public class ArtifactBindingTest extends AbstractSamlTest {
     public void testArtifactBindingLoginIncorrectSignature() {
         Document response = new SamlClientBuilder().authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST_SIG,
                 SAML_ASSERTION_CONSUMER_URL_SALES_POST_SIG, SamlClient.Binding.POST)
-                .transformObject(so -> {
-                    so.setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri());
-                    return so;
-                }).signWith(SAML_CLIENT_SALES_POST_SIG_PRIVATE_KEY
-                , SAML_CLIENT_SALES_POST_SIG_PUBLIC_KEY).build()
-                .login().user(bburkeUser).build().handleArtifact(getAuthServerSamlEndpoint(REALM_NAME)
+                    .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri())
+                    .signWith(SAML_CLIENT_SALES_POST_SIG_PRIVATE_KEY
+                    , SAML_CLIENT_SALES_POST_SIG_PUBLIC_KEY)
+                .build()
+                .login().user(bburkeUser).build()
+
+                .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME)
                         , SAML_CLIENT_ID_SALES_POST_SIG).signWith(SAML_CLIENT_SALES_POST_SIG_EXPIRED_PRIVATE_KEY,
-                        SAML_CLIENT_SALES_POST_SIG_EXPIRED_PUBLIC_KEY).build()
-                .doNotFollowRedirects().executeAndTransform(this::extractSoapMessage);
+                        SAML_CLIENT_SALES_POST_SIG_EXPIRED_PUBLIC_KEY)
+                .build()
+                .doNotFollowRedirects()
+                .executeAndTransform(this::extractSoapMessage);
 
         String soapMessage = DocumentUtil.asString(response);
         assertThat(soapMessage, not(containsString("ArtifactResponse")));
@@ -241,21 +246,53 @@ public class ArtifactBindingTest extends AbstractSamlTest {
     @Test
     public void testArtifactBindingLoginGetArtifactResponseTwice() {
         SamlClientBuilder clientBuilder = new SamlClientBuilder();
-        HandleArtifactStepBuilder handleArifactBuilder = new HandleArtifactStepBuilder(
+        HandleArtifactStepBuilder handleArtifactBuilder = new HandleArtifactStepBuilder(
                 getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST, clientBuilder);
 
         Document response= clientBuilder.authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
                 SAML_ASSERTION_CONSUMER_URL_SALES_POST, SamlClient.Binding.REDIRECT)
-                .transformObject(so -> {
-                    so.setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri());
-                    return so;
-                }).build()
-                .login().user(bburkeUser).build().handleArtifact(handleArifactBuilder).build()
-                .handleArtifact(handleArifactBuilder).replayPost(true).build().doNotFollowRedirects().executeAndTransform(this::extractSoapMessage);
+                    .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri())
+                .build()
+                .login().user(bburkeUser).build()
+                .handleArtifact(handleArtifactBuilder).build()
+                .processSamlResponse(ARTIFACT_RESPONSE)
+                    .transformObject(ob -> {
+                        assertThat(ob, isSamlResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
+                        return null;
+                    })
+                .build()
+                .handleArtifact(handleArtifactBuilder).replayPost(true).build()
+                .doNotFollowRedirects()
+                .executeAndTransform(this::extractSoapMessage);
 
         String soapMessage = DocumentUtil.asString(response);
         assertThat(soapMessage, not(containsString("ArtifactResponse")));
         assertThat(soapMessage, containsString("invalid_artifact"));
+    }
+
+    @Test
+    public void testArtifactSuccessfulAfterFirstUnsuccessfulRequest() {
+        SamlClientBuilder clientBuilder = new SamlClientBuilder();
+
+        AtomicReference<String> artifact = new AtomicReference<>();
+
+        SAMLDocumentHolder response = clientBuilder.authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
+                SAML_ASSERTION_CONSUMER_URL_SALES_POST, SamlClient.Binding.POST)
+                .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri())
+                .build()
+                .login().user(bburkeUser).build()
+
+                .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST2) // Wrong issuer
+                .storeArtifact(artifact)
+                .build()
+                .assertResponse(r -> assertThat(r, bodyHC(containsString("invalid_artifact"))))
+
+                .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST)
+                .useArtifact(artifact)
+                .build()
+                .executeAndTransform(ARTIFACT_RESPONSE::extractResponse);
+
+        assertThat(response.getSamlObject(), isSamlResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
     }
 
     @Test
@@ -269,8 +306,10 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         SAMLDocumentHolder response = new SamlClientBuilder().authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
                 SAML_ASSERTION_CONSUMER_URL_SALES_POST, SamlClient.Binding.POST)
                 .build()
-                .login().user(bburkeUser).build().handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST).build()
-                .doNotFollowRedirects().executeAndTransform(this::getArtifactResponse);
+                .login().user(bburkeUser).build()
+                .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST).build()
+                .doNotFollowRedirects()
+                .executeAndTransform(this::getArtifactResponse);
 
         assertThat(response.getSamlObject(), instanceOf(ArtifactResponseType.class));
         ArtifactResponseType artifactResponse = (ArtifactResponseType)response.getSamlObject();
@@ -292,8 +331,10 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         SAMLDocumentHolder response = new SamlClientBuilder().authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
                 SAML_ASSERTION_CONSUMER_URL_SALES_POST, SamlClient.Binding.POST)
                 .build()
-                .login().user(bburkeUser).build().handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST).build()
-                .doNotFollowRedirects().executeAndTransform(this::getArtifactResponse);
+                .login().user(bburkeUser).build()
+                .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST).build()
+                .doNotFollowRedirects()
+                .executeAndTransform(this::getArtifactResponse);
 
 
         assertThat(response.getSamlObject(), instanceOf(ArtifactResponseType.class));
@@ -312,13 +353,13 @@ public class ArtifactBindingTest extends AbstractSamlTest {
     @Test
     public void testArtifactBindingLoginFullExchangeWithRedirect() {
         SAMLDocumentHolder response = new SamlClientBuilder().authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
-                SAML_ASSERTION_CONSUMER_URL_SALES_POST, SamlClient.Binding.REDIRECT).setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_REDIRECT_BINDING.getUri())
-                .transformObject(so -> {
-                    so.setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri());
-                    return so;
-                }).build()
-                .login().user(bburkeUser).build().handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST).verifyRedirect(true).build()
-                .doNotFollowRedirects().executeAndTransform(this::getArtifactResponse);
+                SAML_ASSERTION_CONSUMER_URL_SALES_POST, SamlClient.Binding.REDIRECT)
+                    .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri())
+                .build()
+                .login().user(bburkeUser).build()
+                .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST).verifyRedirect(true).build()
+                .doNotFollowRedirects()
+                .executeAndTransform(this::getArtifactResponse);
 
         assertThat(response.getSamlObject(), instanceOf(ArtifactResponseType.class));
         ArtifactResponseType artifactResponse = (ArtifactResponseType)response.getSamlObject();
@@ -333,12 +374,12 @@ public class ArtifactBindingTest extends AbstractSamlTest {
     public void testArtifactResponseContainsCorrectInResponseTo(){
         SAMLDocumentHolder response = new SamlClientBuilder().authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
                 SAML_ASSERTION_CONSUMER_URL_SALES_POST, SamlClient.Binding.POST)
-                .transformObject(so -> {
-                    so.setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri());
-                    return so;
-                }).build()
-                .login().user(bburkeUser).build().handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST).setArtifactResolveId("TestId").build()
-                .doNotFollowRedirects().executeAndTransform(this::getArtifactResponse);
+                    .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri())
+                .build()
+                .login().user(bburkeUser).build()
+                .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST).setArtifactResolveId("TestId").build()
+                .doNotFollowRedirects()
+                .executeAndTransform(this::getArtifactResponse);
 
         assertThat(response.getSamlObject(), instanceOf(ArtifactResponseType.class));
         ArtifactResponseType artifactResponse = (ArtifactResponseType)response.getSamlObject();
@@ -350,6 +391,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
 
     /************************ RECEIVE ARTIFACT TESTS ************************/
 
+    @AuthServerContainerExclude(AuthServerContainerExclude.AuthServer.REMOTE) // Won't work with openshift, because openshift wouldn't see ArtifactResolutionService
     @Test
     public void testReceiveArtifactLoginFullWithPost() throws ParsingException, ConfigurationException, ProcessingException, InterruptedException {
         getCleanup()
@@ -384,6 +426,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         }
     }
 
+    @AuthServerContainerExclude(AuthServerContainerExclude.AuthServer.REMOTE) // Won't work with openshift, because openshift wouldn't see ArtifactResolutionService
     @Test
     public void testReceiveArtifactLoginFullWithRedirect() throws ParsingException, ConfigurationException, ProcessingException, InterruptedException {
         getCleanup()
@@ -419,6 +462,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         }
     }
 
+    @AuthServerContainerExclude(AuthServerContainerExclude.AuthServer.REMOTE) // Won't work with openshift, because openshift wouldn't see ArtifactResolutionService
     @Test
     public void testReceiveArtifactNonExistingClient() throws ParsingException, ConfigurationException, ProcessingException, InterruptedException {
         getCleanup()
@@ -449,6 +493,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         }
     }
 
+    @AuthServerContainerExclude(AuthServerContainerExclude.AuthServer.REMOTE) // Won't work with openshift, because openshift wouldn't see ArtifactResolutionService
     @Test
     public void testReceiveArtifactLogoutFullWithPost() throws InterruptedException {
         getCleanup()
@@ -490,6 +535,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
 
     /************************ LOGOUT TESTS ************************/
 
+    @AuthServerContainerExclude(AuthServerContainerExclude.AuthServer.REMOTE) // Won't work with openshift, because openshift wouldn't see ArtifactResolutionService
     @Test
     public void testReceiveArtifactLogoutFullWithRedirect() throws InterruptedException {
         getCleanup()
@@ -549,9 +595,11 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         String response = new SamlClientBuilder().authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
                 SAML_ASSERTION_CONSUMER_URL_SALES_POST, SamlClient.Binding.POST)
                 .build()
-                .login().user(bburkeUser).build().handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST).build()
+                .login().user(bburkeUser).build()
+                .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST).build()
                 .logoutRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST, SamlClient.Binding.POST).build()
-                .doNotFollowRedirects().executeAndTransform(resp -> EntityUtils.toString(resp.getEntity()));
+                .doNotFollowRedirects()
+                .executeAndTransform(resp -> EntityUtils.toString(resp.getEntity()));
 
         assertThat(response, containsString(GeneralConstants.SAML_ARTIFACT_KEY));
         Pattern artifactPattern = Pattern.compile("NAME=\"SAMLart\" VALUE=\"((?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=))");
@@ -569,7 +617,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         assertThat(artifact[3], is((byte)0));
 
         MessageDigest sha1Digester = MessageDigest.getInstance("SHA-1");
-        byte[] source = sha1Digester.digest("https://localhost:8543/auth/realms/demo".getBytes(Charsets.UTF_8));
+        byte[] source = sha1Digester.digest(getAuthServerRealmBase(REALM_NAME).toString().getBytes(Charsets.UTF_8));
         for (int i = 0; i < 20; i++) {
             assertThat(source[i], is(artifact[i+4]));
         }
@@ -588,9 +636,12 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         SAMLDocumentHolder response = new SamlClientBuilder().authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
                 SAML_ASSERTION_CONSUMER_URL_SALES_POST, POST)
                 .build()
-                .login().user(bburkeUser).build().handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST).build()
+                .login().user(bburkeUser).build()
+                .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST).build()
                 .logoutRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST, POST).build()
-                .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST).build().doNotFollowRedirects().executeAndTransform(this::getArtifactResponse);
+                .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST).build()
+                .doNotFollowRedirects()
+                .executeAndTransform(this::getArtifactResponse);
 
         assertThat(response.getSamlObject(), instanceOf(ArtifactResponseType.class));
         ArtifactResponseType artifactResponse = (ArtifactResponseType)response.getSamlObject();
@@ -615,12 +666,15 @@ public class ArtifactBindingTest extends AbstractSamlTest {
             );
 
         SAMLDocumentHolder response = new SamlClientBuilder().authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
-                SAML_ASSERTION_CONSUMER_URL_SALES_POST, REDIRECT).setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_REDIRECT_BINDING.getUri())
+                SAML_ASSERTION_CONSUMER_URL_SALES_POST, REDIRECT)
+                .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_REDIRECT_BINDING.getUri())
                 .build()
-                .login().user(bburkeUser).build().handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST).verifyRedirect(true).build()
+                .login().user(bburkeUser).build()
+                .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST).verifyRedirect(true).build()
                 .logoutRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST, REDIRECT).build()
                 .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST).verifyRedirect(true).build()
-                .doNotFollowRedirects().executeAndTransform(this::getArtifactResponse);
+                .doNotFollowRedirects()
+                .executeAndTransform(this::getArtifactResponse);
 
         assertThat(response.getSamlObject(), instanceOf(ArtifactResponseType.class));
         ArtifactResponseType artifactResponse = (ArtifactResponseType)response.getSamlObject();
@@ -648,18 +702,24 @@ public class ArtifactBindingTest extends AbstractSamlTest {
                 .authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST2, SAML_ASSERTION_CONSUMER_URL_SALES_POST2, POST).build()
                 .login().user(bburkeUser).build()
                 .processSamlResponse(POST)
-                .transformObject(this::extractNameIdAndSessionIndexAndTerminate)
+                    .transformObject(this::extractNameIdAndSessionIndexAndTerminate)
                 .build()
                 .authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST_SIG, SAML_ASSERTION_CONSUMER_URL_SALES_POST_SIG, POST)
-                .signWith(SAML_CLIENT_SALES_POST_SIG_PRIVATE_KEY, SAML_CLIENT_SALES_POST_SIG_PUBLIC_KEY).build()
-                .login().sso(true).build().handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST_SIG)
-                .signWith(SAML_CLIENT_SALES_POST_SIG_PRIVATE_KEY, SAML_CLIENT_SALES_POST_SIG_PUBLIC_KEY).build()
+                    .signWith(SAML_CLIENT_SALES_POST_SIG_PRIVATE_KEY, SAML_CLIENT_SALES_POST_SIG_PUBLIC_KEY)
+                .build()
+                .login().sso(true).build()
+                .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST_SIG)
+                    .signWith(SAML_CLIENT_SALES_POST_SIG_PRIVATE_KEY, SAML_CLIENT_SALES_POST_SIG_PUBLIC_KEY)
+                .build()
                 .logoutRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST2, POST)
-                .nameId(nameIdRef::get)
-                .sessionIndex(sessionIndexRef::get)
-                .build().handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST_SIG)
-                .signWith(SAML_CLIENT_SALES_POST_SIG_PRIVATE_KEY, SAML_CLIENT_SALES_POST_SIG_PUBLIC_KEY).build()
-                .doNotFollowRedirects().executeAndTransform(this::getArtifactResponse);
+                    .nameId(nameIdRef::get)
+                    .sessionIndex(sessionIndexRef::get)
+                .build()
+                .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST_SIG)
+                    .signWith(SAML_CLIENT_SALES_POST_SIG_PRIVATE_KEY, SAML_CLIENT_SALES_POST_SIG_PUBLIC_KEY)
+                .build()
+                .doNotFollowRedirects()
+                .executeAndTransform(this::getArtifactResponse);
 
         assertThat(response.getSamlObject(), instanceOf(ArtifactResponseType.class));
         ArtifactResponseType artifactResponse = (ArtifactResponseType)response.getSamlObject();
@@ -688,19 +748,22 @@ public class ArtifactBindingTest extends AbstractSamlTest {
 
         SAMLDocumentHolder response = new SamlClientBuilder()
                 .authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST2, SAML_ASSERTION_CONSUMER_URL_SALES_POST2, REDIRECT)
-                .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_REDIRECT_BINDING.getUri()).build()
+                    .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_REDIRECT_BINDING.getUri()).build()
                 .login().user(bburkeUser).build()
                 .processSamlResponse(REDIRECT)
-                .transformObject(this::extractNameIdAndSessionIndexAndTerminate)
+                    .transformObject(this::extractNameIdAndSessionIndexAndTerminate)
                 .build()
                 .authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
                         SAML_ASSERTION_CONSUMER_URL_SALES_POST, REDIRECT).setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_REDIRECT_BINDING.getUri())
-                .build().handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST).verifyRedirect(true).build()   // This is a formal step
+                .build()
+                .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST).verifyRedirect(true).build()   // This is a formal step
                 .logoutRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST2, REDIRECT)
-                .nameId(nameIdRef::get)
-                .sessionIndex(sessionIndexRef::get)
-                .build().handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST).verifyRedirect(true).build()
-                .doNotFollowRedirects().executeAndTransform(this::getArtifactResponse);
+                    .nameId(nameIdRef::get)
+                    .sessionIndex(sessionIndexRef::get)
+                .build()
+                .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST).verifyRedirect(true).build()
+                .doNotFollowRedirects()
+                .executeAndTransform(this::getArtifactResponse);
 
         assertThat(response.getSamlObject(), instanceOf(ArtifactResponseType.class));
         ArtifactResponseType artifactResponse = (ArtifactResponseType)response.getSamlObject();
@@ -724,7 +787,8 @@ public class ArtifactBindingTest extends AbstractSamlTest {
                 .login().user(bburkeUser).build()
                 .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST).build()
                 .logoutRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST, POST)
-                .build().handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST).build()
+                .build()
+                .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST).build()
                 .doNotFollowRedirects()
                 .executeAndTransform(this::getArtifactResponse);
 
@@ -754,6 +818,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
                 });
     }
 
+    @AuthServerContainerExclude(AuthServerContainerExclude.AuthServer.REMOTE) // Won't work with openshift, because openshift wouldn't see ArtifactResolutionService
     @Test
     public void testSessionStateDuringArtifactBindingLogoutWithOneClient() {
         ClientRepresentation salesRep = adminClient.realm(REALM_NAME).clients().findByClientId(SAML_CLIENT_ID_SALES_POST).get(0);
@@ -807,6 +872,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         assertThat(samlResponse, isSamlStatusResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
     }
 
+    @AuthServerContainerExclude(AuthServerContainerExclude.AuthServer.REMOTE) // Won't work with openshift, because openshift wouldn't see ArtifactResolutionService
     @Test
     public void testSessionStateDuringArtifactBindingLogoutWithMoreFrontChannelClients() {
         getCleanup()
@@ -834,7 +900,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         SAMLDocumentHolder response = new SamlClientBuilder()
                 // Login first sales_post2 and resolve artifact
                 .authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST2, SAML_ASSERTION_CONSUMER_URL_SALES_POST2, REDIRECT)
-                .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_REDIRECT_BINDING.getUri()).build()
+                    .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_REDIRECT_BINDING.getUri()).build()
                 .login().user(bburkeUser).build()
                 .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST2)
                     .setBeforeStepChecks(new SessionStateChecker(testingClient.server())
@@ -849,7 +915,8 @@ public class ArtifactBindingTest extends AbstractSamlTest {
 
                 // Login second sales_post and resolved artifact, no login should be needed as user is already logged in
                 .authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
-                        SAML_ASSERTION_CONSUMER_URL_SALES_POST, REDIRECT).setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_REDIRECT_BINDING.getUri())
+                        SAML_ASSERTION_CONSUMER_URL_SALES_POST, REDIRECT)
+                    .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_REDIRECT_BINDING.getUri())
                 .build()
                 .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST)
                     .setBeforeStepChecks(new SessionStateChecker(testingClient.server())

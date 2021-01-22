@@ -1119,6 +1119,10 @@ public class SamlService extends AuthorizationEndpointBase {
                 "Message: \n" + DocumentUtil.getDocumentAsString(artifactResolveHolder.getSamlDocument()));
 
         String artifact = artifactResolveMessage.getArtifact(); // Artifact from resolve request
+        if (artifact == null) {
+            logger.errorf("Artifact to resolve was null");
+            throw new ProcessingException(Errors.INVALID_SAML_ARTIFACT);
+        }
 
         // Obtain details of session that issued artifact and check if it corresponds to issuer of Resolve message
         SamlArtifactSessionMappingModel sessionMapping;
