@@ -490,7 +490,8 @@ public class SamlProtocol implements LoginProtocol {
         bindingBuilder.relayState(relayState);
 
         if ("true".equals(clientSession.getNote(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.get()))) {
-            try { return buildArtifactAuthenticatedResponse(clientSession, redirectUri, samlModel, bindingBuilder);
+            try {
+                return buildArtifactAuthenticatedResponse(clientSession, redirectUri, samlModel, bindingBuilder);
             } catch (Exception e) {
                 logger.error("failed", e);
                 return ErrorPage.error(session, null, Response.Status.BAD_REQUEST, Messages.FAILED_TO_PROCESS_RESPONSE);
