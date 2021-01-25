@@ -545,11 +545,12 @@ public class SamlService extends AuthorizationEndpointBase {
                 // remove client from logout requests
                 AuthenticatedClientSessionModel clientSession = userSession.getAuthenticatedClientSessionByClient(client.getId());
                 if (clientSession != null) {
-                    clientSession.setAction(AuthenticationSessionModel.Action.LOGGING_OUT.name());
+                    clientSession.setAction(AuthenticationSessionModel.Action.LOGGED_OUT.name());
 
                     //artifact binding state must be attached to the user session upon logout, as authenticated session
                     //no longer exists when the LogoutResponse message is sent
                     if ("true".equals(clientSession.getNote(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.get()))){
+                        clientSession.setAction(AuthenticationSessionModel.Action.LOGGING_OUT.name());
                         userSession.setNote(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.get(), "true");
                         userSession.setNote(SamlProtocol.SAML_LOGOUT_INITIATOR_CLIENT_ID, client.getId());
                     }

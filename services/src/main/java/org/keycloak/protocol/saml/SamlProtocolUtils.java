@@ -260,13 +260,6 @@ public class SamlProtocolUtils {
 
         artifactResponse.setIssuer(issuer);
         artifactResponse.setAny(samlObject);
-//        Node issuer = artifactResponseDocument.importNode(SamlProtocolUtils.getIssuer(samlResponse), true);
-//        if (issuer != null) {
-//            artifactResponseElement.appendChild(issuer);
-//        }
-//
-//        Node samlresponseNode = artifactResponseDocument.importNode(samlResponse.getDocumentElement(), true);
-//        artifactResponseElement.appendChild(samlresponseNode);
 
         return artifactResponse;
     }
