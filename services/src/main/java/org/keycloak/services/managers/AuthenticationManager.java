@@ -626,29 +626,11 @@ public class AuthenticationManager {
         final AuthenticationSessionManager asm = new AuthenticationSessionManager(session);
         AuthenticationSessionModel logoutAuthSession = createOrJoinLogoutSession(session, realm, asm, userSession, true);
 
-        // After introduction of Saml artifact binding it may be the case, there are some client sessions that are still in LOGGING_OUT state
-        long numberOfUnconfirmedSessions = userSession.getAuthenticatedClientSessions().values().stream()
-                .filter(clientSessionModel -> CommonClientSessionModel.Action.LOGGING_OUT.name().equals(clientSessionModel.getAction()))
-                .count();
-
-        // If logout flow end up correctly there should be at maximum 1 client session in LOGGING_OUT action, if there are more, something went wrong
-        if (numberOfUnconfirmedSessions > 1) {
-            logger.warnf("There are more than one clientSession in logging_out state. Some client probably didn't finish logout flow correctly.");
-        }
-
         checkUserSessionOnlyHasLoggedOutClients(realm, userSession, logoutAuthSession);
 
         // For resolving artifact we don't need any cookie, all details are stored in session storage so we can remove
         expireIdentityCookie(realm, uriInfo, connection);
         expireRememberMeCookie(realm, uriInfo, connection);
-
-        // By setting LOGGED_OUT_UNCONFIRMED state we are saying that anybody who will turn the last client session into
-        // LOGGED_OUT action can remove UserSession
-        if (numberOfUnconfirmedSessions >= 1) {
-            userSession.setState(UserSessionModel.State.LOGGED_OUT_UNCONFIRMED);
-        } else {
-            userSession.setState(UserSessionModel.State.LOGGED_OUT);
-        }
 
         String method = userSession.getNote(KEYCLOAK_LOGOUT_PROTOCOL);
         EventBuilder event = new EventBuilder(realm, session, connection);
@@ -660,6 +642,24 @@ public class AuthenticationManager {
 
 
         Response response = protocol.finishLogout(userSession);
+
+        // After introduction of Saml artifact binding it may be the case, there are some client sessions that are still in LOGGING_OUT state
+        long numberOfUnconfirmedSessions = userSession.getAuthenticatedClientSessions().values().stream()
+                .filter(clientSessionModel -> CommonClientSessionModel.Action.LOGGING_OUT.name().equals(clientSessionModel.getAction()))
+                .count();
+
+        // If logout flow end up correctly there should be at maximum 1 client session in LOGGING_OUT action, if there are more, something went wrong
+        if (numberOfUnconfirmedSessions > 1) {
+            logger.warnf("There are more than one clientSession in logging_out state. Some client probably didn't finish logout flow correctly.");
+        }
+
+        // By setting LOGGED_OUT_UNCONFIRMED state we are saying that anybody who will turn the last client session into
+        // LOGGED_OUT action can remove UserSession
+        if (numberOfUnconfirmedSessions >= 1) {
+            userSession.setState(UserSessionModel.State.LOGGED_OUT_UNCONFIRMED);
+        } else {
+            userSession.setState(UserSessionModel.State.LOGGED_OUT);
+        }
 
         // Do not remove user session, it will be removed when last clientSession will be logged out
         if (numberOfUnconfirmedSessions < 1) {

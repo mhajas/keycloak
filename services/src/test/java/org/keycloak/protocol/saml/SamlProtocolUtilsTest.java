@@ -47,8 +47,8 @@ public class SamlProtocolUtilsTest {
         Document responseDoc = DocumentUtil.getDocument(new ByteArrayInputStream(bos.toByteArray()));
 
         ArtifactResponseType artifactResponseType = SamlProtocolUtils.buildArtifactResponse(responseDoc);
-        SAML2Response saml2Response = new SAML2Response();
-        String artifactResponse = DocumentUtil.asString(saml2Response.convert(artifactResponseType));
+        Document doc = SamlProtocolUtils.convert(artifactResponseType);
+        String artifactResponse = DocumentUtil.asString(doc);
 
         assertThat(artifactResponse, containsString("samlp:ArtifactResponse"));
         assertThat(artifactResponse, containsString("samlp:Response"));
