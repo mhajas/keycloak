@@ -136,8 +136,7 @@ public class IOUtil {
      * @param regex
      * @param replacement
      */
-    public static void
-    modifyDocElementAttribute(Document doc, String tagName, String attributeName, String regex, String replacement) {
+    public static void modifyDocElementAttribute(Document doc, String tagName, String attributeName, String regex, String replacement) {
         NodeList nodes = doc.getElementsByTagName(tagName);
         if (nodes.getLength() != 1) {
             log.warn("Not able or ambiguous to find element: " + tagName);

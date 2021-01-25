@@ -606,7 +606,7 @@ public class AuthenticationManager {
           .filter(clientSession -> !Objects.equals(AuthenticationSessionModel.Action.LOGGED_OUT.name(), clientSession.getAction())
                                 && !Objects.equals(AuthenticationSessionModel.Action.LOGGING_OUT.name(), clientSession.getAction()))
           .filter(clientSession -> clientSession.getProtocol() != null)
-          .collect(Collectors.partitioningBy(clientSession -> clientSession.getClient().isFrontchannelLogout() || new SamlClient(clientSession.getClient()).forceArtifactBinding())); // || force artifact binding
+          .collect(Collectors.partitioningBy(clientSession -> clientSession.getClient().isFrontchannelLogout() || new SamlClient(clientSession.getClient()).forceArtifactBinding()));
 
         final List<AuthenticatedClientSessionModel> backendLogoutSessions = acss.get(false) == null ? Collections.emptyList() : acss.get(false);
         backendLogoutSessions.forEach(acs -> backchannelLogoutClientSession(session, realm, acs, logoutAuthSession, uriInfo, headers));
