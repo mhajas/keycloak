@@ -39,6 +39,7 @@
             <memory storage="HEAP" max-count="10000"/>
         </local-cache>
         <distributed-cache name="sessions" owners="${session.cache.owners}"/>
+        <distributed-cache name="artifacts" owners="${session.cache.owners}"/>
         <distributed-cache name="authenticationSessions" owners="${session.cache.owners}"/>
         <distributed-cache name="offlineSessions" owners="${offline.session.cache.owners}"/>
         <distributed-cache name="clientSessions" owners="${session.cache.owners}"/>
