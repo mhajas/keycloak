@@ -61,6 +61,7 @@ import org.keycloak.protocol.oidc.utils.RedirectUtils;
 import org.keycloak.protocol.saml.preprocessor.SamlAuthenticationPreprocessor;
 import org.keycloak.protocol.saml.profile.ecp.SamlEcpProfileService;
 import org.keycloak.protocol.saml.profile.util.Soap;
+import org.keycloak.protocol.util.ArtifactBindingUtils;
 import org.keycloak.rotation.HardcodedKeyLocator;
 import org.keycloak.rotation.KeyLocator;
 import org.keycloak.saml.BaseSAML2BindingBuilder;
@@ -323,7 +324,7 @@ public class SamlService extends AuthorizationEndpointBase {
             //Find client
             ClientModel client;
             try {
-                client = getArtifactResolver().selectSourceClient(artifact, realm.getClientsStream());
+                client = getArtifactResolver(artifact).selectSourceClient(artifact, realm.getClientsStream());
 
                 Response error = checkClientValidity(client);
                 if (error != null) {
@@ -1162,14 +1163,14 @@ public class SamlService extends AuthorizationEndpointBase {
         // Obtain artifactResponse from clientSessionModel
         String artifactResponseString;
         try {
-            artifactResponseString = getArtifactResolver().resolveArtifactSessionMappings(clientSessionModel, artifact);
+            artifactResponseString = getArtifactResolver(artifact).resolveArtifact(clientSessionModel, artifact);
         } catch (ArtifactResolverProcessingException e) {
             logger.errorf("Failed to resolve artifact: %s.", artifact);
             throw new ProcessingException(Errors.INVALID_SAML_ARTIFACT, e);
         }
 
         // Artifact is successfully resolved, we can remove session mapping from storage
-        session.sessions().removeArtifactResponse(artifact);
+        session.sessions().removeArtifactSessionMapping(artifact);
 
         Document artifactResponseDocument = null;
         ArtifactResponseType artifactResponseType = null;
@@ -1267,11 +1268,8 @@ public class SamlService extends AuthorizationEndpointBase {
         return DocumentUtil.getDocument(new ByteArrayInputStream(bos.toByteArray()));
     }
 
-    private ArtifactResolver getArtifactResolver() {
-        if (artifactResolver == null) {
-            artifactResolver = session.getProvider(ArtifactResolver.class);
-        }
-        return artifactResolver;
+    private ArtifactResolver getArtifactResolver(String artifact) {
+        return session.getProvider(ArtifactResolver.class, ArtifactBindingUtils.artifactToResolverProviderId(artifact));
     }
 
     private class ArtifactResolutionRunnable implements ScheduledTask{

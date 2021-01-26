@@ -350,6 +350,19 @@ public class AuthServerTestEnricher {
         }
     }
 
+    public static void executeCli(String... commands) throws Exception {
+        OnlineManagementClient client = AuthServerTestEnricher.getManagementClient();
+        Administration administration = new Administration(client);
+
+        for (String c : commands) {
+            client.execute(c).assertSuccess();
+        }
+
+        administration.reload();
+
+        client.close();
+    }
+
     private ContainerInfo updateWithAuthServerInfo(ContainerInfo authServerInfo) {
         return updateWithAuthServerInfo(authServerInfo, 0);
     }

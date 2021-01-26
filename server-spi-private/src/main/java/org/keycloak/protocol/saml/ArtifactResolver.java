@@ -17,8 +17,5 @@ public interface ArtifactResolver extends Provider {
     
     String buildArtifact(AuthenticatedClientSessionModel clientSessionModel, String entityId, String artifactResponse) throws ArtifactResolverProcessingException;
 
-    String resolveArtifactSessionMappings(AuthenticatedClientSessionModel clientSessionModel, String artifact) throws ArtifactResolverProcessingException;
-
-    void initialize(KeycloakSession session);
-
+    String resolveArtifact(AuthenticatedClientSessionModel clientSessionModel, String artifact) throws ArtifactResolverProcessingException;
 }
