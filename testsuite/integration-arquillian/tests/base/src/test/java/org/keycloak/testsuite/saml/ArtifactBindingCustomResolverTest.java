@@ -1,13 +1,10 @@
 package org.keycloak.testsuite.saml;
 
-import org.jboss.arquillian.container.test.api.ContainerController;
-import org.jboss.arquillian.test.api.ArquillianResource;
-import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.keycloak.saml.common.constants.JBossSAMLURIConstants;
-import org.keycloak.testsuite.arquillian.AuthServerTestEnricher;
-import org.keycloak.testsuite.arquillian.annotation.RestartContainer;
+import org.keycloak.testsuite.arquillian.annotation.AuthServerContainerExclude;
+import org.keycloak.testsuite.arquillian.annotation.SetDefaultProvider;
 import org.keycloak.testsuite.authentication.CustomTestingSamlArtifactResolver;
 import org.keycloak.testsuite.util.ContainerAssume;
 import org.keycloak.testsuite.util.SamlClient;
@@ -24,37 +21,9 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.keycloak.testsuite.util.SamlClient.Binding.POST;
 import static org.junit.Assert.assertThat;
 
-@RestartContainer
+@AuthServerContainerExclude({AuthServerContainerExclude.AuthServer.REMOTE, AuthServerContainerExclude.AuthServer.QUARKUS})
+@SetDefaultProvider(spi = "saml-artifact-resolver", providerId = "05")
 public class ArtifactBindingCustomResolverTest extends ArtifactBindingTest {
-
-    @ArquillianResource
-    protected ContainerController controller;
-
-    @Before
-    public void setUpCustomResolver() throws Exception {
-        if (suiteContext.getAuthServerInfo().isUndertow()) {
-            controller.stop(suiteContext.getAuthServerInfo().getQualifier());
-            System.setProperty("keycloak.saml-artifact-resolver.provider", "05");
-            controller.start(suiteContext.getAuthServerInfo().getQualifier());
-        } else if (suiteContext.getAuthServerInfo().isJBossBased()) {
-            AuthServerTestEnricher.executeCli("/subsystem=keycloak-server/spi=saml-artifact-resolver/:add(default-provider=05)");
-        }
-
-        reconnectAdminClient();
-    }
-
-    @Override
-    public void postAfterAbstractKeycloak() throws Exception {
-        if (suiteContext.getAuthServerInfo().isUndertow()) {
-            controller.stop(suiteContext.getAuthServerInfo().getQualifier());
-            System.clearProperty("keycloak.saml-artifact-resolver.provider");
-            controller.start(suiteContext.getAuthServerInfo().getQualifier());
-        } else if (suiteContext.getAuthServerInfo().isJBossBased()) {
-            AuthServerTestEnricher.executeCli("/subsystem=keycloak-server/spi=saml-artifact-resolver/:remove");
-        }
-
-        reconnectAdminClient();
-    }
 
     @Test
     @Ignore
@@ -68,8 +37,6 @@ public class ArtifactBindingCustomResolverTest extends ArtifactBindingTest {
 
     @Test
     public void testCustomArtifact() {
-        ContainerAssume.assumeAuthServerUndertow();
-
         AtomicReference<String> artifactReference = new AtomicReference<>();
 
         new SamlClientBuilder().authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
@@ -79,7 +46,8 @@ public class ArtifactBindingCustomResolverTest extends ArtifactBindingTest {
                 .login().user(bburkeUser).build()
                 .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST)
                     .storeArtifact(artifactReference)
-                .build();
+                .build()
+                .execute();
 
         String artifact = artifactReference.get();
         byte[] byteArray = Base64.getDecoder().decode(artifact);
@@ -89,6 +57,8 @@ public class ArtifactBindingCustomResolverTest extends ArtifactBindingTest {
         
         assertThat(byteArray[0], is((byte)0));
         assertThat(byteArray[1], is((byte)5));
+
+        if (!suiteContext.getAuthServerInfo().isUndertow()) return;
 
         String storedResponse = CustomTestingSamlArtifactResolver.list.get(index);
 
