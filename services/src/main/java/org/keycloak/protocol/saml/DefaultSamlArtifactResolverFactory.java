@@ -4,15 +4,16 @@ import org.keycloak.Config;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
 
-public class DefaultSamlArtifactResolverFactory implements ArtifactResolverFactory{
-
-    public static final String PROVIDER_ID = "saml-artifact-04-resolver";
+public class DefaultSamlArtifactResolverFactory implements ArtifactResolverFactory {
+    
+    /** SAML 2 artifact type code (0x0004). */
+    public static final byte[] TYPE_CODE = {0, 4};
+    public static final String TYPE_CODE_STRING = "04";
 
     private DefaultSamlArtifactResolver artifactResolver;
 
     @Override
     public DefaultSamlArtifactResolver create(KeycloakSession session) {
-        artifactResolver.initialize(session);
         return artifactResolver;
     }
 
@@ -33,7 +34,7 @@ public class DefaultSamlArtifactResolverFactory implements ArtifactResolverFacto
 
     @Override
     public String getId() {
-        return PROVIDER_ID;
+        return "default";
     }
 
 }

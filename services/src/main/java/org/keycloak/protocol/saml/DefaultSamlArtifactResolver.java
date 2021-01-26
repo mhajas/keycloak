@@ -5,7 +5,6 @@ import com.google.common.base.Strings;
 import org.jboss.logging.Logger;
 import org.keycloak.models.AuthenticatedClientSessionModel;
 import org.keycloak.models.ClientModel;
-import org.keycloak.models.KeycloakSession;
 import org.keycloak.saml.common.constants.GeneralConstants;
 
 import java.io.ByteArrayOutputStream;
@@ -17,6 +16,8 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.stream.Stream;
 
+import static org.keycloak.protocol.saml.DefaultSamlArtifactResolverFactory.TYPE_CODE;
+
 /**
  * ArtifactResolver for artifact-04 format.
  * Other kind of format for artifact are allowed by standard but not specified.
@@ -24,15 +25,11 @@ import java.util.stream.Stream;
  */
 public class DefaultSamlArtifactResolver implements ArtifactResolver {
 
-    /** SAML 2 artifact type code (0x0004). */
-    private static final byte[] TYPE_CODE = {0, 4};
 
     protected static final Logger logger = Logger.getLogger(SamlService.class);
 
-    private KeycloakSession session;
-
     @Override
-    public String resolveArtifactSessionMappings(AuthenticatedClientSessionModel clientSessionModel, String artifact) throws ArtifactResolverProcessingException {
+    public String resolveArtifact(AuthenticatedClientSessionModel clientSessionModel, String artifact) throws ArtifactResolverProcessingException {
         String artifactResponseString = clientSessionModel.getNote(GeneralConstants.SAML_ARTIFACT_KEY + "=" + artifact);
         clientSessionModel.removeNote(GeneralConstants.SAML_ARTIFACT_KEY + "=" + artifact);
 
@@ -44,12 +41,6 @@ public class DefaultSamlArtifactResolver implements ArtifactResolver {
 
         return artifactResponseString;
     }
-
-    @Override
-    public void initialize(KeycloakSession session) {
-        this.session = session;
-    }
-
 
     @Override
     public ClientModel selectSourceClient(String artifact, Stream<ClientModel> clients) throws ArtifactResolverProcessingException {

@@ -59,7 +59,7 @@ public class HandleArtifactStepBuilder extends SamlDocumentStepBuilder<ArtifactR
     private SessionStateChecker beforeStepChecker;
     private SessionStateChecker afterStepChecker;
 
-    private final static Pattern artifactPattern = Pattern.compile("NAME=\"SAMLart\" VALUE=\"((?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=))");
+    private final static Pattern artifactPattern = Pattern.compile("NAME=\"SAMLart\" VALUE=\"([A-Za-z0-9+=/]*)\"");
 
     /**
      * Standard constructor
@@ -228,7 +228,7 @@ public class HandleArtifactStepBuilder extends SamlDocumentStepBuilder<ArtifactR
         String form = EntityUtils.toString(currentResponse.getEntity());
 
         Matcher m = artifactPattern.matcher(form);
-        assertTrue(m.find());
+        assertTrue("Can't find artifact in " + form, m.find());
         return m.group(1);
     }
 

@@ -675,7 +675,7 @@ public class InfinispanUserSessionProvider implements UserSessionProvider {
     }
 
     @Override
-    public void removeArtifactResponse(String artifact){
+    public void removeArtifactSessionMapping(String artifact){
         SessionUpdateTask<ArtifactSessionsMappingEntity> removeTask = Tasks.removeSync();
         artifactTx.addTask(artifact, removeTask);
     }

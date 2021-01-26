@@ -155,7 +155,7 @@ public interface UserSessionProvider extends Provider {
     void removeAllUserLoginFailures(RealmModel realm);
 
     void addArtifactSessionsMapping(String realmId, String artifact, String userSessionId, String clientSessionId);
-    void removeArtifactResponse(String artifact);
+    void removeArtifactSessionMapping(String artifact);
     SamlArtifactSessionMappingModel getArtifactSessionsMapping(String artifact);
 
     void onRealmRemoved(RealmModel realm);
