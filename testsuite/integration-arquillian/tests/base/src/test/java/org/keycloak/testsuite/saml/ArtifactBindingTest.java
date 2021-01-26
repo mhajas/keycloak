@@ -11,7 +11,6 @@ import org.keycloak.dom.saml.v2.assertion.AssertionType;
 import org.keycloak.dom.saml.v2.assertion.AuthnStatementType;
 import org.keycloak.dom.saml.v2.assertion.NameIDType;
 import org.keycloak.dom.saml.v2.protocol.ArtifactResponseType;
-import org.keycloak.dom.saml.v2.protocol.AuthnRequestType;
 import org.keycloak.dom.saml.v2.protocol.LogoutRequestType;
 import org.keycloak.dom.saml.v2.protocol.NameIDMappingResponseType;
 import org.keycloak.dom.saml.v2.protocol.ResponseType;
@@ -23,11 +22,9 @@ import org.keycloak.protocol.saml.SamlProtocol;
 import org.keycloak.protocol.saml.SamlProtocolUtils;
 import org.keycloak.protocol.saml.profile.util.Soap;
 import org.keycloak.representations.idm.ClientRepresentation;
-import org.keycloak.saml.SAML2LogoutRequestBuilder;
 import org.keycloak.saml.SAML2LogoutResponseBuilder;
 import org.keycloak.saml.common.constants.GeneralConstants;
 import org.keycloak.saml.common.constants.JBossSAMLURIConstants;
-import org.keycloak.saml.common.exceptions.ConfigurationException;
 import org.keycloak.saml.common.exceptions.ParsingException;
 import org.keycloak.saml.common.exceptions.ProcessingException;
 import org.keycloak.saml.common.util.DocumentUtil;
@@ -38,12 +35,10 @@ import org.keycloak.saml.processing.core.saml.v2.util.AssertionUtil;
 import org.keycloak.sessions.CommonClientSessionModel;
 import org.keycloak.testsuite.arquillian.annotation.AuthServerContainerExclude;
 import org.keycloak.testsuite.updaters.ClientAttributeUpdater;
-import org.keycloak.testsuite.util.ArtifactResolutionService;
 import org.keycloak.testsuite.util.SamlClient;
 import org.keycloak.testsuite.util.SamlClientBuilder;
-import org.keycloak.testsuite.util.saml.CreateArtifactMessageStepBuilder;
+import org.keycloak.testsuite.util.SamlUtils;
 import org.keycloak.testsuite.util.saml.HandleArtifactStepBuilder;
-import org.keycloak.testsuite.util.saml.SamlDocumentStepBuilder;
 import org.keycloak.testsuite.util.saml.SessionStateChecker;
 import org.keycloak.testsuite.utils.io.IOUtil;
 import org.w3c.dom.Document;
@@ -59,10 +54,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
 import static org.hamcrest.Matchers.not;
@@ -108,7 +102,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         assertThat(samlResponse, isSamlStatusResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
         assertThat(samlResponse.getAssertions().get(0).getAssertion().getSignature(), not(nullValue()));
 
-        SamlDeployment deployment = getSamlDeploymentForClient("sales-post-assertion-and-response-sig");
+        SamlDeployment deployment = SamlUtils.getSamlDeploymentForClient("sales-post-assertion-and-response-sig");
         SamlProtocolUtils.verifyDocumentSignature(response.getSamlDocument(), deployment.getIDP().getSignatureValidationKeyLocator()); // Checks the signature of the response as well as the signature of the assertion
     }
 
@@ -132,7 +126,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         assertThat(loginResponse.getAssertions().get(0).getAssertion(), nullValue());
         assertThat(loginResponse.getAssertions().get(0).getEncryptedAssertion(), not(nullValue()));
 
-        SamlDeployment deployment = getSamlDeploymentForClient("sales-post-enc");
+        SamlDeployment deployment = SamlUtils.getSamlDeploymentForClient("sales-post-enc");
         AssertionUtil.decryptAssertion(response, loginResponse, deployment.getDecryptionKey());
 
         assertThat(loginResponse.getAssertions().get(0).getAssertion(), not(nullValue()));
@@ -346,7 +340,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         ResponseType samlResponse = (ResponseType)artifactResponse.getAny();
         assertThat(samlResponse, isSamlStatusResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
 
-        SamlDeployment deployment = getSamlDeploymentForClient("sales-post");
+        SamlDeployment deployment = SamlUtils.getSamlDeploymentForClient("sales-post");
         SamlProtocolUtils.verifyDocumentSignature(response.getSamlDocument(), deployment.getIDP().getSignatureValidationKeyLocator());
     }
 
@@ -389,197 +383,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         assertThat(artifactResponse.getInResponseTo(), is("TestId"));
     }
 
-    /************************ RECEIVE ARTIFACT TESTS ************************/
-
-    @AuthServerContainerExclude(AuthServerContainerExclude.AuthServer.REMOTE) // Won't work with openshift, because openshift wouldn't see ArtifactResolutionService
-    @Test
-    public void testReceiveArtifactLoginFullWithPost() throws ParsingException, ConfigurationException, ProcessingException, InterruptedException {
-        getCleanup()
-            .addCleanup(ClientAttributeUpdater.forClient(adminClient, REALM_NAME, SAML_CLIENT_ID_SALES_POST)
-                    .setAttribute(SamlProtocol.SAML_ARTIFACT_RESOLUTION_SERVICE_URL_ATTRIBUTE, "http://127.0.0.1:8082/")
-                    .update()
-            );
-
-        AuthnRequestType loginRep = SamlClient.createLoginRequestDocument(SAML_CLIENT_ID_SALES_POST, AbstractSamlTest.SAML_ASSERTION_CONSUMER_URL_SALES_POST, null);
-        Document doc = SAML2Request.convert(loginRep);
-
-        SamlClientBuilder builder = new SamlClientBuilder();
-        CreateArtifactMessageStepBuilder camb = new CreateArtifactMessageStepBuilder(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
-                SamlClient.Binding.POST, builder);
-
-        ArtifactResolutionService ars = new ArtifactResolutionService("http://127.0.0.1:8082/").setResponseDocument(doc);
-        Thread arsThread = new Thread(ars);
-        try {
-            arsThread.start();
-            synchronized (ars) {
-                ars.wait();
-                SAMLDocumentHolder response = builder.artifactMessage(camb).build().login().user(bburkeUser).build().getSamlResponse(SamlClient.Binding.POST);
-                assertThat(response.getSamlObject(), instanceOf(ResponseType.class));
-                ResponseType rt = (ResponseType)response.getSamlObject();
-                assertThat(rt.getAssertions(),not(empty()));
-                assertThat(ars.getLastArtifactResolve(), notNullValue());
-                assertThat(camb.getLastArtifact(), is(ars.getLastArtifactResolve().getArtifact()));
-            }
-        } finally {
-            ars.stop();
-            arsThread.join();
-        }
-    }
-
-    @AuthServerContainerExclude(AuthServerContainerExclude.AuthServer.REMOTE) // Won't work with openshift, because openshift wouldn't see ArtifactResolutionService
-    @Test
-    public void testReceiveArtifactLoginFullWithRedirect() throws ParsingException, ConfigurationException, ProcessingException, InterruptedException {
-        getCleanup()
-            .addCleanup(ClientAttributeUpdater.forClient(adminClient, REALM_NAME, SAML_CLIENT_ID_SALES_POST)
-                    .setAttribute(SamlProtocol.SAML_ARTIFACT_RESOLUTION_SERVICE_URL_ATTRIBUTE, "http://127.0.0.1:8082/")
-                    .update()
-            );
-
-        AuthnRequestType loginReq = SamlClient.createLoginRequestDocument(SAML_CLIENT_ID_SALES_POST, AbstractSamlTest.SAML_ASSERTION_CONSUMER_URL_SALES_POST, null);
-        loginReq.setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_REDIRECT_BINDING.getUri());
-        Document doc = SAML2Request.convert(loginReq);
-
-        SamlClientBuilder builder = new SamlClientBuilder();
-        CreateArtifactMessageStepBuilder camb = new CreateArtifactMessageStepBuilder(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
-                SamlClient.Binding.REDIRECT, builder);
-
-        ArtifactResolutionService ars = new ArtifactResolutionService("http://127.0.0.1:8082/").setResponseDocument(doc);
-        Thread arsThread = new Thread(ars);
-        try {
-            arsThread.start();
-            synchronized (ars) {
-                ars.wait();
-                SAMLDocumentHolder response = builder.artifactMessage(camb).build().login().user(bburkeUser).build().getSamlResponse(REDIRECT);
-                assertThat(response.getSamlObject(), instanceOf(ResponseType.class));
-                ResponseType rt = (ResponseType)response.getSamlObject();
-                assertThat(rt.getAssertions(),not(empty()));
-                assertThat(ars.getLastArtifactResolve(), notNullValue());
-                assertThat(camb.getLastArtifact(), is(ars.getLastArtifactResolve().getArtifact()));
-            }
-        } finally {
-            ars.stop();
-            arsThread.join();
-        }
-    }
-
-    @AuthServerContainerExclude(AuthServerContainerExclude.AuthServer.REMOTE) // Won't work with openshift, because openshift wouldn't see ArtifactResolutionService
-    @Test
-    public void testReceiveArtifactNonExistingClient() throws ParsingException, ConfigurationException, ProcessingException, InterruptedException {
-        getCleanup()
-            .addCleanup(ClientAttributeUpdater.forClient(adminClient, REALM_NAME, SAML_CLIENT_ID_SALES_POST)
-                    .setAttribute(SamlProtocol.SAML_ARTIFACT_RESOLUTION_SERVICE_URL_ATTRIBUTE, "http://127.0.0.1:8082/")
-                    .update()
-            );
-
-        AuthnRequestType loginRep = SamlClient.createLoginRequestDocument("blabla", AbstractSamlTest.SAML_ASSERTION_CONSUMER_URL_SALES_POST, null);
-        Document doc = SAML2Request.convert(loginRep);
-
-        SamlClientBuilder builder = new SamlClientBuilder();
-        CreateArtifactMessageStepBuilder camb = new CreateArtifactMessageStepBuilder(getAuthServerSamlEndpoint(REALM_NAME), "blabla",
-                SamlClient.Binding.POST, builder);
-
-        ArtifactResolutionService ars = new ArtifactResolutionService("http://127.0.0.1:8082/").setResponseDocument(doc);
-        Thread arsThread = new Thread(ars);
-        try {
-            arsThread.start();
-            synchronized (ars) {
-                ars.wait();
-                String response = builder.artifactMessage(camb).build().executeAndTransform(resp -> EntityUtils.toString(resp.getEntity()));
-                assertThat(response, containsString("Invalid Request"));
-            }
-        } finally {
-            ars.stop();
-            arsThread.join();
-        }
-    }
-
-    @AuthServerContainerExclude(AuthServerContainerExclude.AuthServer.REMOTE) // Won't work with openshift, because openshift wouldn't see ArtifactResolutionService
-    @Test
-    public void testReceiveArtifactLogoutFullWithPost() throws InterruptedException {
-        getCleanup()
-            .addCleanup(ClientAttributeUpdater.forClient(adminClient, REALM_NAME, SAML_CLIENT_ID_SALES_POST)
-                    .setAttribute(SamlProtocol.SAML_ARTIFACT_RESOLUTION_SERVICE_URL_ATTRIBUTE, "http://127.0.0.1:8082/")
-                    .update()
-            );
-
-        SamlClientBuilder builder = new SamlClientBuilder();
-        CreateArtifactMessageStepBuilder camb = new CreateArtifactMessageStepBuilder(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
-                POST, builder);
-
-        ArtifactResolutionService ars = new ArtifactResolutionService("http://127.0.0.1:8082/");
-        Thread arsThread = new Thread(ars);
-        try {
-            arsThread.start();
-            synchronized (ars) {
-                ars.wait();
-                SAMLDocumentHolder samlResponse = builder.authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST, SAML_ASSERTION_CONSUMER_URL_SALES_POST, POST).build()
-                        .login().user(bburkeUser).build()
-                        .processSamlResponse(POST)
-                        .transformObject(x -> {
-                            SAML2Object samlObj =  extractNameIdAndSessionIndexAndTerminate(x);
-                            setArtifactResolutionServiceLogoutRequest(ars);
-                            return samlObj;
-                        })
-                        .build().artifactMessage(camb).build().getSamlResponse(POST);
-               assertThat(samlResponse.getSamlObject(), instanceOf(StatusResponseType.class));
-               StatusResponseType srt = (StatusResponseType) samlResponse.getSamlObject();
-               assertThat(srt, isSamlStatusResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
-               assertThat(camb.getLastArtifact(), is(ars.getLastArtifactResolve().getArtifact()));
-            }
-        } finally {
-            ars.stop();
-            arsThread.join();
-        }
-    }
-
-
     /************************ LOGOUT TESTS ************************/
-
-    @AuthServerContainerExclude(AuthServerContainerExclude.AuthServer.REMOTE) // Won't work with openshift, because openshift wouldn't see ArtifactResolutionService
-    @Test
-    public void testReceiveArtifactLogoutFullWithRedirect() throws InterruptedException {
-        getCleanup()
-            .addCleanup(ClientAttributeUpdater.forClient(adminClient, REALM_NAME, SAML_CLIENT_ID_SALES_POST)
-                    .setAttribute(SamlProtocol.SAML_ARTIFACT_RESOLUTION_SERVICE_URL_ATTRIBUTE, "http://127.0.0.1:8082/")
-                    .setAttribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_REDIRECT_ATTRIBUTE, "http://url")
-                    .setFrontchannelLogout(true)
-                    .update()
-            );
-
-        SamlClientBuilder builder = new SamlClientBuilder();
-        CreateArtifactMessageStepBuilder camb = new CreateArtifactMessageStepBuilder(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
-                REDIRECT, builder);
-
-        ArtifactResolutionService ars = new ArtifactResolutionService("http://127.0.0.1:8082/");
-        Thread arsThread = new Thread(ars);
-        try {
-            arsThread.start();
-            synchronized (ars) {
-                ars.wait();
-                SAMLDocumentHolder samlResponse = builder
-                        .authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
-                                SAML_ASSERTION_CONSUMER_URL_SALES_POST, REDIRECT)
-                            .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_REDIRECT_BINDING.getUri())
-                            .build()
-                        .login().user(bburkeUser).build()
-                        .processSamlResponse(REDIRECT)
-                        .transformObject(x -> {
-                            SAML2Object samlObj =  extractNameIdAndSessionIndexAndTerminate(x);
-                            setArtifactResolutionServiceLogoutRequest(ars);
-                            return samlObj;
-                        })
-                        .build().artifactMessage(camb).build().getSamlResponse(REDIRECT);
-                assertThat(samlResponse.getSamlObject(), instanceOf(StatusResponseType.class));
-                StatusResponseType srt = (StatusResponseType) samlResponse.getSamlObject();
-                assertThat(srt, isSamlStatusResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
-                assertThat(camb.getLastArtifact(), is(ars.getLastArtifactResolve().getArtifact()));
-            }
-        } finally {
-            ars.stop();
-            arsThread.join();
-        }
-    }
-
 
     @Test
     public void testArtifactBindingLogoutSingleClientCheckArtifact() throws NoSuchAlgorithmException {
@@ -727,7 +531,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         assertThat(artifactResponse.getSignature(), notNullValue());
         assertThat(artifactResponse.getAny(), instanceOf(LogoutRequestType.class));
 
-        SamlDeployment deployment = getSamlDeploymentForClient("sales-post");
+        SamlDeployment deployment = SamlUtils.getSamlDeploymentForClient("sales-post");
         SamlProtocolUtils.verifyDocumentSignature(response.getSamlDocument(), deployment.getIDP().getSignatureValidationKeyLocator());
     }
 
@@ -1018,20 +822,6 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         sessionIndexRef.set(firstAssertionStatement.getSessionIndex());
 
         return null;
-    }
-
-    private void setArtifactResolutionServiceLogoutRequest(ArtifactResolutionService ars) throws ParsingException, ConfigurationException, ProcessingException {
-        SAML2LogoutRequestBuilder builder = new SAML2LogoutRequestBuilder()
-                .destination(getAuthServerSamlEndpoint(REALM_NAME).toString())
-                .issuer(SAML_CLIENT_ID_SALES_POST)
-                .sessionIndex(sessionIndexRef.get());
-
-        final NameIDType nameIdValue = nameIdRef.get();
-
-        if (nameIdValue != null) {
-            builder = builder.userPrincipal(nameIdValue.getValue(), nameIdValue.getFormat() == null ? null : nameIdValue.getFormat().toString());
-        }
-        ars.setResponseDocument(builder.buildDocument());
     }
 
     /************************ IMPORT CLIENT TESTS ************************/

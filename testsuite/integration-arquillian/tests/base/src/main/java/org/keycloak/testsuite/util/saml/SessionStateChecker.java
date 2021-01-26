@@ -12,13 +12,9 @@ import org.keycloak.testsuite.runonserver.FetchOnServer;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -149,8 +145,8 @@ public class SessionStateChecker {
             userSessionIdStore.set(userSession.replace("\"", ""));
         }
 
-            server.run(session -> {
-                String sessionId = userSessionIdProvider.apply(session);
+        server.run(session -> {
+            String sessionId = userSessionIdProvider.apply(session);
 
             if (expectedUserSession != null) {
                 assertThat(sessionId, equalTo(expectedUserSession.get()));
