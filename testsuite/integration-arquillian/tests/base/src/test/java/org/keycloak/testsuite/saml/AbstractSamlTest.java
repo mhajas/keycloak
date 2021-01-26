@@ -89,28 +89,6 @@ public abstract class AbstractSamlTest extends AbstractAuthTest {
     public void addTestRealms(List<RealmRepresentation> testRealms) {
         testRealms.add(loadRealm("/adapter-test/keycloak-saml/testsaml.json"));
     }
-    
-    public static SamlDeployment getSamlDeploymentForClient(String client) throws ParsingException {
-        InputStream is = AbstractSamlTest.class.getResourceAsStream("/adapter-test/keycloak-saml/" + client + "/WEB-INF/keycloak-saml.xml");
-
-        // InputStream -> Document
-        Document doc = IOUtil.loadXML(is);
-
-        // Modify saml deployment the same way as before deploying to real app server
-        DeploymentArchiveProcessorUtils.modifySAMLDocument(doc);
-
-        // Document -> InputStream
-        InputStream isProcessed = IOUtil.documentToInputStream(doc);
-
-        // InputStream -> SamlDeployment
-        ResourceLoader loader = new ResourceLoader() {
-            @Override
-            public InputStream getResourceAsStream(String resource) {
-                return getClass().getResourceAsStream("/adapter-test/keycloak-saml/" + client + resource);
-            }
-        };
-        return new DeploymentBuilder().build(isProcessed, loader);
-    }
 
     @Override
     protected boolean modifyRealmForSSL() {
