@@ -38,6 +38,7 @@
             <memory storage="HEAP" max-count="10000"/>
         </local-cache>
         <distributed-cache name="sessions" owners="1"/>
+        <distributed-cache name="artifacts" owners="1"/>
         <distributed-cache name="authenticationSessions" owners="1"/>
         <distributed-cache name="offlineSessions" owners="1"/>
         <distributed-cache name="clientSessions" owners="1"/>
