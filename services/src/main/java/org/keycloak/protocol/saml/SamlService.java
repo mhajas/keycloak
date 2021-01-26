@@ -102,7 +102,6 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
@@ -145,9 +144,6 @@ public class SamlService extends AuthorizationEndpointBase {
     protected static final Logger logger = Logger.getLogger(SamlService.class);
 
     private final DestinationValidator destinationValidator;
-
-    @Context
-    private HttpServletRequest httpServletRequest;
 
     private ArtifactResolver artifactResolver;
 
@@ -365,7 +361,7 @@ public class SamlService extends AuthorizationEndpointBase {
 
                 ExecutorService executor = session.getProvider(ExecutorsProvider.class).getExecutor("saml-artifact-pool");
 
-                ArtifactResolutionRunnable artifactResolutionRunnable = new ArtifactResolutionRunnable(getBindingType(), asyncResponse, doc, clientArtifactBindingURI, relayState);
+                ArtifactResolutionRunnable artifactResolutionRunnable = new ArtifactResolutionRunnable(getBindingType(), asyncResponse, doc, clientArtifactBindingURI, relayState, session.getContext().getConnection());
                 ScheduledTaskRunner task = new ScheduledTaskRunner(session.getKeycloakSessionFactory(), artifactResolutionRunnable);
                 executor.execute(task);
 
@@ -793,49 +789,6 @@ public class SamlService extends AuthorizationEndpointBase {
         CacheControlUtil.noBackButtonCacheControlHeader();
 
         new RedirectBindingProtocol().execute(asyncResponse, samlRequest, samlResponse, relayState, artifact);
-    }
-
-    private class ClientConnectionWrapper implements ClientConnection{
-
-        private String remoteAddr;
-        private String remoteHost;
-        private int remotePort;
-        private String localAddr;
-        private int localPort;
-
-
-        public ClientConnectionWrapper(){
-            this.remoteAddr = httpServletRequest.getRemoteAddr();
-            this.remoteHost = httpServletRequest.getRemoteHost();
-            this.remotePort = httpServletRequest.getRemotePort();
-            this.localAddr = httpServletRequest.getLocalAddr();
-            this.localPort = httpServletRequest.getLocalPort();
-        }
-
-        @Override
-        public String getRemoteAddr() {
-            return remoteAddr;
-        }
-
-        @Override
-        public String getRemoteHost() {
-            return remoteHost;
-        }
-
-        @Override
-        public int getRemotePort() {
-            return remotePort;
-        }
-
-        @Override
-        public String getLocalAddr() {
-            return localAddr;
-        }
-
-        @Override
-        public int getLocalPort() {
-            return localPort;
-        }
     }
 
     /**
@@ -1286,7 +1239,7 @@ public class SamlService extends AuthorizationEndpointBase {
         private HttpRequest request;
         private String bindingType;
 
-        public ArtifactResolutionRunnable(String bindingType, AsyncResponse asyncResponse, Document doc, URI clientArtifactBindingURI, String relayState){
+        public ArtifactResolutionRunnable(String bindingType, AsyncResponse asyncResponse, Document doc, URI clientArtifactBindingURI, String relayState, ClientConnection connection){
             this.asyncResponse = asyncResponse;
             this.doc = doc;
             this.clientArtifactBindingURI = clientArtifactBindingURI;
@@ -1294,7 +1247,7 @@ public class SamlService extends AuthorizationEndpointBase {
             this.uri = session.getContext().getUri();
             this.realmId = realm.getId();
             this.httpHeaders = new ResteasyHttpHeaders(headers.getRequestHeaders());
-            this.connection = new ClientConnectionWrapper();
+            this.connection = connection;
             this.response = Resteasy.getContextData(org.jboss.resteasy.spi.HttpResponse.class);
             this.request = Resteasy.getContextData(HttpRequest.class);
             this.bindingType = bindingType;
