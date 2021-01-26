@@ -231,5 +231,9 @@
             "dir": "target/dependency/vault",
             "enabled": "${keycloak.vault.files-plaintext.provider.enabled:false}"
         }
+    },
+
+    "saml-artifact-resolver": {
+        "provider": "${keycloak.saml-artifact-resolver.provider:default}"
     }
 }
