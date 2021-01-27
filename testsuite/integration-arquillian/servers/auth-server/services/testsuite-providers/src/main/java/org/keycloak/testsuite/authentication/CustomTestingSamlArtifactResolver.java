@@ -15,6 +15,9 @@ import java.util.stream.Stream;
 import static org.keycloak.testsuite.authentication.CustomTestingSamlArtifactResolverFactory.TYPE_CODE;
 
 
+/**
+ * This ArtifactResolver should be used only for testing purposes.
+ */
 public class CustomTestingSamlArtifactResolver implements ArtifactResolver {
 
     public static List<String> list = new ArrayList<>();

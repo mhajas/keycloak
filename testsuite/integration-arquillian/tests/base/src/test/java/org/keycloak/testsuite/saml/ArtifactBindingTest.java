@@ -138,11 +138,8 @@ public class ArtifactBindingTest extends AbstractSamlTest {
     public void testArtifactBindingLoginCheckArtifactWithPost() throws NoSuchAlgorithmException {
         String response = new SamlClientBuilder().authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
                 SAML_ASSERTION_CONSUMER_URL_SALES_POST, SamlClient.Binding.POST)
-                .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri())
-                .transformObject(so -> {
-                    so.setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri());
-                    return so;
-                }).build()
+                    .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri())
+                .build()
                 .login().user(bburkeUser).build().doNotFollowRedirects().executeAndTransform(resp -> EntityUtils.toString(resp.getEntity()));
         assertThat(response, containsString(GeneralConstants.SAML_ARTIFACT_KEY));
 
@@ -191,11 +188,10 @@ public class ArtifactBindingTest extends AbstractSamlTest {
     public void testArtifactBindingLoginCorrectSignature() {
         SAMLDocumentHolder response = new SamlClientBuilder().authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST_SIG,
                 SAML_ASSERTION_CONSUMER_URL_SALES_POST_SIG, SamlClient.Binding.POST)
-                .transformObject(so -> {
-                    so.setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri());
-                    return so;
-                }).signWith(SAML_CLIENT_SALES_POST_SIG_PRIVATE_KEY
-                        , SAML_CLIENT_SALES_POST_SIG_PUBLIC_KEY).build()
+                    .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri())
+                    .signWith(SAML_CLIENT_SALES_POST_SIG_PRIVATE_KEY
+                        , SAML_CLIENT_SALES_POST_SIG_PUBLIC_KEY)
+                .build()
                 .login().user(bburkeUser).build().handleArtifact(getAuthServerSamlEndpoint(REALM_NAME)
                         , SAML_CLIENT_ID_SALES_POST_SIG).signWith(SAML_CLIENT_SALES_POST_SIG_PRIVATE_KEY
                         , SAML_CLIENT_SALES_POST_SIG_PUBLIC_KEY).build()

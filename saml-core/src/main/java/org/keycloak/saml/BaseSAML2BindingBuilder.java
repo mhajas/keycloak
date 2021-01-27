@@ -323,7 +323,7 @@ public class BaseSAML2BindingBuilder<T extends BaseSAML2BindingBuilder> {
         Map<String, String> inputTypes = new HashMap<>();
         inputTypes.put(key, samlResponse);
         if (isNotNull(relayState)) {
-            inputTypes.put("RelayState", relayState);
+            inputTypes.put(GeneralConstants.RELAY_STATE, relayState);
         }
 
         return buildHtmlForm(actionUrl, inputTypes);
@@ -372,7 +372,7 @@ public class BaseSAML2BindingBuilder<T extends BaseSAML2BindingBuilder> {
         int pos = builder.getQuery() == null? 0 : builder.getQuery().length();
         builder.queryParam(samlParameterName, base64Encoded(document));
         if (relayState != null) {
-            builder.queryParam("RelayState", relayState);
+            builder.queryParam(GeneralConstants.RELAY_STATE, relayState);
         }
 
         if (sign) {
