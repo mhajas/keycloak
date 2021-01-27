@@ -67,6 +67,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
 
@@ -637,6 +638,8 @@ public class SamlClient {
     }
 
     protected HttpClientBuilder createHttpClientBuilderInstance() {
-        return HttpClientBuilder.create();
+        return HttpClientBuilder
+                .create()
+                .evictIdleConnections(100, TimeUnit.MILLISECONDS);
     }
 }
