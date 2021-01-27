@@ -17,10 +17,10 @@
 
 package org.keycloak.protocol.saml;
 
-import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 import org.jboss.logging.Logger;
 import org.jboss.resteasy.annotations.cache.NoCache;
 import org.jboss.resteasy.specimpl.ResteasyHttpHeaders;
@@ -31,6 +31,7 @@ import org.keycloak.common.ClientConnection;
 import org.keycloak.common.VerificationException;
 import org.keycloak.common.util.PemUtils;
 import org.keycloak.common.util.Resteasy;
+import org.keycloak.connections.httpclient.HttpClientProvider;
 import org.keycloak.crypto.Algorithm;
 import org.keycloak.crypto.KeyStatus;
 import org.keycloak.crypto.KeyUse;
@@ -1278,70 +1279,58 @@ public class SamlService extends AuthorizationEndpointBase {
             session.getContext().setRealm(realm);
 
             EventBuilder event = new EventBuilder(realm, session, clientConnection);
+
             // Call Artifact Resolution Service
-            HttpResponse result;
+            HttpClientProvider httpClientProvider = session.getProvider(HttpClientProvider.class);
+            CloseableHttpClient httpClient = httpClientProvider.getHttpClient();
+            HttpPost httpPost = Soap.createMessage().addToBody(doc).buildHttpPost(clientArtifactBindingURI);
 
-            try {
-                // TODO: If we use the HttpClient coming from Provider, some tests fails when they are run all together.
-                // HttpClientProvider httpClientProvider = session.getProvider(HttpClientProvider.class);
-                // HttpClient httpClient = httpClientProvider.getHttpClient();
-                CloseableHttpClient httpClient = HttpClients.createDefault();
+            try (CloseableHttpResponse result = httpClient.execute(httpPost)) {
+                try {
+                    if (result.getStatusLine().getStatusCode() != Response.Status.OK.getStatusCode()) {
+                        throw new ProcessingException(String.format("Artifact resolution failed with status: %d", result.getStatusLine().getStatusCode()));
+                    }
 
-                HttpPost httpPost = Soap.createMessage().addToBody(doc).buildHttpPost(clientArtifactBindingURI);
-                result = httpClient.execute(httpPost);
-            } catch (IOException e) {
-                event.event(EventType.LOGIN);
-                event.detail(Details.REASON, e.getMessage());
-                event.error(Errors.IDENTITY_PROVIDER_ERROR); // TODO: not sure this should be marked IDENTITY_PROVIDER_ERROR
-                asyncResponse.resume(ErrorPage.error(session, null, Response.Status.INTERNAL_SERVER_ERROR, Messages.ARTIFACT_RESOLUTION_SERVICE_ERROR));
-                return;
-            }
+                    Document soapBodyContents = Soap.extractSoapMessage(result.getEntity().getContent());
+                    SAMLDocumentHolder samlDoc = SAML2Request.getSAML2ObjectFromDocument(soapBodyContents);
+                    if (!(samlDoc.getSamlObject() instanceof ArtifactResponseType)) {
+                        throw new ProcessingException("Message received from ArtifactResolveService isn't an ArtifactResponseMessage");
+                    }
 
-            LoginProtocolFactory factory = (LoginProtocolFactory)session.getKeycloakSessionFactory().getProviderFactory(LoginProtocol.class, "saml");
-            if(factory == null){
-                logger.debugf("protocol %s not found", "saml");
-                throw new NotFoundException("Protocol not found");
-            }
+                    ArtifactResponseType art = (ArtifactResponseType) samlDoc.getSamlObject();
 
-            SamlService endpoint = (SamlService)factory.createProtocolEndpoint(realm, event);
-            ResteasyProviderFactory.getInstance().injectProperties(endpoint);
+                    LoginProtocolFactory factory = (LoginProtocolFactory) session.getKeycloakSessionFactory().getProviderFactory(LoginProtocol.class, "saml");
+                    if (factory == null) {
+                        logger.debugf("protocol %s not found", "saml");
+                        throw new NotFoundException("Protocol not found");
+                    }
 
-            // Handle artifact response content with normal flow.
-            try{
-                if (result.getStatusLine().getStatusCode() != Response.Status.OK.getStatusCode()){
-                    throw new ProcessingException(String.format("Artifact resolution failed with status: %d", result.getStatusLine().getStatusCode()));
-                }
+                    SamlService endpoint = (SamlService) factory.createProtocolEndpoint(realm, event);
+                    ResteasyProviderFactory.getInstance().injectProperties(endpoint);
+                    BindingProtocol protocol;
+                    if (SamlProtocol.SAML_POST_BINDING.equals(bindingType)) {
+                        protocol = endpoint.newPostBindingProtocol();
+                    } else if (SamlProtocol.SAML_REDIRECT_BINDING.equals(bindingType)) {
+                        protocol = endpoint.newRedirectBindingProtocol();
+                    } else {
+                        throw new ConfigurationException("Invalid binding protocol: " + bindingType);
+                    }
 
-                Document soapBodyContents = Soap.extractSoapMessage(result.getEntity().getContent());
-                SAMLDocumentHolder samlDoc = SAML2Request.getSAML2ObjectFromDocument(soapBodyContents);
-                if (!(samlDoc.getSamlObject() instanceof ArtifactResponseType)) {
-                    throw new ProcessingException("Message received from ArtifactResolveService isn't an ArtifactResponseMessage");
-                }
+                    if (art.getAny() instanceof ResponseType) {
+                        Document clientMessage = SAML2Request.convert((ResponseType) art.getAny());
+                        String response = protocol.encodeSamlDocument(clientMessage);
 
-                ArtifactResponseType art = (ArtifactResponseType) samlDoc.getSamlObject();
+                        asyncResponse.resume(protocol.handleSamlResponse(response, relayState));
+                    } else if (art.getAny() instanceof RequestAbstractType) {
+                        Document clientMessage = SAML2Request.convert((RequestAbstractType) art.getAny());
+                        String request = protocol.encodeSamlDocument(clientMessage);
+                        asyncResponse.resume(protocol.handleSamlRequest(request, relayState));
+                    } else {
+                        throw new ProcessingException("Cannot recognise message contained in ArtifactResponse");
+                    }
 
-                BindingProtocol protocol;
-                if (SamlProtocol.SAML_POST_BINDING.equals(bindingType)) {
-                    protocol = endpoint.newPostBindingProtocol();
-                } else if (SamlProtocol.SAML_REDIRECT_BINDING.equals(bindingType)) {
-                    protocol = endpoint.newRedirectBindingProtocol();
-                } else {
-                    throw new ConfigurationException("Invalid binding protocol: "+ bindingType);
-                }
-
-                if (art.getAny() instanceof ResponseType) {
-                    Document clientMessage = SAML2Request.convert((ResponseType)art.getAny());
-                    String response = protocol.encodeSamlDocument(clientMessage);
-
-                    asyncResponse.resume(protocol.handleSamlResponse(response, relayState));
-                    return;
-                } else if (art.getAny() instanceof RequestAbstractType) {
-                    Document clientMessage = SAML2Request.convert((RequestAbstractType)art.getAny());
-                    String request = protocol.encodeSamlDocument(clientMessage);
-                    asyncResponse.resume(protocol.handleSamlRequest(request, relayState));
-                    return;
-                } else {
-                    throw new ProcessingException("Cannot recognise message contained in ArtifactResponse");
+                } finally {
+                    EntityUtils.consumeQuietly(result.getEntity());
                 }
 
             } catch (IOException | ProcessingException | ParsingException e) {
@@ -1349,13 +1338,11 @@ public class SamlService extends AuthorizationEndpointBase {
                 event.detail(Details.REASON, e.getMessage());
                 event.error(Errors.IDENTITY_PROVIDER_ERROR);
                 asyncResponse.resume(ErrorPage.error(session, null, Response.Status.INTERNAL_SERVER_ERROR, Messages.ARTIFACT_RESOLUTION_SERVICE_INVALID_RESPONSE));
-                return;
             } catch(ConfigurationException e) {
                 event.event(EventType.LOGIN);
                 event.detail(Details.REASON, e.getMessage());
                 event.error(Errors.IDENTITY_PROVIDER_ERROR);
                 asyncResponse.resume(ErrorPage.error(session, null, Response.Status.INTERNAL_SERVER_ERROR, Messages.UNEXPECTED_ERROR_HANDLING_REQUEST));
-                return;
             }
         }
 
