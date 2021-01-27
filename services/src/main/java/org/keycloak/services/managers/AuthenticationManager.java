@@ -672,18 +672,16 @@ public class AuthenticationManager {
     }
     
     public static void finishUnconfirmedUserSession(KeycloakSession session, RealmModel realm, UserSessionModel userSessionModel) {
-        if (UserSessionModel.State.LOGGED_OUT_UNCONFIRMED.equals(userSessionModel.getState())) {
-            if (userSessionModel.getAuthenticatedClientSessions().values().stream().anyMatch(cs -> !CommonClientSessionModel.Action.LOGGED_OUT.name().equals(cs.getAction()))) {
-                logger.warnf("UserSession with id %s is removed while there are still some user sessions that are not logged out properly.", userSessionModel.getId());
-                if (logger.isTraceEnabled()) {
-                    logger.trace("Client sessions with their states:");
-                    userSessionModel.getAuthenticatedClientSessions().values()
-                            .forEach(clientSessionModel -> logger.tracef("Client session for clientId: %s has action: %s", clientSessionModel.getClient().getClientId(), clientSessionModel.getAction()));
-                }
+        if (userSessionModel.getAuthenticatedClientSessions().values().stream().anyMatch(cs -> !CommonClientSessionModel.Action.LOGGED_OUT.name().equals(cs.getAction()))) {
+            logger.warnf("UserSession with id %s is removed while there are still some user sessions that are not logged out properly.", userSessionModel.getId());
+            if (logger.isTraceEnabled()) {
+                logger.trace("Client sessions with their states:");
+                userSessionModel.getAuthenticatedClientSessions().values()
+                        .forEach(clientSessionModel -> logger.tracef("Client session for clientId: %s has action: %s", clientSessionModel.getClient().getClientId(), clientSessionModel.getAction()));
             }
-
-            session.sessions().removeUserSession(realm, userSessionModel);
         }
+
+        session.sessions().removeUserSession(realm, userSessionModel);
     }
 
 

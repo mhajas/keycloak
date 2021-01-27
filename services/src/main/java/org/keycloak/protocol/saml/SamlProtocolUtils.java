@@ -232,12 +232,12 @@ public class SamlProtocolUtils {
     }
 
     /**
-     * Takes a document (containing the saml Response), and inserts it as the body of an ArtifactResponse. The ArtifactResponse is returned as
-     * a Document.
-     * @param samlResponse a saml Response message
-     * @return A document containing the saml Response incapsulated in an artifact response.
-     * @throws ConfigurationException
-     * @throws ProcessingException
+     * Takes a saml object (an object that will be part of resulting ArtifactResponse), and inserts it as the body of 
+     * an ArtifactResponse. The ArtifactResponse is returned as ArtifactResponseType
+     * 
+     * @param samlObject a Saml object
+     * @param issuer issuer of the resulting ArtifactResponse, should be the same as issuer of the samlObject
+     * @return An ArtifactResponse containing the saml object.
      */
     public static ArtifactResponseType buildArtifactResponse(SAML2Object samlObject, NameIDType issuer) throws ConfigurationException, ProcessingException {
         ArtifactResponseType artifactResponse = new ArtifactResponseType(IDGenerator.create("ID_"),
@@ -250,20 +250,17 @@ public class SamlProtocolUtils {
         statusType.setStatusCode(statusCodeType);
 
         artifactResponse.setStatus(statusType);
-        Document artifactResponseDocument = null;
-        try {
-            artifactResponseDocument = SamlProtocolUtils.convert(artifactResponse);
-        } catch (ParsingException e) {
-            throw new ProcessingException(e);
-        }
-        Element artifactResponseElement = artifactResponseDocument.getDocumentElement();
-
         artifactResponse.setIssuer(issuer);
         artifactResponse.setAny(samlObject);
 
         return artifactResponse;
     }
 
+    /**
+     * Takes a saml document and inserts it as a body of ArtifactResponseType
+     * @param document the document
+     * @return An ArtifactResponse containing the saml document.
+     */
     public static ArtifactResponseType buildArtifactResponse(Document document) throws ParsingException, ProcessingException, ConfigurationException {
         SAML2Object samlObject = SAML2Request.getSAML2ObjectFromDocument(document).getSamlObject();
 
@@ -292,18 +289,5 @@ public class SamlProtocolUtils {
         SAMLResponseWriter writer = new SAMLResponseWriter(StaxUtil.getXMLStreamWriter(bos));
         writer.write(responseType);
         return DocumentUtil.getDocument(new ByteArrayInputStream(bos.toByteArray()));
-    }
-
-    /**
-     * Gets the first found issuer of a SAML Document
-     * @param samlDocument a document containing a SAML message
-     * @return an issuer node
-     */
-    private static Node getIssuer(Document samlDocument) {
-        NodeList nl = samlDocument.getElementsByTagNameNS(JBossSAMLURIConstants.ASSERTION_NSURI.get(), JBossSAMLConstants.ISSUER.get());
-        if (nl.getLength() > 0) {
-            return nl.item(0);
-        }
-        return null;
     }
 }
