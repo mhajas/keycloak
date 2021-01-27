@@ -7,6 +7,9 @@ import org.keycloak.protocol.saml.ArtifactResolver;
 import org.keycloak.protocol.saml.ArtifactResolverFactory;
 import org.keycloak.protocol.util.ArtifactBindingUtils;
 
+/**
+ * This ArtifactResolver should be used only for testing purposes.
+ */
 public class CustomTestingSamlArtifactResolverFactory implements ArtifactResolverFactory {
 
     public  static final byte[] TYPE_CODE = {0, 5};

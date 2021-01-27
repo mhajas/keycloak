@@ -10,17 +10,18 @@ import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 
 public class SpiProvidersSwitchingUtils {
-    public static void addProviderDefaultValue(SuiteContext suiteContext, SetDefaultProvider annotation) throws IOException, CliException, TimeoutException, InterruptedException {
+    public static void addProviderDefaultValue(SuiteContext suiteContext, SetDefaultProvider annotation) throws IOException, CliException {
         if (suiteContext.getAuthServerInfo().isUndertow()) {
             System.setProperty("keycloak." + annotation.spi() + ".provider", annotation.providerId());
         } else {
             OnlineManagementClient client = AuthServerTestEnricher.getManagementClient();
             client.execute("/subsystem=keycloak-server/spi=" + annotation.spi() + "/:add(default-provider=\"" + annotation.providerId() + "\")");
+            client.close();
         }
     }
 
-    public static void removeProvider(SuiteContext suiteContext, SetDefaultProvider annotation) throws IOException, CliException, TimeoutException, InterruptedException {
-        if (suiteContext.getAuthServerInfo().isUndertow() || suiteContext.getAuthServerInfo().isQuarkus()) {
+    public static void removeProvider(SuiteContext suiteContext, SetDefaultProvider annotation) throws IOException, CliException {
+        if (suiteContext.getAuthServerInfo().isUndertow()) {
             System.clearProperty("keycloak." + annotation.spi() + ".provider");
         } else {
             OnlineManagementClient client = AuthServerTestEnricher.getManagementClient();
