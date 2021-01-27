@@ -620,8 +620,6 @@ public class SamlProtocol implements LoginProtocol {
                 return buildArtifactAuthenticatedResponse(clientSession, bindingUri, logoutRequest, binding);
             }
 
-            clientSession.setAction(AuthenticationSessionModel.Action.LOGGED_OUT.name());
-
             Document samlDocument = SAML2Request.convert(logoutRequest);
             if (postBinding) {
                 // This is POST binding, hence KeyID is included in dsig:KeyInfo/dsig:KeyName, no need to add <samlp:Extensions> element
@@ -917,7 +915,7 @@ public class SamlProtocol implements LoginProtocol {
                 .queryParam(GeneralConstants.SAML_ARTIFACT_KEY, artifact);
 
         if (relayState != null) {
-            builder.queryParam("RelayState", relayState);
+            builder.queryParam(GeneralConstants.RELAY_STATE, relayState);
         }
 
         URI uri = builder.build();
@@ -937,9 +935,9 @@ public class SamlProtocol implements LoginProtocol {
      */
     private Response artifactPost(String redirectUri, String artifact, String relayState, JaxrsSAML2BindingBuilder bindingBuilder) {
         Map<String, String> inputTypes = new HashMap<>();
-        inputTypes.put("SAMLart", artifact);
+        inputTypes.put(GeneralConstants.SAML_ARTIFACT_KEY, artifact);
         if (relayState != null) {
-            inputTypes.put("RelayState", relayState);
+            inputTypes.put(GeneralConstants.RELAY_STATE, relayState);
         }
 
         String str = bindingBuilder.buildHtmlForm(redirectUri, inputTypes);
