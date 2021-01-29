@@ -547,14 +547,21 @@ public class AuthServerTestEnricher {
         testContextProducer.set(testContext);
 
         if (!isAuthServerRemote() && !isAuthServerQuarkus()) {
+            boolean wasUpdated = false;
+
             if (event.getTestClass().isAnnotationPresent(EnableVault.class)) {
                 VaultUtils.enableVault(suiteContext, event.getTestClass().getAnnotation(EnableVault.class).providerId());
+                wasUpdated = true;
             }
             if (event.getTestClass().isAnnotationPresent(SetDefaultProvider.class)) {
                 SpiProvidersSwitchingUtils.addProviderDefaultValue(suiteContext, event.getTestClass().getAnnotation(SetDefaultProvider.class));
+                wasUpdated = true;
             }
-            restartAuthServer();
-            testContext.reconnectAdminClient();
+
+            if (wasUpdated) {
+                restartAuthServer();
+                testContext.reconnectAdminClient();
+            }
         }
     }
 
@@ -870,16 +877,21 @@ public class AuthServerTestEnricher {
 
         if (!isAuthServerRemote() && !isAuthServerQuarkus()) {
             
+            boolean wasUpdated = false;
             if (event.getTestClass().isAnnotationPresent(EnableVault.class)) {
                 VaultUtils.disableVault(suiteContext, event.getTestClass().getAnnotation(EnableVault.class).providerId());
+                wasUpdated = true;
             }
 
             if (event.getTestClass().isAnnotationPresent(SetDefaultProvider.class)) {
                 SpiProvidersSwitchingUtils.removeProvider(suiteContext, event.getTestClass().getAnnotation(SetDefaultProvider.class));
+                wasUpdated = true;
             }
 
-            restartAuthServer();
-            testContext.reconnectAdminClient();
+            if (wasUpdated) {
+                restartAuthServer();
+                testContext.reconnectAdminClient();
+            }
         }
 
         if (adminClient != null) {
