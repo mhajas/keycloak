@@ -24,6 +24,7 @@ import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLContexts;
 import org.apache.http.conn.ssl.StrictHostnameVerifier;
 import org.apache.http.conn.ssl.X509HostnameVerifier;
+import org.apache.http.impl.NoConnectionReuseStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 
@@ -287,6 +288,7 @@ public class HttpClientBuilder {
                     .setSSLSocketFactory(sslsf)
                     .setMaxConnTotal(connectionPoolSize)
                     .setMaxConnPerRoute(maxPooledPerRoute)
+                    .setConnectionReuseStrategy(new NoConnectionReuseStrategy())
                     .setConnectionTimeToLive(connectionTTL, connectionTTLUnit);
 
 
