@@ -105,7 +105,9 @@ public class KeycloakQuarkusServerDeployableContainer implements DeployableConta
     private Process startContainer() throws IOException {
         ProcessBuilder pb = new ProcessBuilder(getProcessCommands());
         File wrkDir = configuration.getProvidersPath().resolve("bin").toFile();
-        ProcessBuilder builder = pb.directory(wrkDir).inheritIO().redirectErrorStream(true);
+
+        File output = new File(wrkDir.getPath() + "/output.log");
+        ProcessBuilder builder = pb.directory(wrkDir).redirectErrorStream(true).redirectOutput(output);
 
         String javaOpts = configuration.getJavaOpts();
 

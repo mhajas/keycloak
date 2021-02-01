@@ -81,13 +81,21 @@ jobs:
         run: |
           declare -A PARAMS TESTGROUP
           PARAMS["quarkus"]="-Pauth-server-quarkus"
-          TESTGROUP["group1"]="-Dtest=ArtifactBinding*"   # Tests alphabetically before admin tests and those after "r"
+          TESTGROUP["group1"]="-Dtest=-Dtest=!**.crossdc.**,!**.cluster.**,%regex[org.keycloak.testsuite.([^a-q]).*]"   # Tests alphabetically before admin tests and those after "r"
 
-          mvn clean install -nsu -B ${PARAMS["${{ matrix.server }}"]} ${TESTGROUP["${{ matrix.tests }}"]} -f testsuite/integration-arquillian/tests/base/pom.xml | misc/log/trimmer.sh
+          mvn clean install -nsu -B ${PARAMS["${{ matrix.server }}"]} ${TESTGROUP["${{ matrix.tests }}"]} -f testsuite/integration-arquillian/tests/base/pom.xml
 
           TEST_RESULT=${PIPESTATUS[0]}
           find . -path '*/target/surefire-reports/*.xml' | zip -q reports-${{ matrix.server }}-base-tests-${{ matrix.tests }}.zip -@
           exit $TEST_RESULT
+
+      - name: Upload Quarkus log
+        id: store-quarkus-log
+        uses: actions/upload-artifact@v2
+        with:
+          name: quarkus-log.zip
+          retention-days: 2
+          path: testsuite/integration-arquillian/tests/base/target/containers/auth-server-quarkus/bin/output.log
 
       - name: Base test reports
         uses: actions/upload-artifact@v2
