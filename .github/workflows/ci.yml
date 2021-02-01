@@ -81,7 +81,7 @@ jobs:
         run: |
           declare -A PARAMS TESTGROUP
           PARAMS["quarkus"]="-Pauth-server-quarkus"
-          TESTGROUP["group1"]="-Dtest=-Dtest=!**.crossdc.**,!**.cluster.**,%regex[org.keycloak.testsuite.([^a-q]).*]"   # Tests alphabetically before admin tests and those after "r"
+          TESTGROUP["group1"]="-Dtest=!**.crossdc.**,!**.cluster.**,%regex[org.keycloak.testsuite.(a[abc]|ad[a-l]|[^a-q]).*]"   # Tests alphabetically before admin tests and those after "r"
 
           mvn clean install -nsu -B ${PARAMS["${{ matrix.server }}"]} ${TESTGROUP["${{ matrix.tests }}"]} -f testsuite/integration-arquillian/tests/base/pom.xml
 
