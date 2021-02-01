@@ -96,6 +96,7 @@ public class HttpClientBuilder {
     protected int connectionPoolSize = 128;
     protected int maxPooledPerRoute = 64;
     protected long connectionTTL = -1;
+    protected boolean reuseConnections = true;
     protected TimeUnit connectionTTLUnit = TimeUnit.MILLISECONDS;
     protected long maxConnectionIdleTime = 900000;
     protected TimeUnit maxConnectionIdleTimeUnit = TimeUnit.MILLISECONDS;
@@ -138,6 +139,11 @@ public class HttpClientBuilder {
     public HttpClientBuilder connectionTTL(long ttl, TimeUnit unit) {
         this.connectionTTL = ttl;
         this.connectionTTLUnit = unit;
+        return this;
+    }
+
+    public HttpClientBuilder reuseConnections(boolean reuseConnections) {
+        this.reuseConnections = reuseConnections;
         return this;
     }
 
@@ -288,9 +294,11 @@ public class HttpClientBuilder {
                     .setSSLSocketFactory(sslsf)
                     .setMaxConnTotal(connectionPoolSize)
                     .setMaxConnPerRoute(maxPooledPerRoute)
-                    .setConnectionReuseStrategy(new NoConnectionReuseStrategy())
                     .setConnectionTimeToLive(connectionTTL, connectionTTLUnit);
 
+            if (!reuseConnections) {
+                builder.setConnectionReuseStrategy(new NoConnectionReuseStrategy());
+            }
 
             if (proxyMappings != null && !proxyMappings.isEmpty()) {
                 builder.setRoutePlanner(new ProxyMappingsAwareRoutePlanner(proxyMappings));
