@@ -93,7 +93,7 @@ jobs:
         id: store-quarkus-log
         uses: actions/upload-artifact@v2
         with:
-          name: quarkus-log.zip
+          name: quarkus-${{ matrix.iteration }}-log.zip
           retention-days: 2
           path: testsuite/integration-arquillian/tests/base/target/containers/auth-server-quarkus/bin/output.log
 
