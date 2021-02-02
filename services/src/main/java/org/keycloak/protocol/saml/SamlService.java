@@ -141,6 +141,8 @@ import java.util.stream.Collectors;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.xml.parsers.ParserConfigurationException;
 
+import static org.keycloak.common.util.StackUtil.getShortStackTrace;
+
 
 /**
  * Resource class for the saml connect token service
@@ -167,6 +169,7 @@ public class SamlService extends AuthorizationEndpointBase {
         protected boolean redirectToAuthentication;
 
         protected Response basicChecks(String samlRequest, String samlResponse, String artifact) {
+            logger.tracef("basicChecks(%s, %s, %s)%s", samlRequest, samlResponse, artifact, getShortStackTrace());
             if (!checkSsl()) {
                 event.event(EventType.LOGIN);
                 event.error(Errors.SSL_REQUIRED);
@@ -330,6 +333,7 @@ public class SamlService extends AuthorizationEndpointBase {
          * @return a Response based on the content of the ArtifactResponse's content
          */
         protected void handleArtifact(AsyncResponse asyncResponse, String artifact, String relayState) {
+            logger.tracef("Keycloak obtained artifact %s. %s", artifact, getShortStackTrace());
             //Find client
             ClientModel client;
             try {
@@ -378,6 +382,7 @@ public class SamlService extends AuthorizationEndpointBase {
                 ScheduledTaskRunner task = new ScheduledTaskRunner(session.getKeycloakSessionFactory(), artifactResolutionRunnable);
                 executor.execute(task);
 
+                logger.tracef("ArtifactResolutionRunnable scheduled, current transaction will be rolled back");
                 // Current transaction must be ignored due to asyncResponse.
                 session.getTransactionManager().rollback();
             } catch (URISyntaxException | ProcessingException | ParsingException | ConfigurationException e) {
@@ -1285,6 +1290,10 @@ public class SamlService extends AuthorizationEndpointBase {
             CloseableHttpClient httpClient = httpClientProvider.getHttpClient();
             HttpPost httpPost = Soap.createMessage().addToBody(doc).buildHttpPost(clientArtifactBindingURI);
 
+            if (logger.isTraceEnabled()) {
+                logger.tracef("Resolving artifact %s", DocumentUtil.asString(doc));
+            }
+
             try (CloseableHttpResponse result = httpClient.execute(httpPost)) {
                 try {
                     if (result.getStatusLine().getStatusCode() != Response.Status.OK.getStatusCode()) {
@@ -1297,6 +1306,10 @@ public class SamlService extends AuthorizationEndpointBase {
                         throw new ProcessingException("Message received from ArtifactResolveService isn't an ArtifactResponseMessage");
                     }
 
+                    if (logger.isTraceEnabled()) {
+                        logger.tracef("Resolved object: %s" + DocumentUtil.asString(samlDoc.getSamlDocument()));
+                    }
+                    
                     ArtifactResponseType art = (ArtifactResponseType) samlDoc.getSamlObject();
 
                     LoginProtocolFactory factory = (LoginProtocolFactory) session.getKeycloakSessionFactory().getProviderFactory(LoginProtocol.class, "saml");
