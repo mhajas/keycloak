@@ -44,6 +44,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThat;
 import static org.keycloak.testsuite.admin.Users.getPasswordOf;
 import static org.keycloak.testsuite.util.Matchers.statusCodeIsHC;
+import static org.keycloak.testsuite.util.WaitUtils.pause;
 
 /**
  *
@@ -65,6 +66,7 @@ public class LoginBuilder implements Step {
         if (sso) {
             return null;    // skip this step
         } else {
+            pause(1000); // give quarkus some time to commit transaction
             assertThat(currentResponse, statusCodeIsHC(Response.Status.OK));
             String loginPageText = EntityUtils.toString(currentResponse.getEntity(), "UTF-8");
             assertThat(loginPageText, containsString("login"));
