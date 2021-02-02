@@ -1324,11 +1324,11 @@ public class SamlService extends AuthorizationEndpointBase {
                         Document clientMessage = SAML2Request.convert((ResponseType) art.getAny());
                         String response = protocol.encodeSamlDocument(clientMessage);
 
-                        asyncResponse.resume(protocol.handleSamlResponse(response, relayState));
+                        resumeAfterCompletion(protocol.handleSamlResponse(response, relayState));
                     } else if (art.getAny() instanceof RequestAbstractType) {
                         Document clientMessage = SAML2Request.convert((RequestAbstractType) art.getAny());
                         String request = protocol.encodeSamlDocument(clientMessage);
-                        asyncResponse.resume(protocol.handleSamlRequest(request, relayState));
+                        resumeAfterCompletion(protocol.handleSamlRequest(request, relayState));
                     } else {
                         throw new ProcessingException("Cannot recognise message contained in ArtifactResponse");
                     }
@@ -1341,13 +1341,50 @@ public class SamlService extends AuthorizationEndpointBase {
                 event.event(EventType.LOGIN);
                 event.detail(Details.REASON, e.getMessage());
                 event.error(Errors.IDENTITY_PROVIDER_ERROR);
-                asyncResponse.resume(ErrorPage.error(session, null, Response.Status.INTERNAL_SERVER_ERROR, Messages.ARTIFACT_RESOLUTION_SERVICE_INVALID_RESPONSE));
+
+                resumeAfterCompletion(ErrorPage.error(session, null, Response.Status.INTERNAL_SERVER_ERROR, Messages.ARTIFACT_RESOLUTION_SERVICE_INVALID_RESPONSE));
             } catch(ConfigurationException e) {
                 event.event(EventType.LOGIN);
                 event.detail(Details.REASON, e.getMessage());
                 event.error(Errors.IDENTITY_PROVIDER_ERROR);
-                asyncResponse.resume(ErrorPage.error(session, null, Response.Status.INTERNAL_SERVER_ERROR, Messages.UNEXPECTED_ERROR_HANDLING_REQUEST));
+                resumeAfterCompletion(ErrorPage.error(session, null, Response.Status.INTERNAL_SERVER_ERROR, Messages.UNEXPECTED_ERROR_HANDLING_REQUEST));
             }
+        }
+
+        /**
+         * Calling asyncResponse.resume must be done after completion of the transaction. Calling it before the commit 
+         * may result in a client request executed without data created in {@link #run(KeycloakSession)} method
+         *
+         * @param response the response to be returned by asyncResponse
+         */
+        private void resumeAfterCompletion(Object response) {
+            session.getTransactionManager().enlistAfterCompletion(new KeycloakTransaction() {
+                @Override
+                public void begin() {}
+
+                @Override
+                public void commit() {
+                    asyncResponse.resume(response);
+                }
+
+                @Override
+                public void rollback() {
+                    asyncResponse.resume(ErrorPage.error(session, null, Response.Status.INTERNAL_SERVER_ERROR, Messages.INTERNAL_SERVER_ERROR));
+                }
+
+                @Override
+                public void setRollbackOnly() {}
+
+                @Override
+                public boolean getRollbackOnly() {
+                    return false;
+                }
+
+                @Override
+                public boolean isActive() {
+                    return false;
+                }
+            });
         }
 
     }
