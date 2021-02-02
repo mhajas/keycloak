@@ -11,6 +11,7 @@ import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.message.BasicNameValuePair;
+import org.jboss.logging.Logger;
 import org.keycloak.protocol.saml.ArtifactResolver;
 import org.keycloak.protocol.saml.ArtifactResolverProcessingException;
 import org.keycloak.protocol.saml.DefaultSamlArtifactResolver;
@@ -33,6 +34,8 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class CreateArtifactMessageStepBuilder implements SamlClient.Step {
+
+    private static final Logger LOG = Logger.getLogger(CreateArtifactMessageStepBuilder.class);
 
     private final URI authServerSamlUrl;
     private final SamlClient.Binding requestBinding;
@@ -61,6 +64,8 @@ public class CreateArtifactMessageStepBuilder implements SamlClient.Step {
     private HttpUriRequest sendArtifactMessageRedirect() throws IOException, ProcessingException, URISyntaxException {
         URIBuilder builder = new URIBuilder(authServerSamlUrl)
                 .setParameter(GeneralConstants.SAML_ARTIFACT_KEY, lastArtifact);
+
+        LOG.infof("Sending GET request with artifact %s", lastArtifact);
         return new HttpGet(builder.build());
     }
 
@@ -68,6 +73,7 @@ public class CreateArtifactMessageStepBuilder implements SamlClient.Step {
         HttpPost post = new HttpPost(authServerSamlUrl);
         List<NameValuePair> parameters = new LinkedList<>();
         parameters.add(new BasicNameValuePair(GeneralConstants.SAML_ARTIFACT_KEY, lastArtifact));
+        LOG.infof("Sending POST request with artifact %s", lastArtifact);
 
         UrlEncodedFormEntity formEntity;
         try {
