@@ -20,6 +20,7 @@ package org.keycloak.testsuite.console.clients;
 import org.jboss.arquillian.graphene.page.Page;
 import org.junit.Test;
 import org.keycloak.common.Profile;
+import org.keycloak.protocol.saml.SamlConfigAttributes;
 import org.keycloak.representations.idm.ClientRepresentation;
 import org.keycloak.testsuite.arquillian.annotation.EnableFeature;
 import org.keycloak.testsuite.console.page.clients.settings.ClientSettings;
@@ -29,7 +30,9 @@ import org.openqa.selenium.By;
 import javax.ws.rs.core.Response;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 import static org.keycloak.testsuite.auth.page.login.Login.OIDC;
 import static org.keycloak.testsuite.auth.page.login.Login.SAML;
@@ -201,7 +204,49 @@ public class ClientSettingsTest extends AbstractClientTest {
         assertClientSettingsEqual(newClient, found);
         assertClientSamlAttributes(getSAMLAttributes(), found.getAttributes());
     }
-    
+
+    @Test
+    public void assertArtifactBindingIsForcingFrontchannelLogout() {
+        newClient = createClientRep("saml", SAML);
+        createClient(newClient);
+
+        clientSettingsPage.form().setForceArtifactBinding(false);
+        clientSettingsPage.form().setForceFrontChannelLogout(false);
+
+        clientSettingsPage.form().setForceArtifactBinding(true);
+        assertThat(clientSettingsPage.form().isForceArtifactBinding(), is(true));
+        assertThat(clientSettingsPage.form().isForceFrontChannelLogout(), is(true));
+
+        clientSettingsPage.form().setForceFrontChannelLogout(false);
+        assertThat(clientSettingsPage.form().isForceArtifactBinding(), is(false));
+        assertThat(clientSettingsPage.form().isForceFrontChannelLogout(), is(false));
+
+        clientSettingsPage.form().setForceArtifactBinding(true);
+        clientSettingsPage.form().setForceArtifactBinding(false);
+        assertThat(clientSettingsPage.form().isForceArtifactBinding(), is(false));
+        assertThat(clientSettingsPage.form().isForceFrontChannelLogout(), is(true));
+
+        clientSettingsPage.form().setForceFrontChannelLogout(false);
+        assertThat(clientSettingsPage.form().isForceArtifactBinding(), is(false));
+        assertThat(clientSettingsPage.form().isForceFrontChannelLogout(), is(false));
+
+        clientSettingsPage.form().setForceArtifactBinding(true);
+        assertThat(clientSettingsPage.form().isForceArtifactBinding(), is(true));
+        assertThat(clientSettingsPage.form().isForceFrontChannelLogout(), is(true));
+
+        clientSettingsPage.form().save();
+        assertAlertSuccess();
+
+        ClientRepresentation found = findClientByClientId(newClient.getClientId());
+        assertNotNull("Client " + newClient.getClientId() + " was not found.", found);
+        assertClientSettingsEqual(newClient, found);
+        assertThat(found.isFrontchannelLogout(), is(true));
+
+        Map<String, String> samlAttributes = getSAMLAttributes();
+        samlAttributes.put(SamlConfigAttributes.SAML_ARTIFACT_BINDING, "true");
+        assertClientSamlAttributes(samlAttributes, found.getAttributes());
+    }
+
     @Test
     public void invalidSettings() {
         clientsPage.table().createClient();

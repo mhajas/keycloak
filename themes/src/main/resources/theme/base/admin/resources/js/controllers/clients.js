@@ -1550,6 +1550,18 @@ module.controller('ClientDetailCtrl', function($scope, realm, client, flows, $ro
         }
     }
 
+    $scope.forceFrontChannelWhenArtifactBinding = function() {
+        if ($scope.samlArtifactBinding == false) { // if samlArtifactBinding is false, it means it was enabled
+            $scope.clientEdit.frontchannelLogout = true;
+        }
+    }
+
+    $scope.disableArtifactBindingIfFronchannelDisabled = function() {
+        if ($scope.protocol == 'saml' && $scope.clientEdit.frontchannelLogout == true) {
+            $scope.samlArtifactBinding = false;
+        }
+    }
+
     $scope.$watch('clientEdit', function() {
         $scope.changed = isChanged();
         configureAuthorizationServices();

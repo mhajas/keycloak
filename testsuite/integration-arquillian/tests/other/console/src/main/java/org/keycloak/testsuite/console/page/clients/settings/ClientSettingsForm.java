@@ -77,6 +77,12 @@ public class ClientSettingsForm extends CreateClientForm {
     @FindBy(xpath = ACTIVE_DIV_XPATH + "/button[text()='Disable Authorization Settings']")
     private WebElement confirmDisableAuthorizationSettingsButton;
 
+    @FindBy(xpath = ".//div[@class='onoffswitch' and ./input[@id='samlArtifactBinding']]")
+    private OnOffSwitch forceArtifactBinding;
+
+    @FindBy(xpath = ".//div[@class='onoffswitch' and ./input[@id='frontchannelLogout']]")
+    private OnOffSwitch forceFrontChannelLogout;
+
     public enum OidcAccessType {
         BEARER_ONLY("bearer-only"), PUBLIC("public"), CONFIDENTIAL("confidential");
 
@@ -244,6 +250,22 @@ public class ClientSettingsForm extends CreateClientForm {
 
     public void confirmDisableAuthorizationSettings() {
         confirmDisableAuthorizationSettingsButton.click();
+    }
+
+    public void setForceArtifactBinding(boolean enabled) {
+        forceArtifactBinding.setOn(enabled);
+    }
+
+    public boolean isForceArtifactBinding() {
+        return forceArtifactBinding.isOn();
+    }
+
+    public void setForceFrontChannelLogout(boolean enabled) {
+        forceFrontChannelLogout.setOn(enabled);
+    }
+
+    public boolean isForceFrontChannelLogout() {
+        return forceFrontChannelLogout.isOn();
     }
 
     public class SAMLClientSettingsForm extends Form {
