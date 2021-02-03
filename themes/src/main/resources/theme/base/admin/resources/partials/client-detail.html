@@ -164,7 +164,7 @@
             <div class="form-group clearfix block" data-ng-show="protocol == 'saml'">
                 <label class="col-md-2 control-label" for="samlArtifactBinding">{{:: 'artifact-binding' | translate}}</label>
                 <div class="col-sm-6">
-                    <input ng-model="samlArtifactBinding" ng-click="switchChange()" name="samlArtifactBinding" id="samlArtifactBinding" onoffswitch on-text="{{:: 'onText' | translate}}" off-text="{{:: 'offText' | translate}}"/>
+                    <input ng-model="samlArtifactBinding" ng-click="switchChange(); forceFrontChannelWhenArtifactBinding()" name="samlArtifactBinding" id="samlArtifactBinding" onoffswitch on-text="{{:: 'onText' | translate}}" off-text="{{:: 'offText' | translate}}"/>
                 </div>
                 <kc-tooltip>{{:: 'artifact-binding.tooltip' | translate}}</kc-tooltip>
             </div>
@@ -252,7 +252,7 @@
             <div class="form-group clearfix block" data-ng-show="protocol == 'saml'">
                 <label class="col-md-2 control-label" for="frontchannelLogout">{{:: 'front-channel-logout' | translate}}</label>
                 <div class="col-sm-6">
-                    <input ng-model="clientEdit.frontchannelLogout" name="frontchannelLogout" id="frontchannelLogout" onoffswitch on-text="{{:: 'onText' | translate}}" off-text="{{:: 'offText' | translate}}"/>
+                    <input ng-model="clientEdit.frontchannelLogout" ng-click="disableArtifactBindingIfFronchannelDisabled()" name="frontchannelLogout" id="frontchannelLogout" onoffswitch on-text="{{:: 'onText' | translate}}" off-text="{{:: 'offText' | translate}}"/>
                 </div>
                 <kc-tooltip>{{:: 'front-channel-logout.tooltip' | translate}}</kc-tooltip>
             </div>
