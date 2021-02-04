@@ -20,7 +20,7 @@ package org.keycloak.models.sessions.infinispan.util;
 
 import org.keycloak.common.util.Time;
 import org.keycloak.models.RealmModel;
-import org.keycloak.models.sessions.infinispan.entities.ArtifactResponseEntity;
+import org.keycloak.models.sessions.infinispan.entities.ArtifactSessionsMappingEntity;
 import org.keycloak.models.sessions.infinispan.entities.AuthenticatedClientSessionEntity;
 import org.keycloak.models.sessions.infinispan.entities.LoginFailureEntity;
 import org.keycloak.models.sessions.infinispan.entities.UserSessionEntity;
@@ -297,7 +297,7 @@ public class SessionTimeouts {
      * @param artifactResponseEntity
      * @return
      */
-    public static long getArtifactLifespanMs(RealmModel realm, ArtifactResponseEntity artifactResponseEntity) {
+    public static long getArtifactLifespanMs(RealmModel realm, ArtifactSessionsMappingEntity artifactResponseEntity) {
         return -1l;
     }
 
@@ -309,7 +309,7 @@ public class SessionTimeouts {
      * @param artifactResponseEntity
      * @return
      */
-    public static long getArtifactMaxIdleMs(RealmModel realm, ArtifactResponseEntity artifactResponseEntity) {
+    public static long getArtifactMaxIdleMs(RealmModel realm, ArtifactSessionsMappingEntity artifactResponseEntity) {
         return -1l;
     }
 
