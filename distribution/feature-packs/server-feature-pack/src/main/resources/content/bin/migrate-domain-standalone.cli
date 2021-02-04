@@ -604,4 +604,12 @@ if (result != org.keycloak.keycloak-model-infinispan) of /profile=$standalonePro
     echo
 end-if
 
+# Migrate from 12.0.0 to 13.0.0
+
+if (outcome == failed) of /profile=$standaloneProfile/subsystem=infinispan/cache-container=keycloak/local-cache=artifacts/:read-resource
+  echo Adding local-cache=artifacts to keycloak cache container...
+  /profile=$standaloneProfile/subsystem=infinispan/cache-container=keycloak/local-cache=artifacts/:add(indexing=NONE,start=LAZY)
+  echo
+end-if
+
 echo *** End Migration of /profile=$standaloneProfile ***
