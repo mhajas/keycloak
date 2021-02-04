@@ -796,4 +796,12 @@ if (result != expression "${jboss.mail.server.port:25}") of /socket-binding-grou
     echo
 end-if
 
+# Migrate from 12.0.0 to 13.0.0
+
+if (outcome == failed) of /subsystem=infinispan/cache-container=keycloak/distributed-cache=artifacts/:read-resource
+  echo Adding distributed-cache=artifacts to keycloak cache container...
+  /subsystem=infinispan/cache-container=keycloak/distributed-cache=artifacts/:add(mode=SYNC,owners=1)
+  echo
+end-if
+
 echo *** End Migration ***
