@@ -20,7 +20,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
-public class SessionStateChecker {
+public class SessionStateChecker implements Runnable {
 
     private String realmName = "demo";
     private AtomicReference<String> userSessionIdStore;

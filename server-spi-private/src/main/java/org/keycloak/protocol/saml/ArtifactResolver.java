@@ -2,7 +2,6 @@ package org.keycloak.protocol.saml;
 
 import org.keycloak.models.AuthenticatedClientSessionModel;
 import org.keycloak.models.ClientModel;
-import org.keycloak.models.KeycloakSession;
 import org.keycloak.provider.Provider;
 
 import java.util.stream.Stream;

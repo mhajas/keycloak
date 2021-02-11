@@ -59,10 +59,10 @@ import org.keycloak.saml.common.util.DocumentUtil;
 import org.keycloak.saml.processing.api.saml.v2.request.SAML2Request;
 import org.keycloak.saml.processing.core.parsers.saml.SAMLParser;
 import org.keycloak.saml.processing.core.saml.v2.common.SAMLDocumentHolder;
+import org.keycloak.testsuite.util.saml.StepWithCheckers;
 import org.keycloak.saml.processing.core.util.JAXPValidationUtil;
 import org.keycloak.saml.processing.web.util.RedirectBindingUtil;
 import org.keycloak.testsuite.util.saml.SessionStateChecker;
-import org.keycloak.testsuite.util.saml.StepWithSessionChecker;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
@@ -777,16 +777,16 @@ public class SamlClient {
                 }
 
                 LOG.infof("Executing HTTP request to %s", request.getURI());
-
-                if (s instanceof StepWithSessionChecker) {
-                    SessionStateChecker beforeChecker = ((StepWithSessionChecker) s).getBeforeStepChecker();
+                
+                if (s instanceof StepWithCheckers) {
+                    Runnable beforeChecker = ((StepWithCheckers) s).getBeforeStepChecker();
                     if (beforeChecker != null) beforeChecker.run();
                 }
 
                 currentResponse = client.execute(request, context);
 
-                if (s instanceof StepWithSessionChecker) {
-                    SessionStateChecker afterChecker = ((StepWithSessionChecker) s).getAfterStepChecker();
+                if (s instanceof StepWithCheckers) {
+                    Runnable afterChecker = ((StepWithCheckers) s).getAfterStepChecker();
                     if (afterChecker != null) afterChecker.run();
                 }
 
