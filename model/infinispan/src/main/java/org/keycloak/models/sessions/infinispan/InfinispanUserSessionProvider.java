@@ -32,7 +32,6 @@ import org.keycloak.models.ClientModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.OfflineUserSessionModel;
 import org.keycloak.models.RealmModel;
-import org.keycloak.models.SamlArtifactSessionMappingModel;
 import org.keycloak.models.UserLoginFailureModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.UserSessionModel;
@@ -41,7 +40,6 @@ import org.keycloak.models.session.UserSessionPersisterProvider;
 import org.keycloak.models.sessions.infinispan.changes.Tasks;
 import org.keycloak.models.sessions.infinispan.changes.sessions.CrossDCLastSessionRefreshStore;
 import org.keycloak.models.sessions.infinispan.changes.sessions.PersisterLastSessionRefreshStore;
-import org.keycloak.models.sessions.infinispan.entities.ArtifactSessionsMappingEntity;
 import org.keycloak.models.sessions.infinispan.remotestore.RemoteCacheInvoker;
 import org.keycloak.models.sessions.infinispan.changes.SessionEntityWrapper;
 import org.keycloak.models.sessions.infinispan.changes.InfinispanChangelogBasedTransaction;
@@ -98,14 +96,12 @@ public class InfinispanUserSessionProvider implements UserSessionProvider {
     protected final Cache<UUID, SessionEntityWrapper<AuthenticatedClientSessionEntity>> clientSessionCache;
     protected final Cache<UUID, SessionEntityWrapper<AuthenticatedClientSessionEntity>> offlineClientSessionCache;
     protected final Cache<LoginFailureKey, SessionEntityWrapper<LoginFailureEntity>> loginFailureCache;
-    protected final Cache<String, SessionEntityWrapper<ArtifactSessionsMappingEntity>> artifactCache;
 
     protected final InfinispanChangelogBasedTransaction<String, UserSessionEntity> sessionTx;
     protected final InfinispanChangelogBasedTransaction<String, UserSessionEntity> offlineSessionTx;
     protected final InfinispanChangelogBasedTransaction<UUID, AuthenticatedClientSessionEntity> clientSessionTx;
     protected final InfinispanChangelogBasedTransaction<UUID, AuthenticatedClientSessionEntity> offlineClientSessionTx;
     protected final InfinispanChangelogBasedTransaction<LoginFailureKey, LoginFailureEntity> loginFailuresTx;
-    protected final InfinispanChangelogBasedTransaction<String, ArtifactSessionsMappingEntity> artifactTx;
 
     protected final SessionEventsSenderTransaction clusterEventsSenderTx;
 
@@ -126,8 +122,7 @@ public class InfinispanUserSessionProvider implements UserSessionProvider {
                                          Cache<String, SessionEntityWrapper<UserSessionEntity>> offlineSessionCache,
                                          Cache<UUID, SessionEntityWrapper<AuthenticatedClientSessionEntity>> clientSessionCache,
                                          Cache<UUID, SessionEntityWrapper<AuthenticatedClientSessionEntity>> offlineClientSessionCache,
-                                         Cache<LoginFailureKey, SessionEntityWrapper<LoginFailureEntity>> loginFailureCache,
-                                         Cache<String, SessionEntityWrapper<ArtifactSessionsMappingEntity>> artifactCache) {
+                                         Cache<LoginFailureKey, SessionEntityWrapper<LoginFailureEntity>> loginFailureCache) {
         this.session = session;
 
         this.sessionCache = sessionCache;
@@ -135,7 +130,6 @@ public class InfinispanUserSessionProvider implements UserSessionProvider {
         this.offlineSessionCache = offlineSessionCache;
         this.offlineClientSessionCache = offlineClientSessionCache;
         this.loginFailureCache = loginFailureCache;
-        this.artifactCache = artifactCache;
 
         this.sessionTx = new InfinispanChangelogBasedTransaction<>(session, sessionCache, remoteCacheInvoker, SessionTimeouts::getUserSessionLifespanMs, SessionTimeouts::getUserSessionMaxIdleMs);
         this.offlineSessionTx = new InfinispanChangelogBasedTransaction<>(session, offlineSessionCache, remoteCacheInvoker, SessionTimeouts::getOfflineSessionLifespanMs, SessionTimeouts::getOfflineSessionMaxIdleMs);
@@ -143,8 +137,6 @@ public class InfinispanUserSessionProvider implements UserSessionProvider {
         this.offlineClientSessionTx = new InfinispanChangelogBasedTransaction<>(session, offlineClientSessionCache, remoteCacheInvoker, SessionTimeouts::getOfflineClientSessionLifespanMs, SessionTimeouts::getOfflineClientSessionMaxIdleMs);
 
         this.loginFailuresTx = new InfinispanChangelogBasedTransaction<>(session, loginFailureCache, remoteCacheInvoker, SessionTimeouts::getLoginFailuresLifespanMs, SessionTimeouts::getLoginFailuresMaxIdleMs);
-
-        this.artifactTx = new InfinispanChangelogBasedTransaction<>(session, artifactCache, remoteCacheInvoker, SessionTimeouts::getArtifactLifespanMs, SessionTimeouts::getArtifactMaxIdleMs);
 
         this.clusterEventsSenderTx = new SessionEventsSenderTransaction(session);
 
@@ -160,7 +152,6 @@ public class InfinispanUserSessionProvider implements UserSessionProvider {
         session.getTransactionManager().enlistAfterCompletion(clientSessionTx);
         session.getTransactionManager().enlistAfterCompletion(offlineClientSessionTx);
         session.getTransactionManager().enlistAfterCompletion(loginFailuresTx);
-        session.getTransactionManager().enlistAfterCompletion(artifactTx);
     }
 
     protected Cache<String, SessionEntityWrapper<UserSessionEntity>> getCache(boolean offline) {
@@ -535,49 +526,6 @@ public class InfinispanUserSessionProvider implements UserSessionProvider {
         futures.waitForAllToFinish();
 
         log.debugf("Removed %d sessions in realm %s. Offline: %b", (Object) userSessionsSize.get(), realmId, offline);
-    }
-
-    @Override
-    public void addArtifactSessionsMapping(String realmId, String artifact, String userSessionId, String clientSessionId) {
-        ArtifactSessionsMappingEntity entity = new ArtifactSessionsMappingEntity();
-        entity.setUserSessionId(userSessionId);
-        entity.setClientSessionId(clientSessionId);
-        entity.setRealmId(realmId);
-
-        SessionUpdateTask<ArtifactSessionsMappingEntity> createArtifactResponseTask = Tasks.addIfAbsentSync();
-        artifactTx.addTask(artifact, createArtifactResponseTask, entity, UserSessionModel.SessionPersistenceState.PERSISTENT);
-    }
-
-    @Override
-    public void removeArtifactSessionMapping(String artifact){
-        SessionUpdateTask<ArtifactSessionsMappingEntity> removeTask = Tasks.removeSync();
-        artifactTx.addTask(artifact, removeTask);
-    }
-
-    @Override
-    public SamlArtifactSessionMappingModel getArtifactSessionsMapping(String artifact){
-        InfinispanChangelogBasedTransaction<String, ArtifactSessionsMappingEntity> tx = artifactTx;
-        SessionEntityWrapper<ArtifactSessionsMappingEntity> entityWrapper = tx.get(artifact);
-        if (entityWrapper == null) return null;
-
-        ArtifactSessionsMappingEntity entity = entityWrapper.getEntity();
-
-        return new SamlArtifactSessionMappingModel() {
-            @Override
-            public String getUserSessionId() {
-                return entity.getUserSessionId();
-            }
-
-            @Override
-            public String getClientSessionId() {
-                return entity.getClientSessionId();
-            }
-
-            @Override
-            public String toString() {
-                return entity.toString();
-            }
-        };
     }
 
     @Override

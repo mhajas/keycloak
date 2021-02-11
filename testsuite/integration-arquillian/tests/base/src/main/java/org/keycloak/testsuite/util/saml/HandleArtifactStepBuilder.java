@@ -11,6 +11,7 @@ import org.apache.http.util.EntityUtils;
 import org.keycloak.common.util.KeyUtils;
 import org.keycloak.dom.saml.v2.assertion.NameIDType;
 import org.keycloak.dom.saml.v2.protocol.ArtifactResolveType;
+import org.keycloak.models.SamlArtifactSessionMappingStoreProvider;
 import org.keycloak.protocol.saml.profile.util.Soap;
 import org.keycloak.saml.BaseSAML2BindingBuilder;
 import org.keycloak.saml.SignatureAlgorithm;
@@ -42,7 +43,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * This builder allows the SamlClient to handle a redirect or a POSTed form which contains an artifact (SAMLart)
  */
-public class HandleArtifactStepBuilder extends SamlDocumentStepBuilder<ArtifactResolveType, HandleArtifactStepBuilder> implements StepWithSessionChecker {
+public class HandleArtifactStepBuilder extends SamlDocumentStepBuilder<ArtifactResolveType, HandleArtifactStepBuilder> implements StepWithCheckers {
 
     private String signingPrivateKeyPem;
     private String signingPublicKeyPem;
@@ -55,9 +56,9 @@ public class HandleArtifactStepBuilder extends SamlDocumentStepBuilder<ArtifactR
     private boolean replayArtifact;
     private AtomicReference<String> providedArtifact;
     private AtomicReference<String> storeArtifact;
-    
-    private SessionStateChecker beforeStepChecker;
-    private SessionStateChecker afterStepChecker;
+
+    private Runnable beforeStepChecker;
+    private Runnable afterStepChecker;
 
     private final static Pattern artifactPattern = Pattern.compile("NAME=\"SAMLart\" VALUE=\"([A-Za-z0-9+=/]*)\"");
 
@@ -91,12 +92,12 @@ public class HandleArtifactStepBuilder extends SamlDocumentStepBuilder<ArtifactR
         return this;
     }
     
-    public HandleArtifactStepBuilder setBeforeStepChecks(SessionStateChecker checker) {
+    public HandleArtifactStepBuilder setBeforeStepChecks(Runnable checker) {
         this.beforeStepChecker = checker;
         return this;
     }
 
-    public HandleArtifactStepBuilder setAfterStepChecks(SessionStateChecker checker) {
+    public HandleArtifactStepBuilder setAfterStepChecks(Runnable checker) {
         this.afterStepChecker = checker;
         return this;
     }
@@ -190,9 +191,10 @@ public class HandleArtifactStepBuilder extends SamlDocumentStepBuilder<ArtifactR
 
         if (transformed == null) return null;
 
-        if (beforeStepChecker != null) {
-            beforeStepChecker.setUserSessionProvider(session -> session.sessions().getArtifactSessionsMapping(artifact).getUserSessionId());
-            beforeStepChecker.setClientSessionProvider(session -> session.sessions().getArtifactSessionsMapping(artifact).getClientSessionId());
+        if (beforeStepChecker != null && beforeStepChecker instanceof SessionStateChecker) {
+            SessionStateChecker sessionStateChecker = (SessionStateChecker) beforeStepChecker;
+            sessionStateChecker.setUserSessionProvider(session -> session.getProvider(SamlArtifactSessionMappingStoreProvider.class).get(artifact).getUserSessionId());
+            sessionStateChecker.setClientSessionProvider(session -> session.getProvider(SamlArtifactSessionMappingStoreProvider.class).get(artifact).getClientSessionId());
         }
 
         HttpPost post =  Soap.createMessage().addToBody(DocumentUtil.getDocument(transformed)).buildHttpPost(authServerSamlUrl);
@@ -233,12 +235,12 @@ public class HandleArtifactStepBuilder extends SamlDocumentStepBuilder<ArtifactR
     }
 
     @Override
-    public SessionStateChecker getBeforeStepChecker() {
+    public Runnable getBeforeStepChecker() {
         return beforeStepChecker;
     }
 
     @Override
-    public SessionStateChecker getAfterStepChecker() {
+    public Runnable getAfterStepChecker() {
         return afterStepChecker;
     }
 }

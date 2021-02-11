@@ -61,6 +61,7 @@ import org.keycloak.models.KeycloakTransaction;
 import org.keycloak.models.KeycloakUriInfo;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.SamlArtifactSessionMappingModel;
+import org.keycloak.models.SamlArtifactSessionMappingStoreProvider;
 import org.keycloak.models.UserSessionModel;
 import org.keycloak.protocol.AuthorizationEndpointBase;
 import org.keycloak.protocol.LoginProtocol;
@@ -1058,6 +1059,11 @@ public class SamlService extends AuthorizationEndpointBase {
         return client;
     }
 
+
+    private SamlArtifactSessionMappingStoreProvider getArtifactSessionMappingStore() {
+        return session.getProvider(SamlArtifactSessionMappingStoreProvider.class);
+    }
+
     /**
      * Takes an artifact resolve message and returns the artifact response, if the artifact is found belonging to a session
      * of the issuer.
@@ -1079,8 +1085,7 @@ public class SamlService extends AuthorizationEndpointBase {
         }
 
         // Obtain details of session that issued artifact and check if it corresponds to issuer of Resolve message
-        SamlArtifactSessionMappingModel sessionMapping;
-        sessionMapping = session.sessions().getArtifactSessionsMapping(artifact);
+        SamlArtifactSessionMappingModel sessionMapping = getArtifactSessionMappingStore().get(artifact);
 
         if (sessionMapping == null) {
             logger.errorf("No data stored for artifact %s", artifact);
@@ -1122,7 +1127,7 @@ public class SamlService extends AuthorizationEndpointBase {
         }
 
         // Artifact is successfully resolved, we can remove session mapping from storage
-        session.sessions().removeArtifactSessionMapping(artifact);
+        getArtifactSessionMappingStore().remove(artifact);
 
         Document artifactResponseDocument = null;
         ArtifactResponseType artifactResponseType = null;

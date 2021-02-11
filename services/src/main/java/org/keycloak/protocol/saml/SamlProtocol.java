@@ -43,6 +43,7 @@ import org.keycloak.models.KeyManager;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.ProtocolMapperModel;
 import org.keycloak.models.RealmModel;
+import org.keycloak.models.SamlArtifactSessionMappingStoreProvider;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.UserSessionModel;
 import org.keycloak.protocol.LoginProtocol;
@@ -149,6 +150,7 @@ public class SamlProtocol implements LoginProtocol {
     protected EventBuilder event;
 
     protected ArtifactResolver artifactResolver;
+    protected SamlArtifactSessionMappingStoreProvider artifactSessionMappingStore;
 
     @Override
     public SamlProtocol setSession(KeycloakSession session) {
@@ -185,6 +187,13 @@ public class SamlProtocol implements LoginProtocol {
             artifactResolver = session.getProvider(ArtifactResolver.class);
         }
         return artifactResolver;
+    }
+
+    private SamlArtifactSessionMappingStoreProvider getArtifactSessionMappingStore() {
+        if (artifactSessionMappingStore == null) {
+            artifactSessionMappingStore = session.getProvider(SamlArtifactSessionMappingStoreProvider.class);
+        }
+        return artifactSessionMappingStore;
     }
 
     @Override
@@ -892,8 +901,8 @@ public class SamlProtocol implements LoginProtocol {
         // Create artifact and store session mapping
         SAMLDataMarshaller marshaller = new SAMLDataMarshaller();
         String artifact = getArtifactResolver().buildArtifact(clientSessionModel, entityId, marshaller.serialize(artifactResponseType));
-        UserSessionModel userSessionModel = clientSessionModel.getUserSession();
-        session.sessions().addArtifactSessionsMapping(userSessionModel.getRealm().getId(), artifact, userSessionModel.getId(), clientSessionModel.getClient().getId());
+        getArtifactSessionMappingStore().put(artifact, realm.getAccessCodeLifespan(), clientSessionModel);
+        
         return artifact;
     }
 

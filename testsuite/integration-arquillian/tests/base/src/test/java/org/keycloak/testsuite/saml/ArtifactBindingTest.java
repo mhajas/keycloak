@@ -35,6 +35,7 @@ import org.keycloak.saml.processing.core.saml.v2.util.AssertionUtil;
 import org.keycloak.sessions.CommonClientSessionModel;
 import org.keycloak.testsuite.arquillian.annotation.AuthServerContainerExclude;
 import org.keycloak.testsuite.updaters.ClientAttributeUpdater;
+import org.keycloak.testsuite.updaters.RealmAttributeUpdater;
 import org.keycloak.testsuite.util.SamlClient;
 import org.keycloak.testsuite.util.SamlClientBuilder;
 import org.keycloak.testsuite.util.SamlUtils;
@@ -77,6 +78,36 @@ public class ArtifactBindingTest extends AbstractSamlTest {
     private final AtomicReference<String> sessionIndexRef = new AtomicReference<>();
 
     /************************ LOGIN TESTS ************************/
+
+    @Test
+    public void testArtifactBindingTimesOutAfterCodeToTokenLifespan() throws Exception {
+        
+        getCleanup().addCleanup(
+                new RealmAttributeUpdater(adminClient.realm(REALM_NAME))
+                        .setAccessCodeLifespan(1)
+                        .update()
+        );
+
+        new SamlClientBuilder().authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
+                SAML_ASSERTION_CONSUMER_URL_SALES_POST, SamlClient.Binding.POST)
+                .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri())
+                .build()
+                .login().user(bburkeUser).build()
+                .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST)
+                    .setBeforeStepChecks(() -> { // Move in time before resolving the artifact
+                        try {
+                            Thread.sleep(1000); // It seems that timeOffset doesn't work for ActionToken cache
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    })
+                .build()
+                .doNotFollowRedirects()
+                .execute(r -> {
+                    assertThat(r, statusCodeIsHC(500));
+                    assertThat(r, bodyHC(containsString("invalid_artifact")));
+                });
+    }
 
     @Test
     public void testArtifactBindingWithResponseAndAssertionSignature() throws Exception {
