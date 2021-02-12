@@ -76,6 +76,7 @@ import org.keycloak.rotation.HardcodedKeyLocator;
 import org.keycloak.rotation.KeyLocator;
 import org.keycloak.saml.BaseSAML2BindingBuilder;
 import org.keycloak.saml.SAML2LogoutResponseBuilder;
+import org.keycloak.saml.SAML2NameIDBuilder;
 import org.keycloak.saml.SAMLRequestParser;
 import org.keycloak.saml.SignatureAlgorithm;
 import org.keycloak.saml.common.constants.GeneralConstants;
@@ -87,7 +88,6 @@ import org.keycloak.saml.common.exceptions.ProcessingException;
 import org.keycloak.saml.common.util.DocumentUtil;
 import org.keycloak.saml.common.util.StaxUtil;
 import org.keycloak.saml.processing.api.saml.v2.request.SAML2Request;
-import org.keycloak.saml.processing.api.saml.v2.response.SAML2Response;
 import org.keycloak.saml.processing.core.saml.v2.common.IDGenerator;
 import org.keycloak.saml.processing.core.saml.v2.common.SAMLDocumentHolder;
 import org.keycloak.saml.processing.core.saml.v2.util.XMLTimeUtil;
@@ -1092,25 +1092,32 @@ public class SamlService extends AuthorizationEndpointBase {
             logger.errorf("Artifact to resolve was null");
             throw new ProcessingException(Errors.INVALID_SAML_ARTIFACT);
         }
+        
+        ArtifactResolver artifactResolver = getArtifactResolver(artifact);
+
+        if (artifactResolver == null) {
+            logger.errorf("Cannot find ArtifactResolver for artifact %s", artifact);
+            throw new ProcessingException(Errors.INVALID_SAML_ARTIFACT);
+        }
 
         // Obtain details of session that issued artifact and check if it corresponds to issuer of Resolve message
         SamlArtifactSessionMappingModel sessionMapping = getArtifactSessionMappingStore().get(artifact);
 
         if (sessionMapping == null) {
             logger.errorf("No data stored for artifact %s", artifact);
-            throw new ProcessingException(Errors.INVALID_SAML_ARTIFACT);
+            return emptyArtifactResponseMessage(artifactResolveMessage, null);
         }
 
         UserSessionModel userSessionModel = session.sessions().getUserSession(realm, sessionMapping.getUserSessionId());
         if (userSessionModel == null) {
             logger.errorf("UserSession with id: %s, that corresponds to artifact: %s does not exist.", sessionMapping.getUserSessionId(), artifact);
-            throw new ProcessingException(Errors.INVALID_SAML_ARTIFACT);
+            return emptyArtifactResponseMessage(artifactResolveMessage, null);
         }
 
         AuthenticatedClientSessionModel clientSessionModel = userSessionModel.getAuthenticatedClientSessions().get(sessionMapping.getClientSessionId());
         if (clientSessionModel == null) {
             logger.errorf("ClientSession with id: %s, that corresponds to artifact: %s and UserSession: %s does not exist.", sessionMapping.getClientSessionId(), artifact, sessionMapping.getUserSessionId());
-            throw new ProcessingException(Errors.INVALID_SAML_ARTIFACT);
+            return emptyArtifactResponseMessage(artifactResolveMessage, null);
         }
 
         ClientModel clientModel = getAndCheckClientModel(sessionMapping.getClientSessionId(), artifactResolveMessage.getIssuer().getValue());
@@ -1122,17 +1129,17 @@ public class SamlService extends AuthorizationEndpointBase {
                 SamlProtocolUtils.verifyDocumentSignature(clientModel, artifactResolveHolder.getSamlDocument());
             } catch (VerificationException e) {
                 SamlService.logger.error("request validation failed", e);
-                throw new ProcessingException(Errors.INVALID_SIGNATURE, e);
+                return emptyArtifactResponseMessage(artifactResolveMessage, clientModel);
             }
         }
 
         // Obtain artifactResponse from clientSessionModel
         String artifactResponseString;
         try {
-            artifactResponseString = getArtifactResolver(artifact).resolveArtifact(clientSessionModel, artifact);
+            artifactResponseString = artifactResolver.resolveArtifact(clientSessionModel, artifact);
         } catch (ArtifactResolverProcessingException e) {
-            logger.errorf("Failed to resolve artifact: %s.", artifact);
-            throw new ProcessingException(Errors.INVALID_SAML_ARTIFACT, e);
+            logger.errorf(e, "Failed to resolve artifact: %s.", artifact);
+            return emptyArtifactResponseMessage(artifactResolveMessage, clientModel);
         }
 
         // Artifact is successfully resolved, we can remove session mapping from storage
@@ -1145,8 +1152,8 @@ public class SamlService extends AuthorizationEndpointBase {
             artifactResponseType = marshaller.deserialize(artifactResponseString, ArtifactResponseType.class);
             artifactResponseDocument = SamlProtocolUtils.convert(artifactResponseType);
         }  catch (ParsingException | ConfigurationException | ProcessingException e) {
-            logger.errorf("Failed to obtain document from ArtifactResponseString: %s.", artifactResponseString);
-            throw new ProcessingException(Errors.INVALID_SAML_ARTIFACT_RESPONSE, e);
+            logger.errorf(e,"Failed to obtain document from ArtifactResponseString: %s.", artifactResponseString);
+            return emptyArtifactResponseMessage(artifactResolveMessage, clientModel);
         }
 
         // If clientSession is in LOGGING_OUT action, now we can move it to LOGGED_OUT
@@ -1164,38 +1171,62 @@ public class SamlService extends AuthorizationEndpointBase {
             }
         }
 
+        return artifactResponseMessage(artifactResolveMessage, artifactResponseDocument, clientModel);
+    }
+    
+    private Response emptyArtifactResponseMessage(ArtifactResolveType artifactResolveMessage, ClientModel clientModel) throws ProcessingException, ConfigurationException {
+        ArtifactResponseType artifactResponse = SamlProtocolUtils.buildArtifactResponse(null, SAML2NameIDBuilder.value(
+                RealmsResource.realmBaseUrl(session.getContext().getUri()).build(realm.getName()).toString()).build());
+
+
+        Document artifactResponseDocument;
+        try {
+            artifactResponseDocument = SamlProtocolUtils.convert(artifactResponse);
+        }  catch (ParsingException | ConfigurationException | ProcessingException e) {
+            logger.errorf("Failed to obtain document from ArtifactResponse: %s.", artifactResponse);
+            throw new ProcessingException(Errors.INVALID_SAML_ARTIFACT_RESPONSE, e);
+        }
+
+        return artifactResponseMessage(artifactResolveMessage, artifactResponseDocument, clientModel);
+    }
+    
+    private Response artifactResponseMessage(ArtifactResolveType artifactResolveMessage, Document artifactResponseDocument, ClientModel clientModel) throws ProcessingException, ConfigurationException {
         // Add "inResponseTo" to artifactResponse
         if (artifactResolveMessage.getID() != null && !artifactResolveMessage.getID().trim().isEmpty()){
             Element artifactResponseElement = artifactResponseDocument.getDocumentElement();
             artifactResponseElement.setAttribute("InResponseTo", artifactResolveMessage.getID());
         }
-
-        // Sign document/assertion if necessary, necessary to do this here, as the "inResponseTo" can only be set at this point
         JaxrsSAML2BindingBuilder bindingBuilder = new JaxrsSAML2BindingBuilder(session);
-        if (samlClient.requiresRealmSignature() || samlClient.requiresAssertionSignature()) {
-            KeyManager keyManager = session.keys();
-            KeyManager.ActiveRsaKey keys = keyManager.getActiveRsaKey(realm);
-            String keyName = samlClient.getXmlSigKeyInfoKeyNameTransformer().getKeyName(keys.getKid(), keys.getCertificate());
-            String canonicalization = samlClient.getCanonicalizationMethod();
-            if (canonicalization != null) {
-                bindingBuilder.canonicalizationMethod(canonicalization);
-            }
-            bindingBuilder.signatureAlgorithm(samlClient.getSignatureAlgorithm()).signWith(keyName, keys.getPrivateKey(), keys.getPublicKey(), keys.getCertificate());
-                    
-            if (samlClient.requiresRealmSignature()) bindingBuilder.signDocument();
-            if (samlClient.requiresAssertionSignature()) bindingBuilder.signAssertions();
-        }
+        
+        if (clientModel != null) {
+            SamlClient samlClient = new SamlClient(clientModel);
 
-        // Encrypt assertion if client requires it
-        if (samlClient.requiresEncryption()) {
-            PublicKey publicKey = null;
-            try {
-                publicKey = SamlProtocolUtils.getEncryptionKey(clientModel);
-            } catch (Exception e) {
-                logger.error("Failed to obtain encryption key for client", e);
-                throw new ProcessingException(Errors.INVALID_CLIENT, e);
+            // Sign document/assertion if necessary, necessary to do this here, as the "inResponseTo" can only be set at this point
+            if (samlClient.requiresRealmSignature() || samlClient.requiresAssertionSignature()) {
+                KeyManager keyManager = session.keys();
+                KeyManager.ActiveRsaKey keys = keyManager.getActiveRsaKey(realm);
+                String keyName = samlClient.getXmlSigKeyInfoKeyNameTransformer().getKeyName(keys.getKid(), keys.getCertificate());
+                String canonicalization = samlClient.getCanonicalizationMethod();
+                if (canonicalization != null) {
+                    bindingBuilder.canonicalizationMethod(canonicalization);
+                }
+                bindingBuilder.signatureAlgorithm(samlClient.getSignatureAlgorithm()).signWith(keyName, keys.getPrivateKey(), keys.getPublicKey(), keys.getCertificate());
+
+                if (samlClient.requiresRealmSignature()) bindingBuilder.signDocument();
+                if (samlClient.requiresAssertionSignature()) bindingBuilder.signAssertions();
             }
-            bindingBuilder.encrypt(publicKey);
+
+            // Encrypt assertion if client requires it
+            if (samlClient.requiresEncryption()) {
+                PublicKey publicKey = null;
+                try {
+                    publicKey = SamlProtocolUtils.getEncryptionKey(clientModel);
+                } catch (Exception e) {
+                    logger.error("Failed to obtain encryption key for client", e);
+                    return emptyArtifactResponseMessage(artifactResolveMessage, null);
+                }
+                bindingBuilder.encrypt(publicKey);
+            }
         }
 
         bindingBuilder.postBinding(artifactResponseDocument);
@@ -1316,6 +1347,11 @@ public class SamlService extends AuthorizationEndpointBase {
                     }
                     
                     ArtifactResponseType art = (ArtifactResponseType) samlDoc.getSamlObject();
+
+                    if (art.getAny() == null) {
+                        resumeAfterCompletion(ErrorPage.error(session, null, Response.Status.BAD_REQUEST, Messages.ARTIFACT_RESOLUTION_SERVICE_INVALID_RESPONSE));
+                        return;
+                    }
 
                     LoginProtocolFactory factory = (LoginProtocolFactory) session.getKeycloakSessionFactory().getProviderFactory(LoginProtocol.class, "saml");
                     if (factory == null) {
