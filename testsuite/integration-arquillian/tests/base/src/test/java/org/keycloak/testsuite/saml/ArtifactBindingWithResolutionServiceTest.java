@@ -34,8 +34,10 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
+import static org.keycloak.testsuite.util.Matchers.bodyHC;
 import static org.keycloak.testsuite.util.Matchers.isSamlResponse;
 import static org.keycloak.testsuite.util.Matchers.isSamlStatusResponse;
+import static org.keycloak.testsuite.util.Matchers.statusCodeIsHC;
 import static org.keycloak.testsuite.util.SamlClient.Binding.POST;
 import static org.keycloak.testsuite.util.SamlClient.Binding.REDIRECT;
 
@@ -153,6 +155,35 @@ public class ArtifactBindingWithResolutionServiceTest extends AbstractSamlTest {
                 ars.wait();
                 String response = builder.artifactMessage(camb).build().executeAndTransform(resp -> EntityUtils.toString(resp.getEntity()));
                 assertThat(response, containsString("Invalid Request"));
+            }
+        } finally {
+            ars.stop();
+            arsThread.join();
+        }
+    }
+
+    @Test
+    public void testReceiveEmptyArtifactResponse() throws InterruptedException {
+        getCleanup()
+                .addCleanup(ClientAttributeUpdater.forClient(adminClient, REALM_NAME, SAML_CLIENT_ID_SALES_POST)
+                        .setAttribute(SamlProtocol.SAML_ARTIFACT_RESOLUTION_SERVICE_URL_ATTRIBUTE, "http://127.0.0.1:8082/")
+                        .update()
+                );
+
+        SamlClientBuilder builder = new SamlClientBuilder();
+        CreateArtifactMessageStepBuilder camb = new CreateArtifactMessageStepBuilder(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
+                SamlClient.Binding.POST, builder);
+
+        ArtifactResolutionService ars = new ArtifactResolutionService("http://127.0.0.1:8082/").setEmptyArtifactResponse(SAML_CLIENT_ID_SALES_POST);
+        Thread arsThread = new Thread(ars);
+        try {
+            arsThread.start();
+            synchronized (ars) {
+                ars.wait();
+                builder.artifactMessage(camb).build().execute(r -> {
+                    assertThat(r, statusCodeIsHC(400));
+                    assertThat(r, bodyHC(containsString("Unable to resolve artifact.")));
+                });
             }
         } finally {
             ars.stop();

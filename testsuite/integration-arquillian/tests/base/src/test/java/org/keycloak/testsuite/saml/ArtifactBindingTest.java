@@ -88,7 +88,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
                         .update()
         );
 
-        new SamlClientBuilder().authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
+        SAMLDocumentHolder response = new SamlClientBuilder().authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
                 SAML_ASSERTION_CONSUMER_URL_SALES_POST, SamlClient.Binding.POST)
                 .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri())
                 .build()
@@ -103,10 +103,12 @@ public class ArtifactBindingTest extends AbstractSamlTest {
                     })
                 .build()
                 .doNotFollowRedirects()
-                .execute(r -> {
-                    assertThat(r, statusCodeIsHC(500));
-                    assertThat(r, bodyHC(containsString("invalid_artifact")));
-                });
+                .executeAndTransform(this::getArtifactResponse);
+
+        assertThat(response.getSamlObject(), instanceOf(ArtifactResponseType.class));
+        ArtifactResponseType artifactResponse = (ArtifactResponseType)response.getSamlObject();
+        assertThat(artifactResponse, isSamlStatusResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
+        assertThat(artifactResponse.getAny(), nullValue());
     }
 
     @Test
@@ -242,7 +244,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
 
     @Test
     public void testArtifactBindingLoginIncorrectSignature() {
-        Document response = new SamlClientBuilder().authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST_SIG,
+        SAMLDocumentHolder response = new SamlClientBuilder().authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST_SIG,
                 SAML_ASSERTION_CONSUMER_URL_SALES_POST_SIG, SamlClient.Binding.POST)
                     .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri())
                     .signWith(SAML_CLIENT_SALES_POST_SIG_PRIVATE_KEY
@@ -255,11 +257,13 @@ public class ArtifactBindingTest extends AbstractSamlTest {
                         SAML_CLIENT_SALES_POST_SIG_EXPIRED_PUBLIC_KEY)
                 .build()
                 .doNotFollowRedirects()
-                .executeAndTransform(this::extractSoapMessage);
+                .executeAndTransform(this::getArtifactResponse);
 
-        String soapMessage = DocumentUtil.asString(response);
-        assertThat(soapMessage, not(containsString("ArtifactResponse")));
-        assertThat(soapMessage, containsString("invalid_signature"));
+        assertThat(response.getSamlObject(), instanceOf(ArtifactResponseType.class));
+        ArtifactResponseType artifactResponse = (ArtifactResponseType)response.getSamlObject();
+        assertThat(artifactResponse, isSamlStatusResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
+        assertThat(artifactResponse.getAny(), nullValue());
+        assertThat(artifactResponse.getSignature(), not(nullValue()));
     }
 
     @Test
@@ -268,7 +272,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         HandleArtifactStepBuilder handleArtifactBuilder = new HandleArtifactStepBuilder(
                 getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST, clientBuilder);
 
-        Document response= clientBuilder.authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
+        SAMLDocumentHolder response= clientBuilder.authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
                 SAML_ASSERTION_CONSUMER_URL_SALES_POST, SamlClient.Binding.REDIRECT)
                     .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri())
                 .build()
@@ -282,11 +286,12 @@ public class ArtifactBindingTest extends AbstractSamlTest {
                 .build()
                 .handleArtifact(handleArtifactBuilder).replayPost(true).build()
                 .doNotFollowRedirects()
-                .executeAndTransform(this::extractSoapMessage);
+                .executeAndTransform(this::getArtifactResponse);
 
-        String soapMessage = DocumentUtil.asString(response);
-        assertThat(soapMessage, not(containsString("ArtifactResponse")));
-        assertThat(soapMessage, containsString("invalid_artifact"));
+        assertThat(response.getSamlObject(), instanceOf(ArtifactResponseType.class));
+        ArtifactResponseType artifactResponse = (ArtifactResponseType)response.getSamlObject();
+        assertThat(artifactResponse, isSamlStatusResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
+        assertThat(artifactResponse.getAny(), nullValue());
     }
 
     @Test
