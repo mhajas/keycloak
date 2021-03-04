@@ -1556,7 +1556,7 @@ module.controller('ClientDetailCtrl', function($scope, realm, client, flows, $ro
         }
     }
 
-    $scope.disableArtifactBindingIfFronchannelDisabled = function() {
+    $scope.disableArtifactBindingIfFrontchannelDisabled = function() {
         if ($scope.protocol == 'saml' && $scope.clientEdit.frontchannelLogout == true) {
             $scope.samlArtifactBinding = false;
         }
