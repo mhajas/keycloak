@@ -110,6 +110,7 @@ public class SamlProtocol implements LoginProtocol {
     public static final String SAML_ASSERTION_CONSUMER_URL_REDIRECT_ATTRIBUTE = "saml_assertion_consumer_url_redirect";
     public static final String SAML_ASSERTION_CONSUMER_URL_ARTIFACT_ATTRIBUTE = "saml_artifact_binding_url";
     public static final String SAML_SINGLE_LOGOUT_SERVICE_URL_POST_ATTRIBUTE = "saml_single_logout_service_url_post";
+    public static final String SAML_SINGLE_LOGOUT_SERVICE_URL_ARTIFACT_ATTRIBUTE = "saml_single_logout_service_url_artifact";
     public static final String SAML_SINGLE_LOGOUT_SERVICE_URL_REDIRECT_ATTRIBUTE = "saml_single_logout_service_url_redirect";
     public static final String SAML_ARTIFACT_RESOLUTION_SERVICE_URL_ATTRIBUTE = "saml_artifact_resolution_service_url";
     public static final String LOGIN_PROTOCOL = "saml";
@@ -588,17 +589,24 @@ public class SamlProtocol implements LoginProtocol {
 
     public static String getLogoutServiceUrl(KeycloakSession session, ClientModel client, String bindingType) {
         String logoutServiceUrl = null;
-        if (SAML_POST_BINDING.equals(bindingType)) {
+        if (useArtifactForLogout(client)) {
+            logoutServiceUrl = client.getAttribute(SAML_SINGLE_LOGOUT_SERVICE_URL_ARTIFACT_ATTRIBUTE);
+        } else if (SAML_POST_BINDING.equals(bindingType)) {
             logoutServiceUrl = client.getAttribute(SAML_SINGLE_LOGOUT_SERVICE_URL_POST_ATTRIBUTE);
         } else {
             logoutServiceUrl = client.getAttribute(SAML_SINGLE_LOGOUT_SERVICE_URL_REDIRECT_ATTRIBUTE);
         }
+
         if (logoutServiceUrl == null)
             logoutServiceUrl = client.getManagementUrl();
         if (logoutServiceUrl == null || logoutServiceUrl.trim().equals(""))
             return null;
         return ResourceAdminManager.resolveUri(session, client.getRootUrl(), logoutServiceUrl);
-
+    }
+    
+    public static boolean useArtifactForLogout(ClientModel client) {
+        return new SamlClient(client).forceArtifactBinding()
+                && client.getAttribute(SAML_SINGLE_LOGOUT_SERVICE_URL_ARTIFACT_ATTRIBUTE) != null;
     }
 
     @Override
@@ -625,7 +633,8 @@ public class SamlProtocol implements LoginProtocol {
             JaxrsSAML2BindingBuilder binding = createBindingBuilder(samlClient, "true".equals(clientSession.getNote(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.get())));
 
             //If this session uses artifact binding, send an artifact instead of the LogoutRequest
-            if ("true".equals(clientSession.getNote(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.get()))) {
+            if ("true".equals(clientSession.getNote(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.get()))
+                    && useArtifactForLogout(client)) {
                 clientSession.setAction(CommonClientSessionModel.Action.LOGGING_OUT.name());
                 return buildArtifactAuthenticatedResponse(clientSession, bindingUri, logoutRequest, binding);
             }

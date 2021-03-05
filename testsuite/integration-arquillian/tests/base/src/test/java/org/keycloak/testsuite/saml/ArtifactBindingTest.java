@@ -10,6 +10,7 @@ import org.keycloak.dom.saml.v2.SAML2Object;
 import org.keycloak.dom.saml.v2.assertion.AssertionType;
 import org.keycloak.dom.saml.v2.assertion.AuthnStatementType;
 import org.keycloak.dom.saml.v2.assertion.NameIDType;
+import org.keycloak.dom.saml.v2.metadata.SPSSODescriptorType;
 import org.keycloak.dom.saml.v2.protocol.ArtifactResponseType;
 import org.keycloak.dom.saml.v2.protocol.LogoutRequestType;
 import org.keycloak.dom.saml.v2.protocol.NameIDMappingResponseType;
@@ -27,7 +28,6 @@ import org.keycloak.saml.common.constants.GeneralConstants;
 import org.keycloak.saml.common.constants.JBossSAMLURIConstants;
 import org.keycloak.saml.common.exceptions.ParsingException;
 import org.keycloak.saml.common.exceptions.ProcessingException;
-import org.keycloak.saml.common.util.DocumentUtil;
 import org.keycloak.saml.processing.api.saml.v2.request.SAML2Request;
 import org.keycloak.saml.processing.core.parsers.saml.SAMLParser;
 import org.keycloak.saml.processing.core.saml.v2.common.SAMLDocumentHolder;
@@ -48,6 +48,8 @@ import javax.ws.rs.core.Response;
 import javax.xml.transform.dom.DOMSource;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
@@ -71,6 +73,7 @@ import static org.keycloak.testsuite.util.Matchers.statusCodeIsHC;
 import static org.keycloak.testsuite.util.SamlClient.Binding.ARTIFACT_RESPONSE;
 import static org.keycloak.testsuite.util.SamlClient.Binding.POST;
 import static org.keycloak.testsuite.util.SamlClient.Binding.REDIRECT;
+import static org.keycloak.testsuite.util.SamlUtils.getSPInstallationDescriptor;
 
 public class ArtifactBindingTest extends AbstractSamlTest {
 
@@ -421,7 +424,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
             .addCleanup(ClientAttributeUpdater.forClient(adminClient, REALM_NAME, SAML_CLIENT_ID_SALES_POST)
                     .setAttribute(SamlConfigAttributes.SAML_ARTIFACT_BINDING, "true")
                     .setAttribute(SamlConfigAttributes.SAML_SERVER_SIGNATURE, "true")
-                    .setAttribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_POST_ATTRIBUTE, "http://url")
+                    .setAttribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_ARTIFACT_ATTRIBUTE, "http://url")
                     .setFrontchannelLogout(true)
                     .update()
             );
@@ -462,7 +465,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         getCleanup()
             .addCleanup(ClientAttributeUpdater.forClient(adminClient, REALM_NAME, SAML_CLIENT_ID_SALES_POST)
                     .setAttribute(SamlConfigAttributes.SAML_ARTIFACT_BINDING, "true")
-                    .setAttribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_POST_ATTRIBUTE, "http://url")
+                    .setAttribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_ARTIFACT_ATTRIBUTE, "http://url")
                     .setFrontchannelLogout(true)
                     .update()
             );
@@ -494,7 +497,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         getCleanup()
             .addCleanup(ClientAttributeUpdater.forClient(adminClient, REALM_NAME, SAML_CLIENT_ID_SALES_POST)
                     .setAttribute(SamlConfigAttributes.SAML_ARTIFACT_BINDING, "true")
-                    .setAttribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_REDIRECT_ATTRIBUTE, "http://url")
+                    .setAttribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_ARTIFACT_ATTRIBUTE, "http://url")
                     .setFrontchannelLogout(true)
                     .update()
             );
@@ -527,7 +530,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         getCleanup()
             .addCleanup(ClientAttributeUpdater.forClient(adminClient, REALM_NAME, SAML_CLIENT_ID_SALES_POST_SIG)
                     .setAttribute(SamlConfigAttributes.SAML_ARTIFACT_BINDING, "true")
-                    .setAttribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_POST_ATTRIBUTE, "http://url")
+                    .setAttribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_ARTIFACT_ATTRIBUTE, "http://url")
                     .setFrontchannelLogout(true)
                     .update()
             );
@@ -570,12 +573,12 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         getCleanup()
             .addCleanup(ClientAttributeUpdater.forClient(adminClient, REALM_NAME, SAML_CLIENT_ID_SALES_POST)
                     .setAttribute(SamlConfigAttributes.SAML_ARTIFACT_BINDING, "true")
-                    .setAttribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_POST_ATTRIBUTE, "http://url")
+                    .setAttribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_ARTIFACT_ATTRIBUTE, "http://url")
                     .setFrontchannelLogout(true)
                     .update()
             )
             .addCleanup(ClientAttributeUpdater.forClient(adminClient, REALM_NAME, SAML_CLIENT_ID_SALES_POST2)
-                    .setAttribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_POST_ATTRIBUTE, "http://url")
+                    .setAttribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_ARTIFACT_ATTRIBUTE, "http://url")
                     .setFrontchannelLogout(true)
                     .update()
             );
@@ -611,7 +614,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         getCleanup()
             .addCleanup(ClientAttributeUpdater.forClient(adminClient, REALM_NAME, SAML_CLIENT_ID_SALES_POST)
                     .setAttribute(SamlConfigAttributes.SAML_ARTIFACT_BINDING, "true")
-                    .setAttribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_POST_ATTRIBUTE, "http://url")
+                    .setAttribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_ARTIFACT_ATTRIBUTE, "http://url")
                     .update()
             );
 
@@ -661,7 +664,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         getCleanup()
             .addCleanup(ClientAttributeUpdater.forClient(adminClient, REALM_NAME, SAML_CLIENT_ID_SALES_POST)
                         .setAttribute(SamlConfigAttributes.SAML_ARTIFACT_BINDING, "true")
-                        .setAttribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_POST_ATTRIBUTE, "http://url")
+                        .setAttribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_ARTIFACT_ATTRIBUTE, "http://url")
                         .setFrontchannelLogout(true)
                         .update()
             );
@@ -712,13 +715,13 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         getCleanup()
             .addCleanup(ClientAttributeUpdater.forClient(adminClient, REALM_NAME, SAML_CLIENT_ID_SALES_POST)
                     .setAttribute(SamlConfigAttributes.SAML_ARTIFACT_BINDING, "true")
-                    .setAttribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_REDIRECT_ATTRIBUTE, "http://url")
+                    .setAttribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_ARTIFACT_ATTRIBUTE, "http://url")
                     .setFrontchannelLogout(true)
                     .update()
             )
             .addCleanup(ClientAttributeUpdater.forClient(adminClient, REALM_NAME, SAML_CLIENT_ID_SALES_POST2)
                     .setAttribute(SamlConfigAttributes.SAML_ARTIFACT_BINDING, "true")
-                    .setAttribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_REDIRECT_ATTRIBUTE, "http://url")
+                    .setAttribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_ARTIFACT_ATTRIBUTE, "http://url")
                     .setFrontchannelLogout(true)
                     .update()
             );
@@ -824,6 +827,66 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         assertThat(artifactResponse, isSamlStatusResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
         assertThat(artifactResponse.getAny(), instanceOf(StatusResponseType.class));
     }
+    
+    @Test
+    public void testArtifactBindingIsNotUsedForLogoutWhenLogoutUrlNotSetRedirect() {
+        getCleanup()
+                .addCleanup(ClientAttributeUpdater.forClient(adminClient, REALM_NAME, SAML_CLIENT_ID_SALES_POST)
+                        .setAttribute(SamlConfigAttributes.SAML_ARTIFACT_BINDING, "true")
+                        .setAttribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_REDIRECT_ATTRIBUTE, "http://url")
+                        .setFrontchannelLogout(true)
+                        .update()
+                );
+
+        SAMLDocumentHolder response = new SamlClientBuilder().authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
+                SAML_ASSERTION_CONSUMER_URL_SALES_POST, REDIRECT)
+                .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_REDIRECT_BINDING.getUri())
+                .build()
+                .login().user(bburkeUser).build()
+                .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST).verifyRedirect(true).build()
+                .logoutRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST, REDIRECT).build()
+                .doNotFollowRedirects()
+                .executeAndTransform(REDIRECT::extractResponse);
+
+        assertThat(response.getSamlObject(), instanceOf(StatusResponseType.class));
+        StatusResponseType logoutResponse = (StatusResponseType)response.getSamlObject();
+        assertThat(logoutResponse, isSamlStatusResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
+        assertThat(logoutResponse.getSignature(), nullValue());
+        assertThat(logoutResponse, not(instanceOf(ResponseType.class)));
+        assertThat(logoutResponse, not(instanceOf(ArtifactResponseType.class)));
+        assertThat(logoutResponse, not(instanceOf(NameIDMappingResponseType.class)));
+        assertThat(logoutResponse, instanceOf(StatusResponseType.class));
+    }
+
+    @Test
+    public void testArtifactBindingIsNotUsedForLogoutWhenLogoutUrlNotSetPostTest() {
+        getCleanup()
+                .addCleanup(ClientAttributeUpdater.forClient(adminClient, REALM_NAME, SAML_CLIENT_ID_SALES_POST)
+                        .setAttribute(SamlConfigAttributes.SAML_ARTIFACT_BINDING, "true")
+                        .setAttribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_POST_ATTRIBUTE, "http://url")
+                        .setFrontchannelLogout(true)
+                        .update()
+                );
+
+        SAMLDocumentHolder response = new SamlClientBuilder().authnRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST,
+                SAML_ASSERTION_CONSUMER_URL_SALES_POST, POST)
+                .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_POST_BINDING.getUri())
+                .build()
+                .login().user(bburkeUser).build()
+                .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST).build()
+                .logoutRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST, POST).build()
+                .doNotFollowRedirects()
+                .executeAndTransform(POST::extractResponse);
+
+        assertThat(response.getSamlObject(), instanceOf(StatusResponseType.class));
+        StatusResponseType logoutResponse = (StatusResponseType)response.getSamlObject();
+        assertThat(logoutResponse, isSamlStatusResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
+        assertThat(logoutResponse.getSignature(), nullValue());
+        assertThat(logoutResponse, not(instanceOf(ResponseType.class)));
+        assertThat(logoutResponse, not(instanceOf(ArtifactResponseType.class)));
+        assertThat(logoutResponse, not(instanceOf(NameIDMappingResponseType.class)));
+        assertThat(logoutResponse, instanceOf(StatusResponseType.class));
+    }
 
     private SAMLDocumentHolder getArtifactResponse(CloseableHttpResponse response) throws IOException, ParsingException, ProcessingException {
         assertThat(response, statusCodeIsHC(Response.Status.OK));
@@ -877,6 +940,43 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         ClientRepresentation clientRep = adminClient.realm(REALM_NAME).convertClientDescription(IOUtil.documentToString(doc));
         assertThat(clientRep.getAttributes().get(SamlProtocol.SAML_ARTIFACT_RESOLUTION_SERVICE_URL_ATTRIBUTE), is("https://test.keycloak.com/auth/login/epd/callback/soap-9"));
         assertThat(clientRep.getAttributes().get(SamlProtocol.SAML_ASSERTION_CONSUMER_URL_ARTIFACT_ATTRIBUTE), Matchers.startsWith("https://test.keycloak.com/auth/login/epd/callback/http-artifact"));
+    }
+
+    @Test
+    public void testSPMetadataArtifactBindingNotUsedForLogout() throws ParsingException, URISyntaxException {
+
+        getCleanup()
+                .addCleanup(ClientAttributeUpdater.forClient(adminClient, REALM_NAME, SAML_CLIENT_ID_SALES_POST)
+                        .setAttribute(SamlConfigAttributes.SAML_ARTIFACT_BINDING, "true")
+                        .setAttribute(SamlProtocol.SAML_ASSERTION_CONSUMER_URL_ARTIFACT_ATTRIBUTE, "http://url.artifact.test")
+                        .setAdminUrl("http://admin.url.test")
+                        .update()
+                );
+        SPSSODescriptorType spDescriptor = getSPInstallationDescriptor(adminClient.realm(REALM_NAME).clients(), SAML_CLIENT_ID_SALES_POST);
+        assertThat(spDescriptor.getAssertionConsumerService().get(0).getBinding(), is(equalTo(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri())));
+        assertThat(spDescriptor.getAssertionConsumerService().get(0).getLocation(), is(equalTo(new URI("http://url.artifact.test"))));
+        
+        assertThat(spDescriptor.getSingleLogoutService().get(0).getBinding(), is(equalTo(JBossSAMLURIConstants.SAML_HTTP_REDIRECT_BINDING.getUri())));
+        assertThat(spDescriptor.getSingleLogoutService().get(0).getLocation(), is(equalTo(new URI("http://admin.url.test"))));
+    }
+
+    @Test
+    public void testSPMetadataArtifactBindingUsedForLogout() throws ParsingException, URISyntaxException {
+        getCleanup()
+                .addCleanup(ClientAttributeUpdater.forClient(adminClient, REALM_NAME, SAML_CLIENT_ID_SALES_POST)
+                        .setAttribute(SamlConfigAttributes.SAML_ARTIFACT_BINDING, "true")
+                        .setAttribute(SamlProtocol.SAML_ASSERTION_CONSUMER_URL_ARTIFACT_ATTRIBUTE, "http://url.artifact.test")
+                        .setAttribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_ARTIFACT_ATTRIBUTE, "http://url.artifact.test")
+                        .setAdminUrl("http://admin.url.test")
+                        .update()
+                );
+
+        SPSSODescriptorType spDescriptor = getSPInstallationDescriptor(adminClient.realm(REALM_NAME).clients(), SAML_CLIENT_ID_SALES_POST);
+        assertThat(spDescriptor.getAssertionConsumerService().get(0).getBinding(), is(equalTo(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri())));
+        assertThat(spDescriptor.getAssertionConsumerService().get(0).getLocation(), is(equalTo(new URI("http://url.artifact.test"))));
+
+        assertThat(spDescriptor.getSingleLogoutService().get(0).getBinding(), is(equalTo(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri())));
+        assertThat(spDescriptor.getSingleLogoutService().get(0).getLocation(), is(equalTo(new URI("http://url.artifact.test"))));
     }
 
 }
