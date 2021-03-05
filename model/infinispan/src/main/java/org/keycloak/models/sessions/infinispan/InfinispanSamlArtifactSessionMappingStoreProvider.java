@@ -22,7 +22,6 @@ import org.infinispan.commons.api.BasicCache;
 import org.jboss.logging.Logger;
 import org.keycloak.common.util.Time;
 import org.keycloak.models.AuthenticatedClientSessionModel;
-import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.SamlArtifactSessionMappingModel;
 import org.keycloak.models.SamlArtifactSessionMappingStoreProvider;
 import org.keycloak.models.sessions.infinispan.entities.ActionTokenValueEntity;
@@ -101,17 +100,7 @@ public class InfinispanSamlArtifactSessionMappingStoreProvider implements SamlAr
             return null;
         }
 
-        return new SamlArtifactSessionMappingModel() {
-            @Override
-            public String getUserSessionId() {
-                return serializedMapping.get(USER_SESSION_ID);
-            }
-
-            @Override
-            public String getClientSessionId() {
-                return serializedMapping.get(CLIENT_SESSION_ID);
-            }
-        };
+        return new SamlArtifactSessionMappingModel(serializedMapping.get(USER_SESSION_ID), serializedMapping.get(CLIENT_SESSION_ID));
     }
 
     @Override
@@ -119,7 +108,7 @@ public class InfinispanSamlArtifactSessionMappingStoreProvider implements SamlAr
         try {
             BasicCache<UUID, ActionTokenValueEntity> cache = codeCache.get();
             if (cache.remove(UUID.nameUUIDFromBytes(artifact.getBytes())) == null) {
-                logger.warnf("Artifact %s was already removed", artifact);
+                logger.debugf("Artifact %s was already removed", artifact);
             }
         } catch (HotRodClientException re) {
             // No need to retry. The hotrod (remoteCache) has some retries in itself in case of some random network error happened.
