@@ -59,10 +59,9 @@ import org.keycloak.saml.common.util.DocumentUtil;
 import org.keycloak.saml.processing.api.saml.v2.request.SAML2Request;
 import org.keycloak.saml.processing.core.parsers.saml.SAMLParser;
 import org.keycloak.saml.processing.core.saml.v2.common.SAMLDocumentHolder;
-import org.keycloak.testsuite.util.saml.StepWithCheckers;
 import org.keycloak.saml.processing.core.util.JAXPValidationUtil;
 import org.keycloak.saml.processing.web.util.RedirectBindingUtil;
-import org.keycloak.testsuite.util.saml.SessionStateChecker;
+import org.keycloak.testsuite.util.saml.StepWithCheckers;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
@@ -91,8 +90,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -100,6 +97,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.keycloak.saml.common.constants.GeneralConstants.RELAY_STATE;
 import static org.keycloak.testsuite.util.Matchers.statusCodeIsHC;
+import static org.keycloak.testsuite.util.SamlUtils.getSamlDeploymentForClient;
 
 /**
  * @author hmlnarik
@@ -455,7 +453,7 @@ public class SamlClient {
                     envelope.addNamespaceDeclaration(NS_PREFIX_PAOS_BINDING, JBossSAMLURIConstants.PAOS_BINDING.get());
                     envelope.addNamespaceDeclaration(NS_PREFIX_PROFILE_ECP, JBossSAMLURIConstants.ECP_PROFILE.get());
 
-                    SamlDeployment deployment = SamlUtils.getSamlDeploymentForClient("ecp-sp"); // TODO: Make more general for any client, currently SOAP is usable only with http://localhost:8280/ecp-sp/ client
+                    SamlDeployment deployment = getSamlDeploymentForClient("ecp-sp"); // TODO: Make more general for any client, currently SOAP is usable only with http://localhost:8280/ecp-sp/ client
 
                     createPaosRequestHeader(envelope, deployment);
                     createEcpRequestHeader(envelope, deployment);

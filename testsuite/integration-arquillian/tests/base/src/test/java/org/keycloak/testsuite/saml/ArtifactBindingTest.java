@@ -7,8 +7,6 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.keycloak.adapters.saml.SamlDeployment;
 import org.keycloak.dom.saml.v2.SAML2Object;
-import org.keycloak.dom.saml.v2.assertion.AssertionType;
-import org.keycloak.dom.saml.v2.assertion.AuthnStatementType;
 import org.keycloak.dom.saml.v2.assertion.NameIDType;
 import org.keycloak.dom.saml.v2.metadata.SPSSODescriptorType;
 import org.keycloak.dom.saml.v2.protocol.ArtifactResponseType;
@@ -16,7 +14,6 @@ import org.keycloak.dom.saml.v2.protocol.LogoutRequestType;
 import org.keycloak.dom.saml.v2.protocol.NameIDMappingResponseType;
 import org.keycloak.dom.saml.v2.protocol.ResponseType;
 import org.keycloak.dom.saml.v2.protocol.StatusResponseType;
-import org.keycloak.events.Errors;
 import org.keycloak.models.UserSessionModel;
 import org.keycloak.protocol.saml.SamlConfigAttributes;
 import org.keycloak.protocol.saml.SamlProtocol;
@@ -897,22 +894,6 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         Document soapBody = Soap.extractSoapMessage(bais);
         response.close();
         return soapBody;
-    }
-
-    private SAML2Object extractNameIdAndSessionIndexAndTerminate(SAML2Object so) {
-        assertThat(so, isSamlResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
-        ResponseType loginResp1 = (ResponseType) so;
-        final AssertionType firstAssertion = loginResp1.getAssertions().get(0).getAssertion();
-        assertThat(firstAssertion, org.hamcrest.Matchers.notNullValue());
-        assertThat(firstAssertion.getSubject().getSubType().getBaseID(), instanceOf(NameIDType.class));
-
-        NameIDType nameId = (NameIDType) firstAssertion.getSubject().getSubType().getBaseID();
-        AuthnStatementType firstAssertionStatement = (AuthnStatementType) firstAssertion.getStatements().iterator().next();
-
-        nameIdRef.set(nameId);
-        sessionIndexRef.set(firstAssertionStatement.getSessionIndex());
-
-        return null;
     }
 
     /************************ IMPORT CLIENT TESTS ************************/

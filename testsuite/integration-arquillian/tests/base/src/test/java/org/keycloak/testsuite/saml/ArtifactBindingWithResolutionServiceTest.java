@@ -3,8 +3,6 @@ package org.keycloak.testsuite.saml;
 import org.apache.http.util.EntityUtils;
 import org.junit.Test;
 import org.keycloak.dom.saml.v2.SAML2Object;
-import org.keycloak.dom.saml.v2.assertion.AssertionType;
-import org.keycloak.dom.saml.v2.assertion.AuthnStatementType;
 import org.keycloak.dom.saml.v2.assertion.NameIDType;
 import org.keycloak.dom.saml.v2.protocol.AuthnRequestType;
 import org.keycloak.dom.saml.v2.protocol.ResponseType;
@@ -25,8 +23,6 @@ import org.keycloak.testsuite.util.SamlClientBuilder;
 import org.keycloak.testsuite.util.saml.CreateArtifactMessageStepBuilder;
 import org.w3c.dom.Document;
 
-import java.util.concurrent.atomic.AtomicReference;
-
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
@@ -35,7 +31,6 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.keycloak.testsuite.util.Matchers.bodyHC;
-import static org.keycloak.testsuite.util.Matchers.isSamlResponse;
 import static org.keycloak.testsuite.util.Matchers.isSamlStatusResponse;
 import static org.keycloak.testsuite.util.Matchers.statusCodeIsHC;
 import static org.keycloak.testsuite.util.SamlClient.Binding.POST;
@@ -43,25 +38,6 @@ import static org.keycloak.testsuite.util.SamlClient.Binding.REDIRECT;
 
 @AuthServerContainerExclude(AuthServerContainerExclude.AuthServer.REMOTE) // Won't work with openshift, because openshift wouldn't see ArtifactResolutionService
 public class ArtifactBindingWithResolutionServiceTest extends AbstractSamlTest {
-
-    private final AtomicReference<NameIDType> nameIdRef = new AtomicReference<>();
-    private final AtomicReference<String> sessionIndexRef = new AtomicReference<>();
-
-    private SAML2Object extractNameIdAndSessionIndexAndTerminate(SAML2Object so) {
-        assertThat(so, isSamlResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
-        ResponseType loginResp1 = (ResponseType) so;
-        final AssertionType firstAssertion = loginResp1.getAssertions().get(0).getAssertion();
-        assertThat(firstAssertion, org.hamcrest.Matchers.notNullValue());
-        assertThat(firstAssertion.getSubject().getSubType().getBaseID(), instanceOf(NameIDType.class));
-
-        NameIDType nameId = (NameIDType) firstAssertion.getSubject().getSubType().getBaseID();
-        AuthnStatementType firstAssertionStatement = (AuthnStatementType) firstAssertion.getStatements().iterator().next();
-
-        nameIdRef.set(nameId);
-        sessionIndexRef.set(firstAssertionStatement.getSessionIndex());
-
-        return null;
-    }
 
     @Test
     public void testReceiveArtifactLoginFullWithPost() throws ParsingException, ConfigurationException, ProcessingException, InterruptedException {
