@@ -107,6 +107,7 @@ import org.keycloak.services.util.CacheControlUtil;
 import org.keycloak.sessions.AuthenticationSessionModel;
 import org.keycloak.sessions.CommonClientSessionModel;
 import org.keycloak.timer.ScheduledTask;
+import org.keycloak.transaction.AsyncResponseTransaction;
 import org.keycloak.utils.MediaType;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -1386,7 +1387,8 @@ public class SamlService extends AuthorizationEndpointBase {
                     ArtifactResponseType art = (ArtifactResponseType) samlDoc.getSamlObject();
 
                     if (art.getAny() == null) {
-                        resumeAfterCompletion(ErrorPage.error(session, null, Response.Status.BAD_REQUEST, Messages.ARTIFACT_RESOLUTION_SERVICE_INVALID_RESPONSE));
+                        AsyncResponseTransaction.finishAsyncResponseInTransaction(session, asyncResponse,
+                                ErrorPage.error(session, null, Response.Status.BAD_REQUEST, Messages.ARTIFACT_RESOLUTION_SERVICE_INVALID_RESPONSE));
                         return;
                     }
 
@@ -1411,11 +1413,13 @@ public class SamlService extends AuthorizationEndpointBase {
                         Document clientMessage = SAML2Request.convert((ResponseType) art.getAny());
                         String response = protocol.encodeSamlDocument(clientMessage);
 
-                        resumeAfterCompletion(protocol.handleSamlResponse(response, relayState));
+                        AsyncResponseTransaction.finishAsyncResponseInTransaction(session, asyncResponse,
+                                protocol.handleSamlResponse(response, relayState));
                     } else if (art.getAny() instanceof RequestAbstractType) {
                         Document clientMessage = SAML2Request.convert((RequestAbstractType) art.getAny());
                         String request = protocol.encodeSamlDocument(clientMessage);
-                        resumeAfterCompletion(protocol.handleSamlRequest(request, relayState));
+                        AsyncResponseTransaction.finishAsyncResponseInTransaction(session, asyncResponse,
+                                protocol.handleSamlRequest(request, relayState));
                     } else {
                         throw new ProcessingException("Cannot recognise message contained in ArtifactResponse");
                     }
@@ -1429,51 +1433,16 @@ public class SamlService extends AuthorizationEndpointBase {
                 event.detail(Details.REASON, e.getMessage());
                 event.error(Errors.IDENTITY_PROVIDER_ERROR);
 
-                resumeAfterCompletion(ErrorPage.error(session, null, Response.Status.INTERNAL_SERVER_ERROR, Messages.ARTIFACT_RESOLUTION_SERVICE_INVALID_RESPONSE));
+                AsyncResponseTransaction.finishAsyncResponseInTransaction(session, asyncResponse,
+                        ErrorPage.error(session, null, Response.Status.INTERNAL_SERVER_ERROR, Messages.ARTIFACT_RESOLUTION_SERVICE_INVALID_RESPONSE));
             } catch(ConfigurationException e) {
                 event.event(EventType.LOGIN);
                 event.detail(Details.REASON, e.getMessage());
                 event.error(Errors.IDENTITY_PROVIDER_ERROR);
-                resumeAfterCompletion(ErrorPage.error(session, null, Response.Status.INTERNAL_SERVER_ERROR, Messages.UNEXPECTED_ERROR_HANDLING_REQUEST));
+                AsyncResponseTransaction.finishAsyncResponseInTransaction(session, asyncResponse,
+                        ErrorPage.error(session, null, Response.Status.INTERNAL_SERVER_ERROR, Messages.UNEXPECTED_ERROR_HANDLING_REQUEST));
             }
         }
-
-        /**
-         * Calling asyncResponse.resume must be done after completion of the transaction. Calling it before the commit 
-         * may result in a client request executed without data created in {@link #run(KeycloakSession)} method
-         *
-         * @param response the response to be returned by asyncResponse
-         */
-        private void resumeAfterCompletion(Object response) {
-            session.getTransactionManager().enlistAfterCompletion(new KeycloakTransaction() {
-                @Override
-                public void begin() {}
-
-                @Override
-                public void commit() {
-                    asyncResponse.resume(response);
-                }
-
-                @Override
-                public void rollback() {
-                    asyncResponse.resume(ErrorPage.error(session, null, Response.Status.INTERNAL_SERVER_ERROR, Messages.INTERNAL_SERVER_ERROR));
-                }
-
-                @Override
-                public void setRollbackOnly() {}
-
-                @Override
-                public boolean getRollbackOnly() {
-                    return false;
-                }
-
-                @Override
-                public boolean isActive() {
-                    return false;
-                }
-            });
-        }
-
     }
 
 }
