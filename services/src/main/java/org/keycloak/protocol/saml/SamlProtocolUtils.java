@@ -19,22 +19,18 @@ package org.keycloak.protocol.saml;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.net.URI;
 import java.security.Key;
 
-import com.google.common.base.Charsets;
 import org.keycloak.common.VerificationException;
 import org.keycloak.common.util.PemUtils;
 import org.keycloak.dom.saml.v2.assertion.NameIDType;
 import org.keycloak.dom.saml.v2.protocol.ArtifactResponseType;
-import org.keycloak.dom.saml.v2.protocol.LogoutRequestType;
-import org.keycloak.dom.saml.v2.protocol.ResponseType;
 import org.keycloak.dom.saml.v2.protocol.StatusCodeType;
 import org.keycloak.dom.saml.v2.protocol.StatusType;
 import org.keycloak.models.ClientModel;
 import org.keycloak.saml.SignatureAlgorithm;
 import org.keycloak.saml.common.constants.GeneralConstants;
-import org.keycloak.saml.common.constants.JBossSAMLConstants;
 import org.keycloak.saml.common.constants.JBossSAMLURIConstants;
 import org.keycloak.saml.common.exceptions.ConfigurationException;
 import org.keycloak.saml.common.exceptions.ParsingException;
@@ -45,14 +41,12 @@ import org.keycloak.saml.processing.api.saml.v2.request.SAML2Request;
 import org.keycloak.saml.processing.api.saml.v2.sig.SAML2Signature;
 import org.keycloak.saml.processing.core.saml.v2.common.IDGenerator;
 import org.keycloak.saml.processing.core.saml.v2.util.XMLTimeUtil;
-import org.keycloak.saml.processing.core.saml.v2.writers.SAMLRequestWriter;
 import org.keycloak.saml.processing.core.saml.v2.writers.SAMLResponseWriter;
 import org.keycloak.saml.processing.web.util.RedirectBindingUtil;
 import org.w3c.dom.Document;
 
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.UriInfo;
-import javax.xml.stream.XMLStreamWriter;
 
 import org.keycloak.dom.saml.v2.SAML2Object;
 import org.keycloak.dom.saml.v2.protocol.ExtensionsType;
@@ -63,18 +57,12 @@ import org.keycloak.rotation.KeyLocator;
 import org.keycloak.saml.processing.core.saml.v2.common.SAMLDocumentHolder;
 import org.keycloak.saml.processing.core.util.KeycloakKeySamlExtensionGenerator;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
-import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.Base64;
 
 import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 
 /**
  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
@@ -234,19 +222,20 @@ public class SamlProtocolUtils {
     /**
      * Takes a saml object (an object that will be part of resulting ArtifactResponse), and inserts it as the body of 
      * an ArtifactResponse. The ArtifactResponse is returned as ArtifactResponseType
-     * 
+     *
      * @param samlObject a Saml object
      * @param issuer issuer of the resulting ArtifactResponse, should be the same as issuer of the samlObject
+     * @param statusCode status code of the resulting response
      * @return An ArtifactResponse containing the saml object.
      */
-    public static ArtifactResponseType buildArtifactResponse(SAML2Object samlObject, NameIDType issuer) throws ConfigurationException, ProcessingException {
+    public static ArtifactResponseType buildArtifactResponse(SAML2Object samlObject, NameIDType issuer, URI statusCode) throws ConfigurationException, ProcessingException {
         ArtifactResponseType artifactResponse = new ArtifactResponseType(IDGenerator.create("ID_"),
                 XMLTimeUtil.getIssueInstant());
 
         // Status
         StatusType statusType = new StatusType();
         StatusCodeType statusCodeType = new StatusCodeType();
-        statusCodeType.setValue(JBossSAMLURIConstants.STATUS_SUCCESS.getUri());
+        statusCodeType.setValue(statusCode);
         statusType.setStatusCode(statusCodeType);
 
         artifactResponse.setStatus(statusType);
@@ -254,6 +243,18 @@ public class SamlProtocolUtils {
         artifactResponse.setAny(samlObject);
 
         return artifactResponse;
+    }
+
+    /**
+     * Takes a saml object (an object that will be part of resulting ArtifactResponse), and inserts it as the body of 
+     * an ArtifactResponse. The ArtifactResponse is returned as ArtifactResponseType
+     * 
+     * @param samlObject a Saml object
+     * @param issuer issuer of the resulting ArtifactResponse, should be the same as issuer of the samlObject
+     * @return An ArtifactResponse containing the saml object.
+     */
+    public static ArtifactResponseType buildArtifactResponse(SAML2Object samlObject, NameIDType issuer) throws ConfigurationException, ProcessingException {
+        return buildArtifactResponse(samlObject, issuer, JBossSAMLURIConstants.STATUS_SUCCESS.getUri());
     }
 
     /**

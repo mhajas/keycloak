@@ -12,6 +12,7 @@ import org.keycloak.common.util.KeyUtils;
 import org.keycloak.dom.saml.v2.assertion.NameIDType;
 import org.keycloak.dom.saml.v2.protocol.ArtifactResolveType;
 import org.keycloak.models.SamlArtifactSessionMappingStoreProvider;
+import org.keycloak.protocol.saml.SamlService;
 import org.keycloak.protocol.saml.profile.util.Soap;
 import org.keycloak.saml.BaseSAML2BindingBuilder;
 import org.keycloak.saml.SignatureAlgorithm;
@@ -24,6 +25,7 @@ import org.keycloak.saml.processing.core.saml.v2.writers.SAMLRequestWriter;
 import org.keycloak.testsuite.util.SamlClientBuilder;
 import org.w3c.dom.Document;
 
+import javax.ws.rs.core.UriBuilder;
 import javax.xml.stream.XMLStreamWriter;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -71,7 +73,7 @@ public class HandleArtifactStepBuilder extends SamlDocumentStepBuilder<ArtifactR
     public HandleArtifactStepBuilder(URI authServerSamlUrl, String issuer, SamlClientBuilder clientBuilder) {
         super(clientBuilder);
         this.issuer = issuer;
-        this.authServerSamlUrl = authServerSamlUrl;
+        this.authServerSamlUrl = authServerSamlUrl.toString().endsWith(SamlService.ARTIFACT_RESOLUTION_SERVICE_PATH) ? authServerSamlUrl : UriBuilder.fromUri(authServerSamlUrl).path(SamlService.ARTIFACT_RESOLUTION_SERVICE_PATH).build();
         verifyRedirect = false;
     }
 

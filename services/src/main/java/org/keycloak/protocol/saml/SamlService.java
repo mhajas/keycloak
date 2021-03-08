@@ -154,6 +154,7 @@ import static org.keycloak.common.util.StackUtil.getShortStackTrace;
 public class SamlService extends AuthorizationEndpointBase {
 
     protected static final Logger logger = Logger.getLogger(SamlService.class);
+    public static final String ARTIFACT_RESOLUTION_SERVICE_PATH = "resolve";
 
     private final DestinationValidator destinationValidator;
 
@@ -855,7 +856,8 @@ public class SamlService extends AuthorizationEndpointBase {
                 RealmsResource.protocolUrl(uriInfo).build(realm.getName(), SamlProtocol.LOGIN_PROTOCOL),
                 RealmsResource.protocolUrl(uriInfo).build(realm.getName(), SamlProtocol.LOGIN_PROTOCOL),
                 RealmsResource.protocolUrl(uriInfo).build(realm.getName(), SamlProtocol.LOGIN_PROTOCOL),
-                RealmsResource.protocolUrl(uriInfo).build(realm.getName(), SamlProtocol.LOGIN_PROTOCOL),
+                RealmsResource.protocolUrl(uriInfo).path(SamlService.ARTIFACT_RESOLUTION_SERVICE_PATH)
+                        .build(realm.getName(), SamlProtocol.LOGIN_PROTOCOL),
                 RealmsResource.realmBaseUrl(uriInfo).build(realm.getName()).toString(),
                 true, 
                 signingKeys);
@@ -1009,9 +1011,59 @@ public class SamlService extends AuthorizationEndpointBase {
         return authSession;
     }
 
-
     /**
      * Handles SOAP messages. Chooses the correct response path depending on whether the message is of type ECP or Artifact
+     * @param inputStream the data of the request.
+     * @return The response to the SOAP message
+     */
+    @POST
+    @Path(ARTIFACT_RESOLUTION_SERVICE_PATH)
+    @NoCache
+    @Consumes({"application/soap+xml", MediaType.TEXT_XML})
+    public Response artifactResolutionService(InputStream inputStream) {
+        Document soapBodyContents = Soap.extractSoapMessage(inputStream);
+        ArtifactResolveType artifactResolveType = null;
+        SAMLDocumentHolder samlDocumentHolder = null;
+        try {
+            samlDocumentHolder = SAML2Request.getSAML2ObjectFromDocument(soapBodyContents);
+            if (samlDocumentHolder.getSamlObject() instanceof ArtifactResolveType) {
+                logger.debug("Received artifact resolve message");
+                artifactResolveType = (ArtifactResolveType)samlDocumentHolder.getSamlObject();
+            }
+        } catch (Exception e) {
+            logger.errorf("Artifact resolution endpoint obtained request that contained no " +
+                    "ArtifactResolve message: %s", DocumentUtil.asString(soapBodyContents));
+            return Soap.createFault().reason("").detail("").build();
+        }
+
+        if (artifactResolveType == null) {
+            logger.errorf("Artifact resolution endpoint obtained request that contained no " +
+                    "ArtifactResolve message: %s", DocumentUtil.asString(soapBodyContents));
+            return Soap.createFault().reason("").detail("").build();
+        }
+        
+        try {
+            return artifactResolve(artifactResolveType, samlDocumentHolder);
+        } catch (Exception e) {
+            try {
+                return emptyArtifactResponseMessage(artifactResolveType, null, JBossSAMLURIConstants.STATUS_REQUEST_DENIED.getUri());
+            } catch (ConfigurationException | ProcessingException configurationException) {
+                String reason = "An error occurred while trying to return the artifactResponse";
+                String detail = e.getMessage();
+
+                if (detail == null) {
+                    detail = "";
+                }
+
+                logger.errorf("Failure during ArtifactResolve reason: %s, detail: %s", reason, detail);
+                return Soap.createFault().reason(reason).detail(detail).build();
+            }
+        }
+    }
+
+
+    /**
+     * Handles SOAP messages. Chooses the correct response path depending on whether the message is of type ECP
      * @param inputStream the data of the request.
      * @return The response to the SOAP message
      */
@@ -1019,31 +1071,11 @@ public class SamlService extends AuthorizationEndpointBase {
     @NoCache
     @Consumes({"application/soap+xml",MediaType.TEXT_XML})
     public Response soapBinding(InputStream inputStream) {
-        Document soapBodyContents = Soap.extractSoapMessage(inputStream);
-        try {
-            SAMLDocumentHolder samlDoc = SAML2Request.getSAML2ObjectFromDocument(soapBodyContents);
-            if (samlDoc.getSamlObject() instanceof ArtifactResolveType) {
-                logger.debug("Received artifact resolve message");
-                ArtifactResolveType art = (ArtifactResolveType)samlDoc.getSamlObject();
-                return artifactResolve(art, samlDoc);
-            }
-        } catch (Exception e) {
-            String reason = "An error occurred while trying to return the artifactResponse";
-            String detail = e.getMessage();
-
-            if (detail == null) {
-                detail = "";
-            }
-
-            logger.error(reason + ": " + detail);
-            return Soap.createFault().reason(reason).detail(detail).build();
-        }
-
         SamlEcpProfileService bindingService = new SamlEcpProfileService(realm, event, destinationValidator);
 
         ResteasyProviderFactory.getInstance().injectProperties(bindingService);
 
-        return bindingService.authenticate(soapBodyContents);
+        return bindingService.authenticate(inputStream);
     }
 
     private ClientModel getAndCheckClientModel(String clientSessionId, String clientId) throws ProcessingException {
@@ -1092,14 +1124,14 @@ public class SamlService extends AuthorizationEndpointBase {
         String artifact = artifactResolveMessage.getArtifact(); // Artifact from resolve request
         if (artifact == null) {
             logger.errorf("Artifact to resolve was null");
-            throw new ProcessingException(Errors.INVALID_SAML_ARTIFACT);
+            return emptyArtifactResponseMessage(artifactResolveMessage, null, JBossSAMLURIConstants.STATUS_REQUEST_DENIED.getUri());
         }
         
         ArtifactResolver artifactResolver = getArtifactResolver(artifact);
 
         if (artifactResolver == null) {
             logger.errorf("Cannot find ArtifactResolver for artifact %s", artifact);
-            throw new ProcessingException(Errors.INVALID_SAML_ARTIFACT);
+            return emptyArtifactResponseMessage(artifactResolveMessage, null, JBossSAMLURIConstants.STATUS_REQUEST_DENIED.getUri());
         }
 
         // Obtain details of session that issued artifact and check if it corresponds to issuer of Resolve message
@@ -1177,9 +1209,12 @@ public class SamlService extends AuthorizationEndpointBase {
     }
     
     private Response emptyArtifactResponseMessage(ArtifactResolveType artifactResolveMessage, ClientModel clientModel) throws ProcessingException, ConfigurationException {
-        ArtifactResponseType artifactResponse = SamlProtocolUtils.buildArtifactResponse(null, SAML2NameIDBuilder.value(
-                RealmsResource.realmBaseUrl(session.getContext().getUri()).build(realm.getName()).toString()).build());
+        return emptyArtifactResponseMessage(artifactResolveMessage, clientModel, JBossSAMLURIConstants.STATUS_SUCCESS.getUri());
+    }
 
+    private Response emptyArtifactResponseMessage(ArtifactResolveType artifactResolveMessage, ClientModel clientModel, URI responseStatusCode) throws ProcessingException, ConfigurationException {
+        ArtifactResponseType artifactResponse = SamlProtocolUtils.buildArtifactResponse(null, SAML2NameIDBuilder.value(
+                RealmsResource.realmBaseUrl(session.getContext().getUri()).build(realm.getName()).toString()).build(), responseStatusCode);
 
         Document artifactResponseDocument;
         try {

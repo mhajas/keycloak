@@ -312,7 +312,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
                 .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST2) // Wrong issuer
                 .storeArtifact(artifact)
                 .build()
-                .assertResponse(r -> assertThat(r, bodyHC(containsString("invalid_artifact"))))
+                .assertResponse(r -> assertThat(r, bodyHC(containsString(JBossSAMLURIConstants.STATUS_REQUEST_DENIED.get()))))
 
                 .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST)
                 .useArtifact(artifact)
@@ -650,9 +650,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
                 .setProtocolBinding(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.getUri()).build()
                 .login().user(bburkeUser).build()
                 .handleArtifact(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST2).build() // Wrong issuer
-                .execute(r -> {
-                    assertThat(r, bodyHC(containsString(Errors.INVALID_SAML_ARTIFACT)));
-                });
+                .execute(r -> assertThat(r, bodyHC(containsString(JBossSAMLURIConstants.STATUS_REQUEST_DENIED.get()))));
     }
 
     @AuthServerContainerExclude(AuthServerContainerExclude.AuthServer.REMOTE) // Won't work with openshift, because openshift wouldn't see ArtifactResolutionService
