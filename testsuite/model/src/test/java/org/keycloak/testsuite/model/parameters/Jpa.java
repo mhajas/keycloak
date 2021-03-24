@@ -25,6 +25,8 @@ import org.keycloak.connections.jpa.updater.liquibase.conn.LiquibaseConnectionPr
 import org.keycloak.connections.jpa.updater.liquibase.conn.LiquibaseConnectionSpi;
 import org.keycloak.connections.jpa.updater.liquibase.lock.LiquibaseDBLockProviderFactory;
 import org.keycloak.events.jpa.JpaEventStoreProviderFactory;
+import org.keycloak.models.map.storage.MapStorageSpi;
+import org.keycloak.models.map.user.MapUserProviderFactory;
 import org.keycloak.testsuite.model.KeycloakModelParameters;
 import org.keycloak.models.dblock.DBLockSpi;
 import org.keycloak.models.jpa.JpaClientProviderFactory;
@@ -47,6 +49,7 @@ public class Jpa extends KeycloakModelParameters {
 
     static final Set<Class<? extends Spi>> ALLOWED_SPIS = ImmutableSet.<Class<? extends Spi>>builder()
       // jpa-specific
+        .add(MapStorageSpi.class)
       .add(DBLockSpi.class)
       .add(JpaConnectionSpi.class)
       .add(JpaUpdaterSpi.class)
@@ -65,7 +68,7 @@ public class Jpa extends KeycloakModelParameters {
       .add(JpaRealmProviderFactory.class)
       .add(JpaRoleProviderFactory.class)
       .add(JpaUpdaterProviderFactory.class)
-      .add(JpaUserProviderFactory.class)
+      .add(MapUserProviderFactory.class)
       .add(LiquibaseConnectionProviderFactory.class)
       .add(LiquibaseDBLockProviderFactory.class)
       .build();

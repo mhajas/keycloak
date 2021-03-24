@@ -18,11 +18,12 @@
 package org.keycloak.models.map.user;
 
 import org.keycloak.credential.CredentialModel;
+import org.keycloak.models.map.common.UpdatableEntity;
 import org.keycloak.models.utils.KeycloakModelUtils;
 
 import java.util.Objects;
 
-public class UserCredentialEntity {
+public class UserCredentialEntity implements UpdatableEntity {
 
     private String id;
     private String type;

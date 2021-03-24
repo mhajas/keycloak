@@ -18,6 +18,7 @@ package org.keycloak.testsuite.model;
 
 import org.keycloak.component.ComponentModel;
 import org.keycloak.models.Constants;
+import org.keycloak.models.FederatedIdentityModel;
 import org.keycloak.models.GroupModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
@@ -266,6 +267,34 @@ public class UserModelTest extends KeycloakModelTest {
             assertThat(session.users().getGroupMembersStream(realm, group).collect(Collectors.toList()), Matchers.empty());
             return null;
         });
+    }
+
+    // This test is just for check, should not be commited to keycloak as it requires manual tests
+    // To check if it works correctly:
+    // 1. Add breakpoint to MapKeycloakTransaction on line 197: if (shouldPut.test(getValue())) {
+    // 2. run this test with: -Dkeycloak.model.parameters=Jpa,ConcurrentHashMapStorage (Jpa parameters are updated to use MapUserProvider instead of Jpa)
+    // 3. In second inComittedTransaction shouldPut should return false, however in upstream it always returns true because FederatedIdentityModel has hardcoded updated=true and serialization doesn't change it to false as it works only for AbstractEntity
+    @Test
+    public void testMapTransaction() {
+        inComittedTransaction(1, (session, i) -> {
+            final RealmModel realm = session.realms().getRealm(realmId);
+            final UserModel user = session.users().addUser(realm, "user-A");
+
+            FederatedIdentityModel usm = new FederatedIdentityModel("a", "b", "c");
+
+            session.users().addFederatedIdentity(realm, user, usm);
+            
+            return user; // No idea why is necessary but it doesn't matter now
+        });
+
+        inComittedTransaction(1, (session, i) -> {
+            final RealmModel realm = session.realms().getRealm(realmId);
+            final UserModel user = session.users().getUserByUsername(realm, "user-A");
+            
+            return user; // No idea why is necessary but it doesn't matter now
+        });
+
+
     }
 
     private void registerUserFederationWithRealm() {

@@ -194,7 +194,7 @@ public class MapKeycloakTransaction<K, V extends AbstractEntity<K>, M> implement
         MapTaskWithValue op = new MapTaskWithValue(value) {
             @Override
             public void execute() {
-                if (shouldPut.test(getValue())) {
+                 if (shouldPut.test(getValue())) {
                     map.update(key, getValue());
                 }
             }
