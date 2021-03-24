@@ -33,16 +33,19 @@ import org.keycloak.models.UserProvider;
 import org.keycloak.models.UserSessionModel;
 import org.keycloak.models.UserSessionProvider;
 import org.keycloak.models.UserSessionProviderFactory;
+import org.keycloak.models.map.userSession.MapUserSessionAdapter;
 import org.keycloak.models.map.userSession.MapUserSessionProvider;
 import org.keycloak.models.session.UserSessionPersisterProvider;
 import org.keycloak.models.sessions.infinispan.InfinispanUserSessionProvider;
 import org.keycloak.services.managers.UserSessionManager;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -127,6 +130,24 @@ public class UserSessionInitializerTest extends KeycloakModelTest {
             assertSessionLoaded(loadedSessions, origSessions[0].getId(), session.users().getUserByUsername(realm, "user1"), "127.0.0.1", started, started, "test-app", "third-party");
             assertSessionLoaded(loadedSessions, origSessions[1].getId(), session.users().getUserByUsername(realm, "user1"), "127.0.0.2", started, started, "test-app");
             assertSessionLoaded(loadedSessions, origSessions[2].getId(), session.users().getUserByUsername(realm, "user2"), "127.0.0.3", started, started, "test-app");
+        });
+    }
+
+    @Test
+    public void testModelCriteriaBuilder() {
+        UUID uuid = UUID.randomUUID();
+        
+        inComittedTransaction(1, (session, i) -> {
+            RealmModel realm = session.realms().getRealm(realmId);
+            MapUserSessionAdapter s = (MapUserSessionAdapter) session.sessions().createUserSession(realm, session.users().getUserByUsername(realm, "user1"), "user1", "127.0.0.1", "form", true, null, null);
+
+            s.setCorrespondingSessionId(uuid);
+        });
+
+        inComittedTransaction(1, (session, i) -> {
+            RealmModel realm = session.realms().getRealm(realmId);
+            UserSessionModel s = session.sessions().getUserSession(realm, uuid.toString());
+            assertNotNull(s);
         });
     }
 

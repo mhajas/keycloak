@@ -22,6 +22,8 @@ import org.keycloak.connections.infinispan.InfinispanConnectionSpi;
 import org.keycloak.models.UserSessionProvider;
 import org.keycloak.models.UserSessionProviderFactory;
 import org.keycloak.models.UserSessionSpi;
+import org.keycloak.models.map.storage.MapStorageSpi;
+import org.keycloak.models.map.userSession.MapUserSessionProviderFactory;
 import org.keycloak.models.session.UserSessionPersisterSpi;
 import org.keycloak.models.sessions.infinispan.InfinispanUserSessionProviderFactory;
 import org.keycloak.sessions.StickySessionEncoderProviderFactory;
@@ -54,6 +56,7 @@ public class Infinispan extends KeycloakModelParameters {
       .add(StickySessionEncoderSpi.class)
       .add(TimerSpi.class)
       .add(UserSessionPersisterSpi.class)
+            .add(MapStorageSpi.class)
 
       .build();
 
@@ -62,7 +65,7 @@ public class Infinispan extends KeycloakModelParameters {
       .add(InfinispanClusterProviderFactory.class)
       .add(InfinispanConnectionProviderFactory.class)
       .add(InfinispanUserCacheProviderFactory.class)
-      .add(InfinispanUserSessionProviderFactory.class)
+      .add(MapUserSessionProviderFactory.class)
       .add(StickySessionEncoderProviderFactory.class)
       .add(TimerProviderFactory.class)
       .build();

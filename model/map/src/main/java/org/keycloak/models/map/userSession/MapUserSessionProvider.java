@@ -229,28 +229,17 @@ public class MapUserSessionProvider implements UserSessionProvider {
         }
 
         // TODO examine why this is not working
-        /*ModelCriteriaBuilder<UserSessionModel> mcb = realmAndOfflineCriteriaBuilder(realm, false)
+        ModelCriteriaBuilder<UserSessionModel> mcb = realmAndOfflineCriteriaBuilder(realm, false)
                 .and(userSessionStore.createCriteriaBuilder().or(
                             userSessionStore.createCriteriaBuilder().compare(UserSessionModel.SearchableFields.ID, ModelCriteriaBuilder.Operator.EQ, uuid),
                             userSessionStore.createCriteriaBuilder().compare(UserSessionModel.SearchableFields.CORRESPONDING_SESSION_ID, ModelCriteriaBuilder.Operator.EQ, uuid))
-                );*/
-        ModelCriteriaBuilder<UserSessionModel> mcb = realmAndOfflineCriteriaBuilder(realm, false)
-                .compare(UserSessionModel.SearchableFields.ID, ModelCriteriaBuilder.Operator.EQ, uuid);
+                );
 
-        Optional<UserSessionModel> userSessionModel = userSessionTx.getUpdatedNotRemoved(mcb)
+
+        return userSessionTx.getUpdatedNotRemoved(mcb)
                 .map(userEntityToAdapterFunc(realm))
-                .findFirst();
-
-        if (!userSessionModel.isPresent()) {
-            mcb = realmAndOfflineCriteriaBuilder(realm, false)
-                    .compare(UserSessionModel.SearchableFields.CORRESPONDING_SESSION_ID, ModelCriteriaBuilder.Operator.EQ, uuid);
-            return userSessionTx.getUpdatedNotRemoved(mcb)
-                    .map(userEntityToAdapterFunc(realm))
-                    .findFirst()
-                    .orElse(null);
-        }
-
-        return userSessionModel.get();
+                 .findFirst()
+                .orElse(null);
     }
 
     @Override
