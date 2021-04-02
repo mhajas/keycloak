@@ -178,6 +178,12 @@ declare namespace Keycloak {
 		 * @default false
 		 */
 		enableLogging?: boolean
+
+		/**
+		 * Configures how log will Keycloak adapter wait for receiving messages from server in ms
+		 * @default 5000
+		 */
+		messageReceiveTimeout?: number
 	}
 
 	interface KeycloakLoginOptions {
