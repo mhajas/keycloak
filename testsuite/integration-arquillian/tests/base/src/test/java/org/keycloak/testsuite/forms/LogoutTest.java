@@ -54,7 +54,6 @@ import org.keycloak.testsuite.auth.page.account.AccountManagement;
 import org.keycloak.testsuite.updaters.ClientAttributeUpdater;
 import org.keycloak.testsuite.updaters.RealmAttributeUpdater;
 import org.keycloak.testsuite.util.ClientManager;
-import org.keycloak.testsuite.util.InfinispanTestTimeServiceRule;
 import org.keycloak.testsuite.util.OAuthClient;
 import org.keycloak.testsuite.util.ServerURLs;
 import org.keycloak.testsuite.util.WaitUtils;
@@ -67,9 +66,6 @@ public class LogoutTest extends AbstractTestRealmKeycloakTest {
 
     @Rule
     public AssertEvents events = new AssertEvents(this);
-
-    @Rule
-    public InfinispanTestTimeServiceRule ispnTestTimeService = new InfinispanTestTimeServiceRule(this);
 
     @Page
     protected AppPage appPage;

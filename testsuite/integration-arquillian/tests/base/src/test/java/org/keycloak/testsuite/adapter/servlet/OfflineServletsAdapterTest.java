@@ -20,7 +20,6 @@ import org.keycloak.testsuite.adapter.page.OfflineToken;
 import org.keycloak.testsuite.arquillian.annotation.AppServerContainer;
 import org.keycloak.testsuite.arquillian.annotation.DisableFeature;
 import org.keycloak.testsuite.updaters.ClientAttributeUpdater;
-import org.keycloak.testsuite.util.InfinispanTestTimeServiceRule;
 import org.keycloak.testsuite.util.WaitUtils;
 import org.keycloak.testsuite.utils.arquillian.ContainerConstants;
 import org.keycloak.testsuite.pages.AccountApplicationsPage;
@@ -68,9 +67,6 @@ public class OfflineServletsAdapterTest extends AbstractServletsAdapterTest {
     protected AccountApplicationsPage accountAppPage;
     @Page
     protected OAuthGrantPage oauthGrantPage;
-
-    @Rule
-    public InfinispanTestTimeServiceRule ispnTestTimeService = new InfinispanTestTimeServiceRule(this);
 
     private final String DEFAULT_USERNAME = "test-user@localhost";
     private final String DEFAULT_PASSWORD = "password";

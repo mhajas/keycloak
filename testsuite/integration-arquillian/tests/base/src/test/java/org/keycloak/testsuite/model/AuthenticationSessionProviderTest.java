@@ -19,7 +19,6 @@ package org.keycloak.testsuite.model;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.keycloak.common.util.Time;
 import org.keycloak.models.ClientModel;
@@ -46,7 +45,6 @@ import static org.hamcrest.core.IsNull.notNullValue;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.Assert.assertThat;
 import org.keycloak.models.Constants;
-import org.keycloak.testsuite.util.InfinispanTestTimeServiceRule;
 
 import static org.keycloak.testsuite.arquillian.annotation.AuthServerContainerExclude.AuthServer.REMOTE;
 
@@ -55,9 +53,6 @@ import static org.keycloak.testsuite.arquillian.annotation.AuthServerContainerEx
  */
 @AuthServerContainerExclude(REMOTE)
 public class AuthenticationSessionProviderTest extends AbstractTestRealmKeycloakTest {
-
-    @Rule
-    public InfinispanTestTimeServiceRule ispnTestTimeService = new InfinispanTestTimeServiceRule(this);
 
     @Before
     public void before() {

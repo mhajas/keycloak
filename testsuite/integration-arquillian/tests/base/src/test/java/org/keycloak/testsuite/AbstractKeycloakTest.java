@@ -26,6 +26,7 @@ import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.logging.Logger;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.runner.RunWith;
 import org.junit.runners.model.TestTimedOutException;
 import org.keycloak.admin.client.Keycloak;
@@ -57,6 +58,7 @@ import org.keycloak.testsuite.auth.page.login.UpdatePassword;
 import org.keycloak.testsuite.client.KeycloakTestingClient;
 import org.keycloak.testsuite.pages.LoginPasswordUpdatePage;
 import org.keycloak.testsuite.util.DroneUtils;
+import org.keycloak.testsuite.util.InfinispanTestTimeServiceRule;
 import org.keycloak.testsuite.util.OAuthClient;
 import org.keycloak.testsuite.util.TestCleanup;
 import org.keycloak.testsuite.util.TestEventsLogger;
@@ -145,6 +147,9 @@ public abstract class AbstractKeycloakTest {
 
     @Page
     protected WelcomePage welcomePage;
+
+    @Rule
+    public InfinispanTestTimeServiceRule ispnTestTimeService = new InfinispanTestTimeServiceRule(this);
 
     private PropertiesConfiguration constantsProperties;
 

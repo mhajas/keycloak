@@ -33,7 +33,6 @@ import org.keycloak.sessions.CommonClientSessionModel;
 import org.keycloak.testsuite.arquillian.annotation.AuthServerContainerExclude;
 import org.keycloak.testsuite.updaters.ClientAttributeUpdater;
 import org.keycloak.testsuite.updaters.RealmAttributeUpdater;
-import org.keycloak.testsuite.util.InfinispanTestTimeServiceRule;
 import org.keycloak.testsuite.util.SamlClient;
 import org.keycloak.testsuite.util.SamlClientBuilder;
 import org.keycloak.testsuite.util.SamlUtils;
@@ -78,9 +77,6 @@ import static org.keycloak.testsuite.util.SamlClient.Binding.REDIRECT;
 import static org.keycloak.testsuite.util.SamlUtils.getSPInstallationDescriptor;
 
 public class ArtifactBindingTest extends AbstractSamlTest {
-
-    @Rule
-    public InfinispanTestTimeServiceRule ispnTestTimeService = new InfinispanTestTimeServiceRule(this);
 
     /************************ LOGIN TESTS ************************/
 
