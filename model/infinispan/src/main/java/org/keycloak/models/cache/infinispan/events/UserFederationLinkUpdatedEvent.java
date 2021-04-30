@@ -56,20 +56,6 @@ public class UserFederationLinkUpdatedEvent extends InvalidationEvent implements
         userCache.federatedIdentityLinkUpdatedInvalidation(userId, invalidations);
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
-        UserFederationLinkUpdatedEvent that = (UserFederationLinkUpdatedEvent) o;
-        return Objects.equals(userId, that.userId);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(super.hashCode(), userId);
-    }
-
     public static class ExternalizerImpl implements Externalizer<UserFederationLinkUpdatedEvent> {
 
         private static final int VERSION_1 = 1;

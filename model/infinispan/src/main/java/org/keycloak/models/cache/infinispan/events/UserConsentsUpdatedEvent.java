@@ -57,20 +57,6 @@ public class UserConsentsUpdatedEvent extends InvalidationEvent implements UserC
         userCache.consentInvalidation(userId, invalidations);
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
-        UserConsentsUpdatedEvent that = (UserConsentsUpdatedEvent) o;
-        return Objects.equals(userId, that.userId);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(super.hashCode(), userId);
-    }
-
     public static class ExternalizerImpl implements Externalizer<UserConsentsUpdatedEvent> {
 
         private static final int VERSION_1 = 1;

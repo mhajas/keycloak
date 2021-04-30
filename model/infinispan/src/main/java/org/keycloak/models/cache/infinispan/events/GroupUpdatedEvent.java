@@ -58,20 +58,6 @@ public class GroupUpdatedEvent extends InvalidationEvent implements RealmCacheIn
         // Nothing. ID already invalidated
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
-        GroupUpdatedEvent that = (GroupUpdatedEvent) o;
-        return Objects.equals(groupId, that.groupId);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(super.hashCode(), groupId);
-    }
-
     public static class ExternalizerImpl implements Externalizer<GroupUpdatedEvent> {
 
         private static final int VERSION_1 = 1;
