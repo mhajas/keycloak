@@ -31,6 +31,8 @@ import org.keycloak.models.map.storage.MapKeycloakTransaction;
 import org.keycloak.models.map.storage.MapModelCriteriaBuilder;
 import org.keycloak.models.map.storage.MapStorage;
 import org.keycloak.models.map.storage.ModelCriteriaBuilder;
+import org.keycloak.models.map.storage.QueryParameters;
+import org.keycloak.utils.StreamsUtil;
 
 public class ConcurrentHashMapKeycloakTransaction<K, V extends AbstractEntity<K>, M> implements MapKeycloakTransaction<K, V, M> {
 
@@ -138,7 +140,7 @@ public class ConcurrentHashMapKeycloakTransaction<K, V extends AbstractEntity<K>
      * @return
      */
     @Override
-    public Stream<V> read(ModelCriteriaBuilder<M> mcb) {
+    public Stream<V> read(ModelCriteriaBuilder<M> mcb, QueryParameters<M> queryParameters) {
         Predicate<? super V> filterOutAllBulkDeletedObjects = tasks.values().stream()
           .filter(BulkDeleteOperation.class::isInstance)
           .map(BulkDeleteOperation.class::cast)
@@ -160,12 +162,16 @@ public class ConcurrentHashMapKeycloakTransaction<K, V extends AbstractEntity<K>
               updatedAndNotRemovedObjectsStream
             );
 
+        if (mapMcb != null && queryParameters != null) {
+            res = StreamsUtil.paginatedStream(res.sorted(mapMcb.getComparator(queryParameters.getOrderByField(), queryParameters.getOrder())), queryParameters.getFirstResult(), queryParameters.getMaxResults());
+        }
+
         return res;
     }
 
     @Override
-    public long getCount(ModelCriteriaBuilder<M> mcb) {
-        return read(mcb).count();
+    public long getCount(ModelCriteriaBuilder<M> mcb, QueryParameters<M> queryParameters) {
+        return read(mcb, queryParameters).count();
     }
 
     @Override
@@ -208,7 +214,7 @@ public class ConcurrentHashMapKeycloakTransaction<K, V extends AbstractEntity<K>
 
 
     @Override
-    public long delete(K artificialKey, ModelCriteriaBuilder<M> mcb) {
+    public long delete(K artificialKey, ModelCriteriaBuilder<M> mcb, QueryParameters<M> queryParameters) {
         log.tracef("Adding operation DELETE_BULK");
 
         // Remove all tasks that create / update / delete objects deleted by the bulk removal.

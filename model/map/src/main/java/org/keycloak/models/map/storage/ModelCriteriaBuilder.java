@@ -105,6 +105,11 @@ public interface ModelCriteriaBuilder<M> {
         NOT_EXISTS,
     }
 
+    enum Order {
+        ASCENDING,
+        DESCENDING
+    }
+
     /**
      * Adds a constraint for the given model field to this criteria builder
      * and returns a criteria builder that is combined with the the new constraint.

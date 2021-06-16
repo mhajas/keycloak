@@ -23,13 +23,13 @@ import org.keycloak.models.map.common.AbstractEntity;
 import org.keycloak.models.map.storage.MapFieldPredicates;
 import org.keycloak.models.map.storage.MapStorage;
 import org.keycloak.models.map.storage.ModelCriteriaBuilder;
+import org.keycloak.models.map.storage.QueryParameters;
 import org.keycloak.storage.SearchableModelField;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Stream;
-import org.keycloak.models.map.storage.MapModelCriteriaBuilder.UpdatePredicatesFunc;
 import org.keycloak.models.map.storage.StringKeyConvertor;
 import java.util.Iterator;
 import java.util.Objects;
@@ -43,11 +43,13 @@ public class ConcurrentHashMapStorage<K, V extends AbstractEntity<K>, M> impleme
 
     private final ConcurrentMap<K, V> store = new ConcurrentHashMap<>();
 
-    private final Map<SearchableModelField<M>, UpdatePredicatesFunc<K, V, M>> fieldPredicates;
+    private final Class<M> modelClass;
+    private final Map<SearchableModelField<M>, MapModelCriteriaBuilder.FieldHandlers<K, V, M>> fieldPredicates;
     private final StringKeyConvertor<K> keyConvertor;
 
     @SuppressWarnings("unchecked")
     public ConcurrentHashMapStorage(Class<M> modelClass, StringKeyConvertor<K> keyConvertor) {
+        this.modelClass = modelClass;
         this.fieldPredicates = MapFieldPredicates.getPredicates(modelClass);
         this.keyConvertor = keyConvertor;
     }
@@ -74,7 +76,7 @@ public class ConcurrentHashMapStorage<K, V extends AbstractEntity<K>, M> impleme
     }
 
     @Override
-    public long delete(ModelCriteriaBuilder<M> criteria) {
+    public long delete(ModelCriteriaBuilder<M> criteria, QueryParameters<M> queryParameters) {
         long res;
         if (criteria == null) {
             res = store.size();
@@ -105,6 +107,11 @@ public class ConcurrentHashMapStorage<K, V extends AbstractEntity<K>, M> impleme
     }
 
     @Override
+    public QueryParameters.Builder<M> createQueryParametersBuilder() {
+        return QueryParameters.Builder.create(modelClass);
+    }
+
+    @Override
     @SuppressWarnings("unchecked")
     public MapKeycloakTransaction<K, V, M> createTransaction(KeycloakSession session) {
         MapKeycloakTransaction<K, V, M> sessionTransaction = session.getAttribute("map-transaction-" + hashCode(), MapKeycloakTransaction.class);
@@ -117,7 +124,7 @@ public class ConcurrentHashMapStorage<K, V extends AbstractEntity<K>, M> impleme
     }
 
     @Override
-    public Stream<V> read(ModelCriteriaBuilder<M> criteria) {
+    public Stream<V> read(ModelCriteriaBuilder<M> criteria, QueryParameters<M> queryParameters) {
         if (criteria == null) {
             return Stream.empty();
         }
@@ -135,7 +142,7 @@ public class ConcurrentHashMapStorage<K, V extends AbstractEntity<K>, M> impleme
     }
 
     @Override
-    public long getCount(ModelCriteriaBuilder<M> criteria) {
+    public long getCount(ModelCriteriaBuilder<M> criteria, QueryParameters<M> queryParameters) {
         return read(criteria).count();
     }
 

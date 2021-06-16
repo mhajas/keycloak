@@ -18,6 +18,8 @@ package org.keycloak.models.map.storage;
 
 import org.keycloak.models.map.common.AbstractEntity;
 import org.keycloak.storage.SearchableModelField;
+
+import java.util.Comparator;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -34,17 +36,39 @@ public class MapModelCriteriaBuilder<K, V extends AbstractEntity<K>, M> implemen
         MapModelCriteriaBuilder<K, V, M> apply(MapModelCriteriaBuilder<K, V, M> builder, Operator op, Object[] params);
     }
 
+    public static class FieldHandlers<K, V extends AbstractEntity<K>, M> {
+        private final UpdatePredicatesFunc<K, V, M> updatePredicatesFunc;
+        private final Comparator<V> oderByComparator;
+
+        public FieldHandlers(UpdatePredicatesFunc<K, V, M> updatePredicatesFunc) {
+            this(updatePredicatesFunc, null);
+        }
+
+        public FieldHandlers(UpdatePredicatesFunc<K, V, M> updatePredicatesFunc, Comparator<V> oderByComparator) {
+            this.updatePredicatesFunc = updatePredicatesFunc;
+            this.oderByComparator = oderByComparator;
+        }
+
+        public UpdatePredicatesFunc<K, V, M> getUpdatePredicatesFunc() {
+            return updatePredicatesFunc;
+        }
+
+        public Comparator<V> getOderByComparator() {
+            return oderByComparator;
+        }
+    }
+
     private static final Predicate<Object> ALWAYS_TRUE = (e) -> true;
     private static final Predicate<Object> ALWAYS_FALSE = (e) -> false;
     private final Predicate<? super K> keyFilter;
     private final Predicate<? super V> entityFilter;
-    private final Map<SearchableModelField<M>, UpdatePredicatesFunc<K, V, M>> fieldPredicates;
+    private final Map<SearchableModelField<M>, FieldHandlers<K, V, M>> fieldPredicates;
 
-    public MapModelCriteriaBuilder(Map<SearchableModelField<M>, UpdatePredicatesFunc<K, V, M>> fieldPredicates) {
+    public MapModelCriteriaBuilder(Map<SearchableModelField<M>, FieldHandlers<K, V, M>> fieldPredicates) {
         this(fieldPredicates, ALWAYS_TRUE, ALWAYS_TRUE);
     }
 
-    private MapModelCriteriaBuilder(Map<SearchableModelField<M>, UpdatePredicatesFunc<K, V, M>> fieldPredicates, Predicate<? super K> indexReadFilter, Predicate<? super V> sequentialReadFilter) {
+    private MapModelCriteriaBuilder(Map<SearchableModelField<M>, FieldHandlers<K, V, M>> fieldPredicates, Predicate<? super K> indexReadFilter, Predicate<? super V> sequentialReadFilter) {
         this.fieldPredicates = fieldPredicates;
         this.keyFilter = indexReadFilter;
         this.entityFilter = sequentialReadFilter;
@@ -52,7 +76,7 @@ public class MapModelCriteriaBuilder<K, V extends AbstractEntity<K>, M> implemen
 
     @Override
     public MapModelCriteriaBuilder<K, V, M> compare(SearchableModelField<M> modelField, Operator op, Object... values) {
-        UpdatePredicatesFunc<K, V, M> method = fieldPredicates.get(modelField);
+        UpdatePredicatesFunc<K, V, M> method = fieldPredicates.get(modelField).getUpdatePredicatesFunc();
         if (method == null) {
             throw new IllegalArgumentException("Filter not implemented for field " + modelField);
         }
@@ -97,6 +121,20 @@ public class MapModelCriteriaBuilder<K, V extends AbstractEntity<K>, M> implemen
           v -> keyFilter.test(v) && resIndexFilter.test(v),
           v -> entityFilter.test(v) && resEntityFilter.test(v)
         );
+    }
+
+    public Comparator<V> getComparator(SearchableModelField<M> modelField, Order order) {
+        Comparator<V> comparator = fieldPredicates.get(modelField).getOderByComparator();
+
+        if (comparator == null) {
+            throw new IllegalArgumentException("Comparator not configured for field: " + modelField);
+        }
+
+        if (order == Order.DESCENDING) {
+            return comparator.reversed();
+        }
+
+        return comparator;
     }
 
     public Predicate<? super K> getKeyFilter() {

@@ -43,7 +43,10 @@ import org.keycloak.models.map.group.MapGroupEntity;
 import org.keycloak.models.map.loginFailure.MapUserLoginFailureEntity;
 import org.keycloak.models.map.realm.MapRealmEntity;
 import org.keycloak.models.map.role.MapRoleEntity;
+import org.keycloak.models.map.storage.MapModelCriteriaBuilder.FieldHandlers;
 import org.keycloak.storage.SearchableModelField;
+
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import org.keycloak.models.map.storage.MapModelCriteriaBuilder.UpdatePredicatesFunc;
@@ -69,21 +72,21 @@ import static org.keycloak.models.UserSessionModel.CORRESPONDING_SESSION_ID;
  */
 public class MapFieldPredicates {
 
-    public static final Map<SearchableModelField<AuthenticatedClientSessionModel>, UpdatePredicatesFunc<Object, MapAuthenticatedClientSessionEntity<Object>, AuthenticatedClientSessionModel>> CLIENT_SESSION_PREDICATES = basePredicates(AuthenticatedClientSessionModel.SearchableFields.ID);
-    public static final Map<SearchableModelField<ClientModel>, UpdatePredicatesFunc<Object, MapClientEntity<Object>, ClientModel>> CLIENT_PREDICATES = basePredicates(ClientModel.SearchableFields.ID);
-    public static final Map<SearchableModelField<ClientScopeModel>, UpdatePredicatesFunc<Object, MapClientScopeEntity<Object>, ClientScopeModel>> CLIENT_SCOPE_PREDICATES = basePredicates(ClientScopeModel.SearchableFields.ID);
-    public static final Map<SearchableModelField<GroupModel>, UpdatePredicatesFunc<Object, MapGroupEntity<Object>, GroupModel>> GROUP_PREDICATES = basePredicates(GroupModel.SearchableFields.ID);
-    public static final Map<SearchableModelField<RoleModel>, UpdatePredicatesFunc<Object, MapRoleEntity<Object>, RoleModel>> ROLE_PREDICATES = basePredicates(RoleModel.SearchableFields.ID);
-    public static final Map<SearchableModelField<RootAuthenticationSessionModel>, UpdatePredicatesFunc<Object, MapRootAuthenticationSessionEntity<Object>, RootAuthenticationSessionModel>> AUTHENTICATION_SESSION_PREDICATES = basePredicates(RootAuthenticationSessionModel.SearchableFields.ID);
-    public static final Map<SearchableModelField<RealmModel>, UpdatePredicatesFunc<Object, MapRealmEntity<Object>, RealmModel>> REALM_PREDICATES = basePredicates(RealmModel.SearchableFields.ID);
-    public static final Map<SearchableModelField<ResourceServer>, UpdatePredicatesFunc<Object, MapResourceServerEntity<Object>, ResourceServer>> AUTHZ_RESOURCE_SERVER_PREDICATES = basePredicates(ResourceServer.SearchableFields.ID);
-    public static final Map<SearchableModelField<Resource>, UpdatePredicatesFunc<Object, MapResourceEntity<Object>, Resource>> AUTHZ_RESOURCE_PREDICATES = basePredicates(Resource.SearchableFields.ID);
-    public static final Map<SearchableModelField<Scope>, UpdatePredicatesFunc<Object, MapScopeEntity<Object>, Scope>> AUTHZ_SCOPE_PREDICATES = basePredicates(Scope.SearchableFields.ID);
-    public static final Map<SearchableModelField<PermissionTicket>, UpdatePredicatesFunc<Object, MapPermissionTicketEntity<Object>, PermissionTicket>> AUTHZ_PERMISSION_TICKET_PREDICATES = basePredicates(PermissionTicket.SearchableFields.ID);
-    public static final Map<SearchableModelField<Policy>, UpdatePredicatesFunc<Object, MapPolicyEntity<Object>, Policy>> AUTHZ_POLICY_PREDICATES = basePredicates(Policy.SearchableFields.ID);
-    public static final Map<SearchableModelField<UserLoginFailureModel>, UpdatePredicatesFunc<Object, MapUserLoginFailureEntity<Object>, UserLoginFailureModel>> USER_LOGIN_FAILURE_PREDICATES = basePredicates(UserLoginFailureModel.SearchableFields.ID);
-    public static final Map<SearchableModelField<UserModel>, UpdatePredicatesFunc<Object, MapUserEntity<Object>, UserModel>> USER_PREDICATES = basePredicates(UserModel.SearchableFields.ID);
-    public static final Map<SearchableModelField<UserSessionModel>, UpdatePredicatesFunc<Object, MapUserSessionEntity<Object>, UserSessionModel>> USER_SESSION_PREDICATES = basePredicates(UserSessionModel.SearchableFields.ID);
+    public static final Map<SearchableModelField<AuthenticatedClientSessionModel>, FieldHandlers<Object, MapAuthenticatedClientSessionEntity<Object>, AuthenticatedClientSessionModel>> CLIENT_SESSION_PREDICATES = basePredicates(AuthenticatedClientSessionModel.SearchableFields.ID);
+    public static final Map<SearchableModelField<ClientModel>, FieldHandlers<Object, MapClientEntity<Object>, ClientModel>> CLIENT_PREDICATES = basePredicates(ClientModel.SearchableFields.ID);
+    public static final Map<SearchableModelField<ClientScopeModel>, FieldHandlers<Object, MapClientScopeEntity<Object>, ClientScopeModel>> CLIENT_SCOPE_PREDICATES = basePredicates(ClientScopeModel.SearchableFields.ID);
+    public static final Map<SearchableModelField<GroupModel>, FieldHandlers<Object, MapGroupEntity<Object>, GroupModel>> GROUP_PREDICATES = basePredicates(GroupModel.SearchableFields.ID);
+    public static final Map<SearchableModelField<RoleModel>, FieldHandlers<Object, MapRoleEntity<Object>, RoleModel>> ROLE_PREDICATES = basePredicates(RoleModel.SearchableFields.ID);
+    public static final Map<SearchableModelField<RootAuthenticationSessionModel>, FieldHandlers<Object, MapRootAuthenticationSessionEntity<Object>, RootAuthenticationSessionModel>> AUTHENTICATION_SESSION_PREDICATES = basePredicates(RootAuthenticationSessionModel.SearchableFields.ID);
+    public static final Map<SearchableModelField<RealmModel>, FieldHandlers<Object, MapRealmEntity<Object>, RealmModel>> REALM_PREDICATES = basePredicates(RealmModel.SearchableFields.ID);
+    public static final Map<SearchableModelField<ResourceServer>, FieldHandlers<Object, MapResourceServerEntity<Object>, ResourceServer>> AUTHZ_RESOURCE_SERVER_PREDICATES = basePredicates(ResourceServer.SearchableFields.ID);
+    public static final Map<SearchableModelField<Resource>, FieldHandlers<Object, MapResourceEntity<Object>, Resource>> AUTHZ_RESOURCE_PREDICATES = basePredicates(Resource.SearchableFields.ID);
+    public static final Map<SearchableModelField<Scope>, FieldHandlers<Object, MapScopeEntity<Object>, Scope>> AUTHZ_SCOPE_PREDICATES = basePredicates(Scope.SearchableFields.ID);
+    public static final Map<SearchableModelField<PermissionTicket>, FieldHandlers<Object, MapPermissionTicketEntity<Object>, PermissionTicket>> AUTHZ_PERMISSION_TICKET_PREDICATES = basePredicates(PermissionTicket.SearchableFields.ID);
+    public static final Map<SearchableModelField<Policy>, FieldHandlers<Object, MapPolicyEntity<Object>, Policy>> AUTHZ_POLICY_PREDICATES = basePredicates(Policy.SearchableFields.ID);
+    public static final Map<SearchableModelField<UserLoginFailureModel>, FieldHandlers<Object, MapUserLoginFailureEntity<Object>, UserLoginFailureModel>> USER_LOGIN_FAILURE_PREDICATES = basePredicates(UserLoginFailureModel.SearchableFields.ID);
+    public static final Map<SearchableModelField<UserModel>, FieldHandlers<Object, MapUserEntity<Object>, UserModel>> USER_PREDICATES = basePredicates(UserModel.SearchableFields.ID);
+    public static final Map<SearchableModelField<UserSessionModel>, FieldHandlers<Object, MapUserSessionEntity<Object>, UserSessionModel>> USER_SESSION_PREDICATES = basePredicates(UserSessionModel.SearchableFields.ID);
 
     @SuppressWarnings("unchecked")
     private static final Map<Class<?>, Map> PREDICATES = new HashMap<>();
@@ -134,7 +137,7 @@ public class MapFieldPredicates {
         put(AUTHENTICATION_SESSION_PREDICATES, RootAuthenticationSessionModel.SearchableFields.REALM_ID,    MapRootAuthenticationSessionEntity::getRealmId);
         put(AUTHENTICATION_SESSION_PREDICATES, RootAuthenticationSessionModel.SearchableFields.TIMESTAMP,   MapRootAuthenticationSessionEntity::getTimestamp);
 
-        put(AUTHZ_RESOURCE_SERVER_PREDICATES, ResourceServer.SearchableFields.ID, MapResourceServerEntity::getId);
+        put(AUTHZ_RESOURCE_SERVER_PREDICATES, ResourceServer.SearchableFields.ID, predicateForKeyField(MapResourceServerEntity::getId));
 
         put(AUTHZ_RESOURCE_PREDICATES, Resource.SearchableFields.ID, predicateForKeyField(MapResourceEntity::getId));
         put(AUTHZ_RESOURCE_PREDICATES, Resource.SearchableFields.NAME, MapResourceEntity::getName);
@@ -205,19 +208,20 @@ public class MapFieldPredicates {
         PREDICATES.put(UserLoginFailureModel.class,             USER_LOGIN_FAILURE_PREDICATES);
     }
 
-    private static <K, V extends AbstractEntity<K>, M> void put(
-      Map<SearchableModelField<M>, UpdatePredicatesFunc<K, V, M>> map,
-      SearchableModelField<M> field, Function<V, Object> extractor) {
-        map.put(field, (mcb, op, values) -> mcb.fieldCompare(op, extractor, values));
+    private static <K, V extends AbstractEntity<K>, M, L extends Comparable<? super L>> void put(
+      Map<SearchableModelField<M>, FieldHandlers<K, V, M>> map,
+      SearchableModelField<M> field, Function<V, L> extractor) {
+        Comparator<V> orderByComparator = Comparator.comparing(extractor);
+        map.put(field, new FieldHandlers<>((mcb, op, values) -> mcb.fieldCompare(op, extractor, values), orderByComparator));
     }
 
     private static <K, V extends AbstractEntity<K>, M> void put(
-      Map<SearchableModelField<M>, UpdatePredicatesFunc<K, V, M>> map,
+      Map<SearchableModelField<M>, FieldHandlers<K, V, M>> map,
       SearchableModelField<M> field, UpdatePredicatesFunc<K, V, M> function) {
-        map.put(field, function);
+        map.put(field, new FieldHandlers<>(function));
     }
 
-    private static <V extends AbstractEntity<?>> Function<V, Object> predicateForKeyField(Function<V, Object> extractor) {
+    private static <V extends AbstractEntity<?>> Function<V, String> predicateForKeyField(Function<V, Object> extractor) {
         return entity -> {
             Object o = extractor.apply(entity);
             return o == null ? null : o.toString();
@@ -482,14 +486,14 @@ public class MapFieldPredicates {
         return mcb.fieldCompare(Boolean.TRUE::equals, getter);
     }
 
-    protected static <K, V extends AbstractEntity<K>, M> Map<SearchableModelField<M>, UpdatePredicatesFunc<K, V, M>> basePredicates(SearchableModelField<M> idField) {
-        Map<SearchableModelField<M>, UpdatePredicatesFunc<K, V, M>> fieldPredicates = new HashMap<>();
-        fieldPredicates.put(idField, (o, op, values) -> o.idCompare(op, values));
+    protected static <K, V extends AbstractEntity<K>, M> Map<SearchableModelField<M>, FieldHandlers<K, V, M>> basePredicates(SearchableModelField<M> idField) {
+        Map<SearchableModelField<M>, FieldHandlers<K, V, M>> fieldPredicates = new HashMap<>();
+        fieldPredicates.put(idField, new FieldHandlers<>(MapModelCriteriaBuilder::idCompare));
         return fieldPredicates;
     }
 
     @SuppressWarnings("unchecked")
-    public static <K, V extends AbstractEntity<K>, M> Map<SearchableModelField<M>, UpdatePredicatesFunc<K, V, M>> getPredicates(Class<M> clazz) {
+    public static <K, V extends AbstractEntity<K>, M> Map<SearchableModelField<M>, FieldHandlers<K, V, M>> getPredicates(Class<M> clazz) {
         return PREDICATES.get(clazz);
     }
 }
