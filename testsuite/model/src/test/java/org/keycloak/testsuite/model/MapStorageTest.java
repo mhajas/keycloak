@@ -16,6 +16,7 @@
  */
 package org.keycloak.testsuite.model;
 
+import org.hamcrest.Matchers;
 import org.keycloak.component.ComponentModel;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.ClientProvider;
@@ -28,13 +29,12 @@ import org.keycloak.models.map.client.MapClientEntityImpl;
 import org.keycloak.models.map.client.MapClientProviderFactory;
 import org.keycloak.models.map.storage.MapStorage;
 import org.keycloak.models.map.storage.MapStorageProvider;
-import org.keycloak.models.map.storage.MapStorageProviderFactory;
 import org.keycloak.models.map.common.StringKeyConvertor;
+import org.keycloak.models.map.storage.MapStorageProviderFactory;
 import org.keycloak.models.map.storage.chm.ConcurrentHashMapStorage;
 import org.keycloak.models.map.storage.chm.ConcurrentHashMapStorageProviderFactory;
 import org.keycloak.models.utils.KeycloakModelUtils;
 import org.keycloak.provider.InvalidationHandler.ObjectType;
-import org.hamcrest.Matchers;
 import org.jboss.logging.Logger;
 import org.junit.Before;
 import org.junit.Test;
