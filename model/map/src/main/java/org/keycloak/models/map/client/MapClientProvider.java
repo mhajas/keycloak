@@ -47,7 +47,6 @@ import org.keycloak.models.ClientScopeModel;
 import static org.keycloak.models.map.common.MapStorageUtils.registerEntityForChanges;
 import org.keycloak.protocol.oidc.OIDCLoginProtocol;
 import java.util.HashSet;
-import static org.keycloak.utils.StreamsUtil.paginatedStream;
 
 public class MapClientProvider<K> implements ClientProvider {
 
@@ -56,8 +55,6 @@ public class MapClientProvider<K> implements ClientProvider {
     final MapKeycloakTransaction<K, MapClientEntity<K>, ClientModel> tx;
     private final MapStorage<K, MapClientEntity<K>, ClientModel> clientStore;
     private final ConcurrentMap<K, ConcurrentMap<String, Integer>> clientRegisteredNodesStore;
-
-    private static final Comparator<MapClientEntity> COMPARE_BY_CLIENT_ID = Comparator.comparing(MapClientEntity::getClientId);
 
     public MapClientProvider(KeycloakSession session, MapStorage<K, MapClientEntity<K>, ClientModel> clientStore, ConcurrentMap<K, ConcurrentMap<String, Integer>> clientRegisteredNodesStore) {
         this.session = session;
@@ -126,7 +123,13 @@ public class MapClientProvider<K> implements ClientProvider {
 
     @Override
     public Stream<ClientModel> getClientsStream(RealmModel realm, Integer firstResult, Integer maxResults) {
-        return paginatedStream(getClientsStream(realm), firstResult, maxResults);
+        ModelCriteriaBuilder<ClientModel> mcb = clientStore.createCriteriaBuilder()
+                .compare(SearchableFields.REALM_ID, Operator.EQ, realm.getId());
+
+        return tx.read(mcb, clientStore.createQueryParametersBuilder()
+                .pagination(firstResult, maxResults, SearchableFields.CLIENT_ID)
+                .build())
+            .map(entityToAdapterFunc(realm));
     }
 
     @Override
@@ -134,10 +137,8 @@ public class MapClientProvider<K> implements ClientProvider {
         ModelCriteriaBuilder<ClientModel> mcb = clientStore.createCriteriaBuilder()
           .compare(SearchableFields.REALM_ID, Operator.EQ, realm.getId());
 
-        return tx.read(mcb)
-          .sorted(COMPARE_BY_CLIENT_ID)
-          .map(entityToAdapterFunc(realm))
-        ;
+        return tx.read(mcb, clientStore.createQueryParametersBuilder().orderBy(SearchableFields.CLIENT_ID).build())
+          .map(entityToAdapterFunc(realm));
     }
 
     @Override
@@ -265,10 +266,10 @@ public class MapClientProvider<K> implements ClientProvider {
           .compare(SearchableFields.REALM_ID, Operator.EQ, realm.getId())
           .compare(SearchableFields.CLIENT_ID, Operator.ILIKE, "%" + clientId + "%");
 
-        Stream<MapClientEntity<K>> s = tx.read(mcb)
-          .sorted(COMPARE_BY_CLIENT_ID);
-
-        return paginatedStream(s, firstResult, maxResults).map(entityToAdapterFunc(realm));
+        return tx.read(mcb, clientStore.createQueryParametersBuilder()
+            .pagination(firstResult, maxResults, SearchableFields.CLIENT_ID)
+            .build()
+        ).map(entityToAdapterFunc(realm));
     }
 
     @Override
@@ -280,10 +281,10 @@ public class MapClientProvider<K> implements ClientProvider {
             mcb = mcb.compare(SearchableFields.ATTRIBUTE, Operator.EQ, entry.getKey(), entry.getValue());
         }
 
-        Stream<MapClientEntity<K>> s = tx.read(mcb)
-                .sorted(COMPARE_BY_CLIENT_ID);
-
-        return paginatedStream(s, firstResult, maxResults).map(entityToAdapterFunc(realm));
+        return tx.read(mcb, clientStore.createQueryParametersBuilder()
+                .pagination(firstResult, maxResults, SearchableFields.CLIENT_ID)
+                .build()
+        ).map(entityToAdapterFunc(realm));
     }
 
     @Override

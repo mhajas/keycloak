@@ -68,7 +68,23 @@ public interface MapStorage<K, V extends AbstractEntity<K>, M> {
      * @throws IllegalStateException If {@code criteria} is not compatible, i.e. has not been originally created
      *   by the {@link #createCriteriaBuilder()} method of this object.
      */
-    Stream<V> read(ModelCriteriaBuilder<M> criteria);
+    default Stream<V> read(ModelCriteriaBuilder<M> criteria) {
+        return read(criteria, null);
+    }
+
+    /**
+     * Returns stream of objects satisfying given {@code criteria} from the storage.
+     * The criteria are specified in the given criteria builder based on model properties.
+     *
+     * @param criteria Criteria filtering out the object, originally obtained
+     *   from {@link #createCriteriaBuilder()} method of this object.
+     *   If {@code null}, it returns an empty stream.
+     * @param queryParameters parameters for the query like firstResult, maxResult, requested ordering, etc.
+     * @return Stream of objects. Never returns {@code null}.
+     * @throws IllegalStateException If {@code criteria} is not compatible, i.e. has not been originally created
+     *   by the {@link #createCriteriaBuilder()} method of this object.
+     */
+    Stream<V> read(ModelCriteriaBuilder<M> criteria, QueryParameters<M> queryParameters);
 
     /**
      * Returns the number of objects satisfying given {@code criteria} from the storage.
@@ -79,7 +95,21 @@ public interface MapStorage<K, V extends AbstractEntity<K>, M> {
      * @throws IllegalStateException If {@code criteria} is not compatible, i.e. has not been originally created
      *   by the {@link #createCriteriaBuilder()} method of this object.
      */
-    long getCount(ModelCriteriaBuilder<M> criteria);
+    default long getCount(ModelCriteriaBuilder<M> criteria) {
+        return getCount(criteria, null);
+    }
+
+    /**
+     * Returns the number of objects satisfying given {@code criteria} from the storage.
+     * The criteria are specified in the given criteria builder based on model properties.
+     *
+     * @param criteria
+     * @param queryParameters parameters for the query like firstResult, maxResult, requested ordering, etc.
+     * @return Number of objects. Never returns {@code null}.
+     * @throws IllegalStateException If {@code criteria} is not compatible, i.e. has not been originally created
+     *   by the {@link #createCriteriaBuilder()} method of this object.
+     */
+    long getCount(ModelCriteriaBuilder<M> criteria, QueryParameters<M> queryParameters);
 
     /**
      * Updates the object with the given {@code id} in the storage if it already exists.
@@ -103,7 +133,19 @@ public interface MapStorage<K, V extends AbstractEntity<K>, M> {
      * @throws IllegalStateException If {@code criteria} is not compatible, i.e. has not been originally created
      *   by the {@link #createCriteriaBuilder()} method of this object.
      */
-    long delete(ModelCriteriaBuilder<M> criteria);
+    default long delete(ModelCriteriaBuilder<M> criteria) {
+        return delete(criteria, null);
+    }
+
+    /**
+     * Deletes objects that match the given criteria.
+     * @param criteria
+     * @param queryParameters parameters for the query like firstResult, maxResult, requested ordering, etc.
+     * @return Number of removed objects (might return {@code -1} if not supported)
+     * @throws IllegalStateException If {@code criteria} is not compatible, i.e. has not been originally created
+     *   by the {@link #createCriteriaBuilder()} method of this object.
+     */
+    long delete(ModelCriteriaBuilder<M> criteria, QueryParameters<M> queryParameters);
 
     
     /**
@@ -120,6 +162,18 @@ public interface MapStorage<K, V extends AbstractEntity<K>, M> {
      * @return See description. Never returns {@code null}
      */
     ModelCriteriaBuilder<M> createCriteriaBuilder();
+
+    /**
+     * Returns query parameters builder for current storage.
+     * 
+     * Using {@code QueryParametersBuilder} it is possible to specify various additional parameters for queries
+     * like offset (how many objects to skip before returning the first one), limit (maximum number of objects to 
+     * return) or fields (in form of the corresponding {@link org.keycloak.storage.SearchableModelField}) that will be 
+     * used for ordering resulting streams of objects
+     * 
+     * @return See description. Never return {@code null}
+     */
+    QueryParameters.Builder<M> createQueryParametersBuilder();
 
     
     /**
