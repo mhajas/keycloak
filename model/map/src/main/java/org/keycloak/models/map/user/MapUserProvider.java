@@ -45,6 +45,7 @@ import org.keycloak.models.map.storage.MapKeycloakTransaction;
 import org.keycloak.models.map.storage.MapStorage;
 import org.keycloak.models.map.storage.ModelCriteriaBuilder;
 import org.keycloak.models.map.storage.ModelCriteriaBuilder.Operator;
+import org.keycloak.models.map.storage.QueryParameters;
 import org.keycloak.storage.StorageId;
 import org.keycloak.storage.UserStorageProvider;
 import org.keycloak.storage.client.ClientStorageProvider;
@@ -583,7 +584,7 @@ public class MapUserProvider<K> implements UserProvider.Streams, UserCredentialS
             mcb = mcb.compare(SearchableFields.SERVICE_ACCOUNT_CLIENT, Operator.NOT_EXISTS);
         }
 
-        return tx.read(mcb, userStore.createQueryParametersBuilder()
+        return tx.read(mcb, QueryParameters.Builder.create()
                     .pagination(firstResult, maxResults, SearchableFields.USERNAME)
                     .build())
                 .map(entityToAdapterFunc(realm));
