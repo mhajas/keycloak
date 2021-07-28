@@ -288,4 +288,15 @@ public class ApiUtil {
         }
         return null;
     }
+
+    public static KeysMetadataRepresentation.KeyMetadataRepresentation findActiveEncryptingKey(RealmResource realm) {
+        KeysMetadataRepresentation keyMetadata = realm.keys().getKeyMetadata();
+        for (KeysMetadataRepresentation.KeyMetadataRepresentation rep : keyMetadata.getKeys()) {
+            if (rep.getPublicKey() != null && KeyStatus.valueOf(rep.getStatus()).isActive() && KeyUse.ENC.equals(rep.getUse())) {
+                return rep;
+            }
+        }
+        return null;
+    }
+
 }
