@@ -1,7 +1,6 @@
 package org.keycloak.testsuite.broker;
 
 import org.hamcrest.Matchers;
-import org.junit.Assert;
 import org.junit.Test;
 import org.keycloak.common.util.PemUtils;
 import org.keycloak.dom.saml.v2.protocol.AuthnRequestType;
@@ -25,7 +24,12 @@ import org.w3c.dom.Node;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.xml.namespace.QName;
+import java.util.concurrent.atomic.AtomicReference;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.not;
 import static org.keycloak.saml.common.constants.JBossSAMLURIConstants.ASSERTION_NSURI;
 import static org.keycloak.testsuite.saml.AbstractSamlTest.SAML_ASSERTION_CONSUMER_URL_SALES_POST;
 import static org.keycloak.testsuite.saml.AbstractSamlTest.SAML_CLIENT_ID_SALES_POST;
@@ -44,6 +48,9 @@ public class KcSamlEncryptedIdTest extends AbstractBrokerTest {
         AuthnRequestType loginRep = SamlClient.createLoginRequestDocument(SAML_CLIENT_ID_SALES_POST, SAML_ASSERTION_CONSUMER_URL_SALES_POST, null);
 
         Document doc = SAML2Request.convert(loginRep);
+
+        final AtomicReference<String> username = new AtomicReference<>();
+        assertThat(adminClient.realm(bc.consumerRealmName()).users().search(username.get()), hasSize(0));
 
         SAMLDocumentHolder samlResponse = new SamlClientBuilder()
                 .authnRequest(getConsumerSamlEndpoint(bc.consumerRealmName()), doc, SamlClient.Binding.POST).build()   // Request to consumer IdP
@@ -79,6 +86,7 @@ public class KcSamlEncryptedIdTest extends AbstractBrokerTest {
                             throw new RuntimeException("Assertion doesn't contain NameId " + DocumentUtil.asString(document));
                         }
                         nameIdElement.setAttribute("xmlns:" + samlNSPrefix, ASSERTION_NSURI.get());
+                        username.set(nameIdElement.getTextContent());
 
                         byte[] secret = RandomSecret.createRandomSecret(128 / 8);
                         SecretKey secretKey = new SecretKeySpec(secret, "AES");
@@ -90,17 +98,19 @@ public class KcSamlEncryptedIdTest extends AbstractBrokerTest {
                         throw new ProcessingException("failed to encrypt", e);
                     }
 
+                    assertThat(DocumentUtil.asString(document), not(containsString(username.get())));
                     return document;
                 })
                 .build()
 
                 // first-broker flow
-                .updateProfile().firstName("a").lastName("b").email(bc.getUserEmail()).username(bc.getUserLogin()).build()
+                .updateProfile().firstName("a").lastName("b").email(bc.getUserEmail()).build()
                 .followOneRedirect()
-
                 .getSamlResponse(SamlClient.Binding.POST);       // Response from consumer IdP
 
-        Assert.assertThat(samlResponse, Matchers.notNullValue());
-        Assert.assertThat(samlResponse.getSamlObject(), isSamlResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
+        assertThat(samlResponse, Matchers.notNullValue());
+        assertThat(samlResponse.getSamlObject(), isSamlResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
+
+        assertThat(adminClient.realm(bc.consumerRealmName()).users().search(username.get()), hasSize(1));
     }
 }
