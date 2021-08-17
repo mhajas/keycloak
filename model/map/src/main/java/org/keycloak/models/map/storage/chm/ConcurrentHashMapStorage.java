@@ -33,6 +33,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import org.keycloak.models.map.storage.chm.MapModelCriteriaBuilder.UpdatePredicatesFunc;
 import java.util.Objects;
@@ -50,11 +51,13 @@ public class ConcurrentHashMapStorage<K, V extends AbstractEntity & UpdatableEnt
 
     private final Map<SearchableModelField<M>, UpdatePredicatesFunc<K, V, M>> fieldPredicates;
     private final StringKeyConvertor<K> keyConvertor;
+    private final Function<String, V> instanceProducer;
 
     @SuppressWarnings("unchecked")
-    public ConcurrentHashMapStorage(Class<M> modelClass, StringKeyConvertor<K> keyConvertor) {
+    public ConcurrentHashMapStorage(Class<M> modelClass, StringKeyConvertor<K> keyConvertor, Function<String, V> instanceProducer) {
         this.fieldPredicates = MapFieldPredicates.getPredicates(modelClass);
         this.keyConvertor = keyConvertor;
+        this.instanceProducer = instanceProducer;
     }
 
     @Override
@@ -131,6 +134,11 @@ public class ConcurrentHashMapStorage<K, V extends AbstractEntity & UpdatableEnt
     public MapKeycloakTransaction<V, M> createTransaction(KeycloakSession session) {
         MapKeycloakTransaction<V, M> sessionTransaction = session.getAttribute("map-transaction-" + hashCode(), MapKeycloakTransaction.class);
         return sessionTransaction == null ? new ConcurrentHashMapKeycloakTransaction<>(this, keyConvertor) : sessionTransaction;
+    }
+
+    @Override
+    public V newEntityInstance(String id) {
+        return instanceProducer.apply(id);
     }
 
     public StringKeyConvertor<K> getKeyConvertor() {

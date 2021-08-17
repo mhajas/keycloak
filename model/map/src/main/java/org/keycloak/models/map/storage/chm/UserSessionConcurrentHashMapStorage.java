@@ -28,6 +28,7 @@ import org.keycloak.models.map.storage.QueryParameters;
 import org.keycloak.models.map.userSession.MapAuthenticatedClientSessionEntity;
 import org.keycloak.models.map.userSession.MapUserSessionEntity;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.keycloak.models.map.storage.QueryParameters.withCriteria;
@@ -70,8 +71,8 @@ public class UserSessionConcurrentHashMapStorage<K> extends ConcurrentHashMapSto
 
     @SuppressWarnings("unchecked")
     public UserSessionConcurrentHashMapStorage(ConcurrentHashMapStorage<K, MapAuthenticatedClientSessionEntity, AuthenticatedClientSessionModel> clientSessionStore,
-      StringKeyConvertor<K> keyConvertor) {
-        super(UserSessionModel.class, keyConvertor);
+                                               StringKeyConvertor<K> keyConvertor, Function<String, MapUserSessionEntity> instanceProducer) {
+        super(UserSessionModel.class, keyConvertor, instanceProducer);
         this.clientSessionStore = clientSessionStore;
     }
 

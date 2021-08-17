@@ -131,4 +131,6 @@ public interface MapStorage<V extends AbstractEntity, M> {
      */
     MapKeycloakTransaction<V, M> createTransaction(KeycloakSession session);
 
+    V newEntityInstance(String id);
+
 }

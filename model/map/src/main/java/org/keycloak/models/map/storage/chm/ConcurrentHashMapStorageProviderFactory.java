@@ -73,6 +73,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.function.Function;
 
 import static org.keycloak.models.map.storage.QueryParameters.withCriteria;
 
@@ -157,6 +158,11 @@ public class ConcurrentHashMapStorageProviderFactory implements AmphibianProvide
 //        INTERFACE_TO_IMPL.put(MapResourceServerEntity.class, MapResourceServerEntityImpl.class);
 //        INTERFACE_TO_IMPL.put(MapResourceEntity.class, MapResourceEntityImpl.class);
 //        INTERFACE_TO_IMPL.put(MapScopeEntity.class, MapScopeEntityImpl.class);
+    }
+
+    public static final Map<Class<?>, Function<String, ?>> INTERFACE_TO_INITIALIZER = new HashMap<>();
+    static {
+        INTERFACE_TO_INITIALIZER.put(MapClientEntity.class, MapClientEntityImpl::new);
     }
 
     private static final Map<String, StringKeyConvertor> KEY_CONVERTORS = new HashMap<>();
@@ -252,14 +258,14 @@ public class ConcurrentHashMapStorageProviderFactory implements AmphibianProvide
         ConcurrentHashMapStorage<K, V, M> store;
         if (modelType == UserSessionModel.class) {
             ConcurrentHashMapStorage clientSessionStore = getStorage(AuthenticatedClientSessionModel.class);
-            store = new UserSessionConcurrentHashMapStorage(clientSessionStore, kc) {
+            store = new UserSessionConcurrentHashMapStorage(clientSessionStore, kc, INTERFACE_TO_INITIALIZER.get(valueType)) {
                 @Override
                 public String toString() {
                     return "ConcurrentHashMapStorage(" + mapName + suffix + ")";
                 }
             };
         } else {
-            store = new ConcurrentHashMapStorage(modelType, kc) {
+            store = new ConcurrentHashMapStorage(modelType, kc, INTERFACE_TO_INITIALIZER.get(valueType)) {
                 @Override
                 public String toString() {
                     return "ConcurrentHashMapStorage(" + mapName + suffix + ")";

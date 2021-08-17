@@ -69,7 +69,7 @@
         "provider": "${keycloak.client.provider:jpa}",
         "map": {
             "storage": {
-                "provider": "concurrenthashmap"
+                "provider": "hotrod"
             }
         }
     },
@@ -135,7 +135,6 @@
     },
 
     "mapStorage": {
-        "provider": "${keycloak.mapStorage.provider:}",
         "concurrenthashmap": {
             "dir": "${project.build.directory:target}",
             "keyType.realms": "string",

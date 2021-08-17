@@ -17,7 +17,11 @@
 package org.keycloak.testsuite.model;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+
 import org.junit.Test;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.ClientProvider;
@@ -27,6 +31,11 @@ import org.keycloak.models.RealmModel;
 import org.keycloak.models.RealmProvider;
 import org.keycloak.models.RoleModel;
 import org.keycloak.models.RoleProvider;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  *
@@ -49,6 +58,45 @@ public class ClientModelTest extends KeycloakModelTest {
     @Override
     public void cleanEnvironment(KeycloakSession s) {
         s.realms().removeRealm(realmId);
+    }
+
+    @Test
+    public void testClientsBasics() {
+        // Create client
+        ClientModel originalModel = withRealm(realmId, (session, realm) -> session.clients().addClient(realm, "myClientId"));
+        assertThat(originalModel.getId(), notNullValue());
+
+        // Find by id
+        {
+            ClientModel model = withRealm(realmId, (session, realm) -> session.clients().getClientById(realm, originalModel.getId()));
+            assertThat(model, notNullValue());
+            assertThat(model.getId(), is(equalTo(model.getId())));
+            assertThat(model.getClientId(), is(equalTo("myClientId")));
+        }
+
+        // Find by clientId
+        {
+            ClientModel model = withRealm(realmId, (session, realm) -> session.clients().getClientByClientId(realm, "myClientId"));
+            assertThat(model, notNullValue());
+            assertThat(model.getId(), is(equalTo(originalModel.getId())));
+            assertThat(model.getClientId(), is(equalTo("myClientId")));
+        }
+
+//        // Test attributes
+//        {
+//            // Add some attributes
+//            withRealm(realmId, (session, realm) -> {
+//                ClientModel clientById = session.clients().getClientById(realm, originalModel.getId());
+//                clientById.setAttribute("attribute1", "myAttributeValue");
+//                return clientById;
+//            });
+//
+//            List<ClientModel> attribute1 = withRealm(realmId, (session, realm) -> session.clients().searchClientsByAttributes(realm, Collections.singletonMap("attribute1", ""), null, null)).collect(Collectors.toList());
+//            assertThat(attribute1, hasSize(1));
+//
+//            List<ClientModel> attribute2 = withRealm(realmId, (session, realm) -> session.clients().searchClientsByAttributes(realm, Collections.singletonMap("attribute2", ""), null, null)).collect(Collectors.toList());
+//            assertThat(attribute2, hasSize(0));
+//        }
     }
 
     @Test
