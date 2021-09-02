@@ -18,6 +18,7 @@ import org.keycloak.models.map.storage.chm.ConcurrentHashMapKeycloakTransaction;
 import org.keycloak.storage.SearchableModelField;
 
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -97,12 +98,47 @@ public class HotRodMapStorage<K, V extends AbstractEntity & UpdatableEntity, M> 
 
     @Override
     public long getCount(QueryParameters<M> queryParameters) {
-        return 0;
+        String queryString = queryParameters.getModelCriteriaBuilder().unwrap(IckleQueryMapModelCriteriaBuilder.class).getIckleQuery();
+
+        if (!queryParameters.getOrderBy().isEmpty()) {
+            queryString += " ORDER BY " + queryParameters.getOrderBy().stream().map(HotRodMapStorage::toOrderString)
+                    .collect(Collectors.joining(", "));
+        }
+
+        System.out.println(queryString);
+
+        QueryFactory queryFactory = Search.getQueryFactory(remoteCache);
+
+        Query<V> query = paginateQuery(queryFactory.create(queryString), queryParameters.getOffset(),
+                queryParameters.getLimit());
+
+        return query.execute().hitCount().orElse(0);
     }
 
     @Override
     public long delete(QueryParameters<M> queryParameters) {
-        return 0;
+        String queryString = "SELECT id " + queryParameters.getModelCriteriaBuilder().unwrap(IckleQueryMapModelCriteriaBuilder.class).getIckleQuery();
+
+        if (!queryParameters.getOrderBy().isEmpty()) {
+            queryString += " ORDER BY " + queryParameters.getOrderBy().stream().map(HotRodMapStorage::toOrderString)
+                    .collect(Collectors.joining(", "));
+        }
+
+        System.out.println(queryString);
+
+        QueryFactory queryFactory = Search.getQueryFactory(remoteCache);
+
+        Query<V> query = paginateQuery(queryFactory.create(queryString), queryParameters.getOffset(),
+                queryParameters.getLimit());
+
+        AtomicLong result = new AtomicLong();
+
+        StreamSupport.stream(query.spliterator(), false)
+                .peek(e -> {result.incrementAndGet();})
+                .map(AbstractEntity::getId)
+                .forEach(this::delete);
+
+        return result.get();
     }
 
     @Override

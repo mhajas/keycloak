@@ -6,17 +6,17 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
-public class AttributeEntity {
+public class HotRodAttributeEntity {
     @ProtoField(number = 1)
     public String name;
 
     @ProtoField(number = 2)
     public List<String> values = new LinkedList<>();
 
-    public AttributeEntity() {
+    public HotRodAttributeEntity() {
     }
 
-    public AttributeEntity(String name, List<String> values) {
+    public HotRodAttributeEntity(String name, List<String> values) {
         this.name = name;
         this.values.addAll(values);
     }
@@ -41,7 +41,7 @@ public class AttributeEntity {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        AttributeEntity that = (AttributeEntity) o;
+        HotRodAttributeEntity that = (HotRodAttributeEntity) o;
         return Objects.equals(name, that.name) && Objects.equals(values, that.values);
     }
 

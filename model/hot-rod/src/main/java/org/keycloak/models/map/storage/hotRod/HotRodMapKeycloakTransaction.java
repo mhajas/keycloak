@@ -147,15 +147,15 @@ public class HotRodMapKeycloakTransaction<K, V extends AbstractEntity & Updatabl
         // If the key does not exist, then it would be read fresh from the storage, but then it
         // could have been removed by some bulk delete in the existing tasks. Check it.
         final V value = defaultValueFunc.apply(key);
-        // TODO: Solve BULK DELETES
-//        for (MapTaskWithValue val : tasks.values()) {
-//            if (val instanceof HotRodMapKeycloakTransaction.BulkDeleteOperation) {
-//                final BulkDeleteOperation delOp = (BulkDeleteOperation) val;
-//                if (! delOp.getFilterForNonDeletedObjects().test(value)) {
-//                    return null;
-//                }
-//            }
-//        }
+
+        for (MapTaskWithValue val : tasks.values()) {
+            if (val instanceof HotRodMapKeycloakTransaction.BulkDeleteOperation) {
+                final BulkDeleteOperation delOp = (BulkDeleteOperation) val;
+                if (! delOp.getFilterForNonDeletedObjects().test(value)) {
+                    return null;
+                }
+            }
+        }
 
         return value;
     }
@@ -169,18 +169,17 @@ public class HotRodMapKeycloakTransaction<K, V extends AbstractEntity & Updatabl
      */
     @Override
     public Stream<V> read(QueryParameters<M> queryParameters) {
-        // TODO: Solve BULK DELETES
-//        Predicate<? super V> filterOutAllBulkDeletedObjects = tasks.values().stream()
-//          .filter(BulkDeleteOperation.class::isInstance)
-//          .map(BulkDeleteOperation.class::cast)
-//          .map(BulkDeleteOperation::getFilterForNonDeletedObjects)
-//          .reduce(Predicate::and)
-//          .orElse(v -> true);
+        Predicate<? super V> filterOutAllBulkDeletedObjects = tasks.values().stream()
+          .filter(BulkDeleteOperation.class::isInstance)
+          .map(BulkDeleteOperation.class::cast)
+          .map(BulkDeleteOperation::getFilterForNonDeletedObjects)
+          .reduce(Predicate::and)
+          .orElse(v -> true);
 
         ModelCriteriaBuilder<M> mcb = queryParameters.getModelCriteriaBuilder();
 
         Stream<V> updatedAndNotRemovedObjectsStream = this.map.read(queryParameters)
-        //  .filter(filterOutAllBulkDeletedObjects)
+          .filter(filterOutAllBulkDeletedObjects)
           .map(this::getUpdated)      // If the object has been removed, tx.get will return null, otherwise it will return me.getValue()
           .filter(Objects::nonNull)
           .map(this::registerEntityForChanges);
@@ -252,28 +251,26 @@ public class HotRodMapKeycloakTransaction<K, V extends AbstractEntity & Updatabl
 
     @Override
     public long delete(QueryParameters<M> queryParameters) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        log.tracef("Adding operation DELETE_BULK");
 
-//        log.tracef("Adding operation DELETE_BULK");
-//
-//        K artificialKey = keyConvertor.yieldNewUniqueKey();
-//
-//        // Remove all tasks that create / update / delete objects deleted by the bulk removal.
-//        final BulkDeleteOperation bdo = new BulkDeleteOperation(queryParameters);
-//        Predicate<V> filterForNonDeletedObjects = bdo.getFilterForNonDeletedObjects();
-//        long res = 0;
-//        for (Iterator<Entry<String, MapTaskWithValue>> it = tasks.entrySet().iterator(); it.hasNext();) {
-//            Entry<String, MapTaskWithValue> me = it.next();
-//            if (! filterForNonDeletedObjects.test(me.getValue().getValue())) {
-//                log.tracef(" [DELETE_BULK] removing %s", me.getKey());
-//                it.remove();
-//                res++;
-//            }
-//        }
-//
-//        tasks.put(keyConvertor.keyToString(artificialKey), bdo);
-//
-//        return res + bdo.getCount();
+        K artificialKey = keyConvertor.yieldNewUniqueKey();
+
+        // Remove all tasks that create / update / delete objects deleted by the bulk removal.
+        final BulkDeleteOperation bdo = new BulkDeleteOperation(queryParameters);
+        Predicate<V> filterForNonDeletedObjects = bdo.getFilterForNonDeletedObjects();
+        long res = 0;
+        for (Iterator<Entry<String, MapTaskWithValue>> it = tasks.entrySet().iterator(); it.hasNext();) {
+            Entry<String, MapTaskWithValue> me = it.next();
+            if (! filterForNonDeletedObjects.test(me.getValue().getValue())) {
+                log.tracef(" [DELETE_BULK] removing %s", me.getKey());
+                it.remove();
+                res++;
+            }
+        }
+
+        tasks.put(keyConvertor.keyToString(artificialKey), bdo);
+
+        return res + bdo.getCount();
     }
 
     private Stream<V> createdValuesStream(Predicate<? super K> keyFilter, Predicate<? super V> entityFilter) {
@@ -405,12 +402,12 @@ public class HotRodMapKeycloakTransaction<K, V extends AbstractEntity & Updatabl
         }
 
         public Predicate<V> getFilterForNonDeletedObjects() {
-            if (! (queryParameters.getModelCriteriaBuilder() instanceof MapModelCriteriaBuilder)) {
+            if (! (queryParameters.getModelCriteriaBuilder() instanceof IckleQueryMapModelCriteriaBuilder)) {
                 return t -> true;
             }
 
             @SuppressWarnings("unchecked")
-            final MapModelCriteriaBuilder<K, V, M> mmcb = (MapModelCriteriaBuilder<K, V, M>) queryParameters.getModelCriteriaBuilder();
+            final IckleQueryMapModelCriteriaBuilder<K, V, M> mmcb = (IckleQueryMapModelCriteriaBuilder<K, V, M>) queryParameters.getModelCriteriaBuilder();
             
             Predicate<? super V> entityFilter = mmcb.getEntityFilter();
             Predicate<? super K> keyFilter = mmcb.getKeyFilter();
