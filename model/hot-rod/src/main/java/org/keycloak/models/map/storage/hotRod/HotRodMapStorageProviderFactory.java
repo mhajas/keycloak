@@ -19,7 +19,7 @@ import org.keycloak.models.KeycloakSessionFactory;
 import org.keycloak.models.map.client.HotRodAttributeEntity;
 import org.keycloak.models.map.client.HotRodClientEntity;
 import org.keycloak.models.map.client.HotRodProtocolMapperEntity;
-import org.keycloak.models.map.client.HotRodTuple;
+import org.keycloak.models.map.client.HotRodPair;
 import org.keycloak.models.map.client.MapClientEntity;
 import org.keycloak.models.map.common.HotRodEntityDescriptor;
 import org.keycloak.models.map.storage.MapStorageProvider;
@@ -42,7 +42,7 @@ public class HotRodMapStorageProviderFactory implements AmphibianProviderFactory
         ENTITY_DESCRIPTOR_MAP.put(ClientModel.class,
                 new HotRodEntityDescriptor<>(ClientModel.class,
                         MapClientEntity.class,
-                        Arrays.asList(HotRodClientEntity.class, HotRodAttributeEntity.class, HotRodProtocolMapperEntity.class, HotRodTuple.class),
+                        Arrays.asList(HotRodClientEntity.class, HotRodAttributeEntity.class, HotRodProtocolMapperEntity.class, HotRodPair.class),
                         HotRodClientEntity::new,
                         "clients"));
     }

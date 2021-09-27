@@ -21,7 +21,7 @@ public class HotRodProtocolMapperEntity {
 //    @ProtoField(number = 5)
 //    public String consentText;
     @ProtoField(number = 5)
-    public Set<HotRodTuple> config = new LinkedHashSet<>();
+    public Set<HotRodPair<String, String>> config = new LinkedHashSet<>();
     
     public static ProtocolMapperModel toModel(HotRodProtocolMapperEntity hotRodProtocolMapperEntity) {
         ProtocolMapperModel model = new ProtocolMapperModel();
@@ -30,7 +30,7 @@ public class HotRodProtocolMapperEntity {
         model.setName(hotRodProtocolMapperEntity.name);
         model.setProtocol(hotRodProtocolMapperEntity.protocol);
         model.setProtocolMapper(hotRodProtocolMapperEntity.protocolMapper);
-        model.setConfig(hotRodProtocolMapperEntity.config.stream().collect(Collectors.toMap(HotRodTuple::getFirst, HotRodTuple::getSecond)));
+        model.setConfig(hotRodProtocolMapperEntity.config.stream().collect(Collectors.toMap(HotRodPair::getFirst, HotRodPair::getSecond)));
 
         return model;
     }
@@ -42,7 +42,7 @@ public class HotRodProtocolMapperEntity {
         entity.name = model.getName();
         entity.protocol = model.getProtocol();
         entity.protocolMapper = model.getProtocolMapper();
-        entity.config = model.getConfig().entrySet().stream().map(entry -> new HotRodTuple(entry.getKey(), entry.getValue())).collect(Collectors.toSet());
+        entity.config = model.getConfig().entrySet().stream().map(entry -> new HotRodPair<>(entry.getKey(), entry.getValue())).collect(Collectors.toSet());
 
         return entity;
     }

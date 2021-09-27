@@ -65,7 +65,7 @@ public class HotRodClientEntity implements MapClientEntity, Versioned {
     public Set<HotRodAttributeEntity> attributes = new HashSet<>();
 
     @ProtoField(number = 15)
-    public Set<HotRodTuple> authFlowBindings = new HashSet<>();
+    public Set<HotRodPair<String, String>> authFlowBindings = new HashSet<>();
 
     @ProtoField(number = 16, defaultValue = "false")
     public boolean publicClient;
@@ -89,7 +89,7 @@ public class HotRodClientEntity implements MapClientEntity, Versioned {
     public Set<HotRodProtocolMapperEntity> protocolMappers = new HashSet<>();
 
     @ProtoField(number = 23)
-    public Set<HotRodTuple> clientScopes = new HashSet<>();
+    public Set<HotRodPair<String, Boolean>> clientScopes = new HashSet<>();
 
     @ProtoField(number = 24)
     public Set<String> scopeMappings = new HashSet<>();
@@ -306,7 +306,7 @@ public class HotRodClientEntity implements MapClientEntity, Versioned {
 
     @Override
     public Map<String, String> getAuthFlowBindings() {
-        return authFlowBindings.stream().collect(Collectors.toMap(HotRodTuple::getFirst, HotRodTuple::getSecond));
+        return authFlowBindings.stream().collect(Collectors.toMap(HotRodPair::getFirst, HotRodPair::getSecond));
     }
 
     @Override
@@ -314,7 +314,7 @@ public class HotRodClientEntity implements MapClientEntity, Versioned {
         this.updated = true;
 
         this.authFlowBindings.clear();
-        this.authFlowBindings.addAll(authFlowBindings.entrySet().stream().map(e -> new HotRodTuple(e.getKey(), e.getValue())).collect(Collectors.toSet()));
+        this.authFlowBindings.addAll(authFlowBindings.entrySet().stream().map(e -> new HotRodPair<>(e.getKey(), e.getValue())).collect(Collectors.toSet()));
     }
 
     @Override
@@ -587,22 +587,22 @@ public class HotRodClientEntity implements MapClientEntity, Versioned {
 
     @Override
     public String getAuthenticationFlowBindingOverride(String binding) {
-        return authFlowBindings.stream().filter(t -> Objects.equals(t.first, binding)).findFirst()
-                .map(HotRodTuple::getSecond)
+        return authFlowBindings.stream().filter(pair -> Objects.equals(pair.getFirst(), binding)).findFirst()
+                .map(HotRodPair::getSecond)
                 .orElse(null);
     }
 
     @Override
     public Map<String, String> getAuthenticationFlowBindingOverrides() {
-        return this.authFlowBindings.stream().collect(Collectors.toMap(HotRodTuple::getFirst, HotRodTuple::getSecond));
+        return this.authFlowBindings.stream().collect(Collectors.toMap(HotRodPair::getFirst, HotRodPair::getSecond));
     }
 
     @Override
     public void removeAuthenticationFlowBindingOverride(String binding) {
-        this.authFlowBindings.stream().filter(t -> Objects.equals(t.first, binding)).findFirst()
-                .ifPresent(t -> {
+        this.authFlowBindings.stream().filter(pair -> Objects.equals(pair.getFirst(), binding)).findFirst()
+                .ifPresent(pair -> {
                     updated = true;
-                    authFlowBindings.remove(t);
+                    authFlowBindings.remove(pair);
                 });
     }
 
@@ -612,7 +612,7 @@ public class HotRodClientEntity implements MapClientEntity, Versioned {
         
         removeAuthenticationFlowBindingOverride(binding);
         
-        this.authFlowBindings.add(new HotRodTuple(binding, flowId));
+        this.authFlowBindings.add(new HotRodPair<>(binding, flowId));
     }
 
     @Override
@@ -639,25 +639,24 @@ public class HotRodClientEntity implements MapClientEntity, Versioned {
             updated = true;
             removeClientScope(id);
 
-            this.clientScopes.add(new HotRodTuple(id, defaultScope == null ? "null" : defaultScope.toString()));
+            this.clientScopes.add(new HotRodPair<>(id, defaultScope));
         }
     }
 
     @Override
     public void removeClientScope(String id) {
-        this.clientScopes.stream().filter(t -> Objects.equals(t.first, id)).findFirst()
-                .ifPresent(t -> {
+        this.clientScopes.stream().filter(pair -> Objects.equals(pair.getFirst(), id)).findFirst()
+                .ifPresent(pair -> {
                     updated = true;
-                    clientScopes.remove(t);
+                    clientScopes.remove(pair);
                 });
     }
 
     @Override
     public Stream<String> getClientScopes(boolean defaultScope) {
         return this.clientScopes.stream()
-                .filter(t -> !"null".equals(t.getSecond()))
-                .filter(me -> Objects.equals(Boolean.parseBoolean(me.getSecond()), defaultScope))
-                .map(HotRodTuple::getFirst);
+                .filter(pair -> Objects.equals(pair.getSecond(), defaultScope))
+                .map(HotRodPair::getFirst);
     }
 
     @Override
