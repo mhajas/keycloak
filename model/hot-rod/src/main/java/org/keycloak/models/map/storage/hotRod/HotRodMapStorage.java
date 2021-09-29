@@ -79,7 +79,8 @@ public class HotRodMapStorage<K, V extends AbstractEntity & UpdatableEntity, M> 
 
     @Override
     public Stream<V> read(QueryParameters<M> queryParameters) {
-        String queryString = queryParameters.getModelCriteriaBuilder().unwrap(IckleQueryMapModelCriteriaBuilder.class).getIckleQuery();
+        IckleQueryMapModelCriteriaBuilder<K, V, M> iqmcb = queryParameters.getModelCriteriaBuilder().unwrap(IckleQueryMapModelCriteriaBuilder.class);
+        String queryString = iqmcb.getIckleQuery();
 
         if (!queryParameters.getOrderBy().isEmpty()) {
             queryString += " ORDER BY " + queryParameters.getOrderBy().stream().map(HotRodMapStorage::toOrderString)
@@ -93,12 +94,15 @@ public class HotRodMapStorage<K, V extends AbstractEntity & UpdatableEntity, M> 
         Query<V> query = paginateQuery(queryFactory.create(queryString), queryParameters.getOffset(),
                 queryParameters.getLimit());
 
+        query.setParameters(iqmcb.getParameters());
+
         return StreamSupport.stream(query.spliterator(), false);
     }
 
     @Override
     public long getCount(QueryParameters<M> queryParameters) {
-        String queryString = queryParameters.getModelCriteriaBuilder().unwrap(IckleQueryMapModelCriteriaBuilder.class).getIckleQuery();
+        IckleQueryMapModelCriteriaBuilder<K, V, M> iqmcb = queryParameters.getModelCriteriaBuilder().unwrap(IckleQueryMapModelCriteriaBuilder.class);
+        String queryString = iqmcb.getIckleQuery();
 
         if (!queryParameters.getOrderBy().isEmpty()) {
             queryString += " ORDER BY " + queryParameters.getOrderBy().stream().map(HotRodMapStorage::toOrderString)
@@ -111,13 +115,16 @@ public class HotRodMapStorage<K, V extends AbstractEntity & UpdatableEntity, M> 
 
         Query<V> query = paginateQuery(queryFactory.create(queryString), queryParameters.getOffset(),
                 queryParameters.getLimit());
+
+        query.setParameters(iqmcb.getParameters());
 
         return query.execute().hitCount().orElse(0);
     }
 
     @Override
     public long delete(QueryParameters<M> queryParameters) {
-        String queryString = "SELECT id " + queryParameters.getModelCriteriaBuilder().unwrap(IckleQueryMapModelCriteriaBuilder.class).getIckleQuery();
+        IckleQueryMapModelCriteriaBuilder<K, V, M> iqmcb = queryParameters.getModelCriteriaBuilder().unwrap(IckleQueryMapModelCriteriaBuilder.class);
+        String queryString = "SELECT id " + iqmcb.getIckleQuery();
 
         if (!queryParameters.getOrderBy().isEmpty()) {
             queryString += " ORDER BY " + queryParameters.getOrderBy().stream().map(HotRodMapStorage::toOrderString)
@@ -130,6 +137,8 @@ public class HotRodMapStorage<K, V extends AbstractEntity & UpdatableEntity, M> 
 
         Query<V> query = paginateQuery(queryFactory.create(queryString), queryParameters.getOffset(),
                 queryParameters.getLimit());
+
+        query.setParameters(iqmcb.getParameters());
 
         AtomicLong result = new AtomicLong();
 

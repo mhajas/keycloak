@@ -82,21 +82,21 @@ public class ClientModelTest extends KeycloakModelTest {
             assertThat(model.getClientId(), is(equalTo("myClientId")));
         }
 
-//        // Test attributes
-//        {
-//            // Add some attributes
-//            withRealm(realmId, (session, realm) -> {
-//                ClientModel clientById = session.clients().getClientById(realm, originalModel.getId());
-//                clientById.setAttribute("attribute1", "myAttributeValue");
-//                return clientById;
-//            });
-//
-//            List<ClientModel> attribute1 = withRealm(realmId, (session, realm) -> session.clients().searchClientsByAttributes(realm, Collections.singletonMap("attribute1", ""), null, null)).collect(Collectors.toList());
-//            assertThat(attribute1, hasSize(1));
-//
-//            List<ClientModel> attribute2 = withRealm(realmId, (session, realm) -> session.clients().searchClientsByAttributes(realm, Collections.singletonMap("attribute2", ""), null, null)).collect(Collectors.toList());
-//            assertThat(attribute2, hasSize(0));
-//        }
+        // Test attributes
+        {
+            // Add some attributes
+            withRealm(realmId, (session, realm) -> {
+                ClientModel clientById = session.clients().getClientById(realm, originalModel.getId());
+                clientById.setAttribute("attribute1", "myAttributeValue");
+                return clientById;
+            });
+
+            List<ClientModel> attribute1 = withRealm(realmId, (session, realm) -> session.clients().searchClientsByAttributes(realm, Collections.singletonMap("attribute1", "myAttributeValue"), null, null)).collect(Collectors.toList());
+            assertThat(attribute1, hasSize(1));
+
+            List<ClientModel> attribute2 = withRealm(realmId, (session, realm) -> session.clients().searchClientsByAttributes(realm, Collections.singletonMap("attribute2", ""), null, null)).collect(Collectors.toList());
+            assertThat(attribute2, hasSize(0));
+        }
     }
 
     @Test

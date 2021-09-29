@@ -19,21 +19,17 @@ import java.util.stream.Stream;
 public class HotRodClientEntity implements MapClientEntity, Versioned {
 
     @ProtoField(number = 1, required = true)
-    @ProtoDoc("@Field(index = Index.YES, store = Store.YES)")
     public int entityVersion = 1;
 
     @ProtoField(number = 2, required = true)
-    @ProtoDoc("@Field(index = Index.YES, store = Store.YES)")
     public String id;
 
     @ProtoField(number = 3, required = true)
-    @ProtoDoc("@Field(index = Index.YES, store = Store.YES)")
     public String realmId;
 
 
 
     @ProtoField(number = 4, required = true)
-    @ProtoDoc("@Field(index = Index.YES, store = Store.YES)")
     public String clientId;
 
     @ProtoField(number = 5)

@@ -18,18 +18,18 @@ public class IckleQueryWhereClauses {
 
     @FunctionalInterface
     public interface WhereClauseProducer {
-        String produceWhereClause(String modelFieldName, ModelCriteriaBuilder.Operator op, Object[] values);
+        String produceWhereClause(String modelFieldName, ModelCriteriaBuilder.Operator op, Object[] values, Map<String, Object> parameters);
     }
 
-    private static String produceWhereClause(String modelFieldName, ModelCriteriaBuilder.Operator op, Object[] values) {
-        return IckleQueryOperators.operatorToExpressionCombinator(op).apply(modelFieldName, values);
+    private static String produceWhereClause(String modelFieldName, ModelCriteriaBuilder.Operator op, Object[] values, Map<String, Object> parameters) {
+        return IckleQueryOperators.operatorToExpressionCombinator(op).combine(modelFieldName, values, parameters);
     }
 
     public static WhereClauseProducer whereClauseProducerForModelField(SearchableModelField<?> modelField) {
         return WHERE_CLAUSE_PRODUCER_OVERRIDES.getOrDefault(modelField, IckleQueryWhereClauses::produceWhereClause);
     }
 
-    private static String whereClauseForClientsAttributes(String modelFieldName, ModelCriteriaBuilder.Operator op, Object[] values) {
+    private static String whereClauseForClientsAttributes(String modelFieldName, ModelCriteriaBuilder.Operator op, Object[] values, Map<String, Object> parameters) {
         if (values == null || values.length != 2) {
             throw new CriterionNotSupportedException(ClientModel.SearchableFields.ATTRIBUTE, op, "Invalid arguments, expected attribute_name-value pair, got: " + Arrays.toString(values));
         }
@@ -44,8 +44,8 @@ public class IckleQueryWhereClauses {
         System.arraycopy(values, 1, realValues, 0, values.length - 1);
 
         // Clause for searching attribute name
-        String nameClause = IckleQueryOperators.combineExpressions(ModelCriteriaBuilder.Operator.EQ, modelFieldName + ".name", new Object[]{attrNameS});
-        String valueClause = IckleQueryOperators.combineExpressions(op, modelFieldName + ".values", realValues);
+        String nameClause = IckleQueryOperators.combineExpressions(ModelCriteriaBuilder.Operator.EQ, modelFieldName + ".name", new Object[]{attrNameS}, parameters);
+        String valueClause = IckleQueryOperators.combineExpressions(op, modelFieldName + ".values", realValues, parameters);
 
         return "(" + nameClause + ")" + " AND " + "(" + valueClause + ")";
     }

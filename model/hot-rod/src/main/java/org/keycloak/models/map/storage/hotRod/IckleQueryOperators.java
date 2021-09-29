@@ -9,16 +9,15 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static org.keycloak.models.map.storage.hotRod.IckleQueryUtils.escapeIfNecessary;
-
 public class IckleQueryOperators {
+    private static final String UNWANTED_CHARACTERS_REGEX = "[^a-zA-Z\\d]";
     public static final String C = "c";
     private static final Map<ModelCriteriaBuilder.Operator, String> OPERATOR_TO_STRING = new HashMap<>();
-    private static final Map<ModelCriteriaBuilder.Operator, BiFunction<String, Object[], String>> OPERATOR_TO_EXPRESSION_COMBINATORS = new HashMap<>();
+    private static final Map<ModelCriteriaBuilder.Operator, ExpressionCombinator> OPERATOR_TO_EXPRESSION_COMBINATORS = new HashMap<>();
 
     static {
         OPERATOR_TO_EXPRESSION_COMBINATORS.put(ModelCriteriaBuilder.Operator.IN, IckleQueryOperators::in);
@@ -38,48 +37,73 @@ public class IckleQueryOperators {
         OPERATOR_TO_STRING.put(ModelCriteriaBuilder.Operator.NOT_EXISTS, "LIKE");
     }
 
-    private static String exists(String modelField, Object[] values) {
+    @FunctionalInterface
+    public interface ExpressionCombinator {
+        String combine(String fieldName, Object[] values, Map<String, Object> parameters);
+    }
+
+    private static String exists(String modelField, Object[] values, Map<String, Object> parameters) {
         String field = C + "." + modelField;
         return field + " IS NOT NULL AND " + field + " IS NOT EMPTY";
     }
 
-    private static String notExists(String modelField, Object[] values) {
+    private static String notExists(String modelField, Object[] values, Map<String, Object> parameters) {
         String field = C + "." + modelField;
         return field + " IS NULL OR " + field + " IS EMPTY";
     }
 
-    private static String in(String modelField, Object[] values) {
+    private static String in(String modelField, Object[] values, Map<String, Object> parameters) {
         if (values == null || values.length == 0) {
             return "false";
         }
 
-        final Collection<?> operand;
+        final Collection<?> operands;
         if (values.length == 1) {
             final Object value0 = values[0];
             if (value0 instanceof Collection) {
-                operand = (Collection) value0;
+                operands = (Collection) value0;
             } else if (value0 instanceof Stream) {
                 try (Stream valueS = (Stream) value0) {
-                    operand = (Set) valueS.collect(Collectors.toSet());
+                    operands = (Set) valueS.collect(Collectors.toSet());
                 }
             } else {
-                operand = Collections.singleton(value0);
+                operands = Collections.singleton(value0);
             }
         } else {
-            operand = new HashSet<>(Arrays.asList(values));
+            operands = new HashSet<>(Arrays.asList(values));
         }
 
-        return C + "." + modelField + " IN (" + operand.stream()
-                .map(IckleQueryUtils::escapeIfNecessary)
+        return C + "." + modelField + " IN (" + operands.stream()
+                .map(operand -> {
+                    String namedParam = findAvailableNamedParam(parameters.keySet(), modelField);
+                    parameters.put(namedParam, operand);
+                    return ":" + namedParam;
+                })
                 .collect(Collectors.joining(", ")) +
                 ")";
     }
 
-    private static BiFunction<String, Object[], String> singleValueOperator(ModelCriteriaBuilder.Operator op) {
-        return (modelFieldName, values) -> {
+    private static String removeForbiddenCharactersFromNamedParameter(String name) {
+        return name.replaceAll(UNWANTED_CHARACTERS_REGEX, "");
+    }
+
+    public static String findAvailableNamedParam(Set<String> existingNames, String namePrefix) {
+        String namePrefixCleared = removeForbiddenCharactersFromNamedParameter(namePrefix);
+        return IntStream.iterate(0, i -> i + 1)
+                .boxed()
+                .map(num -> namePrefixCleared + num)
+                .filter(name -> !existingNames.contains(name))
+                .findFirst().orElseThrow(() -> new IllegalArgumentException("Cannot create Parameter name for " + namePrefix));
+    }
+
+    private static ExpressionCombinator singleValueOperator(ModelCriteriaBuilder.Operator op) {
+        return (modelFieldName, values, parameters) -> {
             if (values.length != 1) throw new RuntimeException("Invalid arguments, expected (" + modelFieldName + "), got: " + Arrays.toString(values));
 
-            return C + "." + modelFieldName + " " + IckleQueryOperators.operatorToString(op) + " " + escapeIfNecessary(values[0]);
+            String namedParameter = findAvailableNamedParam(parameters.keySet(), modelFieldName);
+
+            parameters.put(namedParameter, values[0]);
+            return C + "." + modelFieldName + " " + IckleQueryOperators.operatorToString(op) + " :" + namedParameter;
         };
     }
 
@@ -87,12 +111,12 @@ public class IckleQueryOperators {
         return OPERATOR_TO_STRING.get(op);
     }
 
-    public static BiFunction<String, Object[], String> operatorToExpressionCombinator(ModelCriteriaBuilder.Operator op) {
+    public static ExpressionCombinator operatorToExpressionCombinator(ModelCriteriaBuilder.Operator op) {
         return OPERATOR_TO_EXPRESSION_COMBINATORS.getOrDefault(op, singleValueOperator(op));
     }
 
-    public static String combineExpressions(ModelCriteriaBuilder.Operator op, String filedName, Object[] values) {
-        return operatorToExpressionCombinator(op).apply(filedName, values);
+    public static String combineExpressions(ModelCriteriaBuilder.Operator op, String filedName, Object[] values, Map<String, Object> parameters) {
+        return operatorToExpressionCombinator(op).combine(filedName, values, parameters);
     }
 
 }
