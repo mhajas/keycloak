@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -352,12 +353,12 @@ public class HotRodClientEntity implements MapClientEntity, Versioned {
     }
 
     @Override
-    public int getNotBefore() {
+    public Integer getNotBefore() {
         return notBefore;
     }
 
     @Override
-    public void setNotBefore(int notBefore) {
+    public void setNotBefore(Integer notBefore) {
         this.updated |= ! Objects.equals(this.notBefore, notBefore);
         this.notBefore = notBefore;
     }
@@ -387,30 +388,22 @@ public class HotRodClientEntity implements MapClientEntity, Versioned {
     }
 
     @Override
-    public ProtocolMapperModel addProtocolMapper(ProtocolMapperModel model) {
-        Objects.requireNonNull(model.getId(), "protocolMapper.id");
-        updated = true;
-        
-        removeProtocolMapper(model.getId());
+    public Map<String, MapProtocolMapperEntity> getProtocolMappers() {
+        return protocolMappers.stream().collect(Collectors.toMap(HotRodProtocolMapperEntity::getId, Function.identity()));
+    }
 
-        this.protocolMappers.add(HotRodProtocolMapperEntity.fromModel(model));
-        return model;
+
+    @Override
+    public MapProtocolMapperEntity getProtocolMapper(String id) {
+        return protocolMappers.stream().filter(hotRodMapper -> Objects.equals(hotRodMapper.getId(), id)).findFirst().orElse(null);
     }
 
     @Override
-    public Collection<ProtocolMapperModel> getProtocolMappers() {
-        return protocolMappers.stream().map(HotRodProtocolMapperEntity::toModel).collect(Collectors.toSet());
-    }
+    public void setProtocolMapper(String id, MapProtocolMapperEntity mapping) {
+        removeProtocolMapper(id);
 
-    @Override
-    public void updateProtocolMapper(String id, ProtocolMapperModel mapping) {
-        protocolMappers.stream().filter(entity -> Objects.equals(id, entity.id))
-                .findFirst()
-                .ifPresent(entity -> {
-                    protocolMappers.remove(entity);
-                    protocolMappers.add(HotRodProtocolMapperEntity.fromModel(mapping));
-                    updated = true;
-                });
+        protocolMappers.add(HotRodProtocolMapperEntity.fromModel(HotRodProtocolMapperEntity.toModel(mapping))); // Workaround, will be replaced by cloners
+        this.updated = true;
     }
 
     @Override
@@ -421,21 +414,6 @@ public class HotRodClientEntity implements MapClientEntity, Versioned {
                     protocolMappers.remove(entity);
                     updated = true;
                 });
-    }
-
-    @Override
-    public void setProtocolMappers(Collection<ProtocolMapperModel> protocolMappers) {
-        this.updated = true;
-
-        this.protocolMappers.clear();
-        this.protocolMappers.addAll(protocolMappers.stream().map(HotRodProtocolMapperEntity::fromModel).collect(Collectors.toSet()));
-    }
-
-    @Override
-    public ProtocolMapperModel getProtocolMapperById(String id) {
-        return protocolMappers.stream().filter(entity -> Objects.equals(id, entity.id)).findFirst()
-                .map(HotRodProtocolMapperEntity::toModel)
-                .orElse(null);
     }
 
     @Override
@@ -549,12 +527,12 @@ public class HotRodClientEntity implements MapClientEntity, Versioned {
     }
 
     @Override
-    public int getNodeReRegistrationTimeout() {
+    public Integer getNodeReRegistrationTimeout() {
         return nodeReRegistrationTimeout;
     }
 
     @Override
-    public void setNodeReRegistrationTimeout(int nodeReRegistrationTimeout) {
+    public void setNodeReRegistrationTimeout(Integer nodeReRegistrationTimeout) {
         this.updated |= ! Objects.equals(this.nodeReRegistrationTimeout, nodeReRegistrationTimeout);
         this.nodeReRegistrationTimeout = nodeReRegistrationTimeout;
     }
@@ -625,12 +603,17 @@ public class HotRodClientEntity implements MapClientEntity, Versioned {
     }
 
     @Override
-    public void deleteScopeMapping(String id) {
+    public void removeScopeMapping(String id) {
         updated |= scopeMappings.remove(id);
     }
 
     @Override
-    public void addClientScope(String id, Boolean defaultScope) {
+    public Map<String, Boolean> getClientScopes() {
+        return this.clientScopes.stream().collect(Collectors.toMap(HotRodPair::getFirst, HotRodPair::getSecond));
+    }
+
+    @Override
+    public void setClientScope(String id, Boolean defaultScope) {
         if (id != null) {
             updated = true;
             removeClientScope(id);
@@ -663,6 +646,13 @@ public class HotRodClientEntity implements MapClientEntity, Versioned {
     @Override
     public String getId() {
         return id;
+    }
+
+    @Override
+    public void setId(String id) {
+        if (this.id != null) throw new IllegalStateException("Id cannot be changed");
+        this.id = id;
+        this.updated |= id != null;
     }
 
     @Override

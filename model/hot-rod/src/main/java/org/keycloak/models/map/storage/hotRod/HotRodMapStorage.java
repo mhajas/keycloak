@@ -41,8 +41,9 @@ public class HotRodMapStorage<K, V extends AbstractEntity & UpdatableEntity, M> 
     public V create(V value) {
         K key = keyConvertor.fromStringSafe(value.getId());
         if (key == null) {
+            value = Serialization.from(value);
             key = keyConvertor.yieldNewUniqueKey();
-            value = Serialization.from(value, keyConvertor.keyToString(key));
+            value.setId(keyConvertor.keyToString(key));
         }
 
         remoteCache.putIfAbsent(key, value);

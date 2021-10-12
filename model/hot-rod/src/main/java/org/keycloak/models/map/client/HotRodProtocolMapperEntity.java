@@ -4,10 +4,12 @@ import org.infinispan.protostream.annotations.ProtoField;
 import org.keycloak.models.ProtocolMapperModel;
 
 import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class HotRodProtocolMapperEntity {
+public class HotRodProtocolMapperEntity implements MapProtocolMapperEntity {
     @ProtoField(number = 1)
     public String id;
     @ProtoField(number = 2)
@@ -23,14 +25,15 @@ public class HotRodProtocolMapperEntity {
     @ProtoField(number = 5)
     public Set<HotRodPair<String, String>> config = new LinkedHashSet<>();
     
-    public static ProtocolMapperModel toModel(HotRodProtocolMapperEntity hotRodProtocolMapperEntity) {
+    private boolean updated;
+    
+    public static ProtocolMapperModel toModel(MapProtocolMapperEntity hotRodProtocolMapperEntity) {
         ProtocolMapperModel model = new ProtocolMapperModel();
 
-        model.setId(hotRodProtocolMapperEntity.id);
-        model.setName(hotRodProtocolMapperEntity.name);
-        model.setProtocol(hotRodProtocolMapperEntity.protocol);
-        model.setProtocolMapper(hotRodProtocolMapperEntity.protocolMapper);
-        model.setConfig(hotRodProtocolMapperEntity.config.stream().collect(Collectors.toMap(HotRodPair::getFirst, HotRodPair::getSecond)));
+        model.setId(hotRodProtocolMapperEntity.getId());
+        model.setName(hotRodProtocolMapperEntity.getName());
+        model.setProtocolMapper(hotRodProtocolMapperEntity.getProtocolMapper());
+        model.setConfig(hotRodProtocolMapperEntity.getConfig());
 
         return model;
     }
@@ -60,5 +63,56 @@ public class HotRodProtocolMapperEntity {
     @Override
     public int hashCode() {
         return id.hashCode();
+    }
+
+    @Override
+    public String getId() {
+        return id;
+    }
+
+    @Override
+    public void setId(String id) {
+        updated |= !Objects.equals(this.id, id);
+        this.id = id;
+    }
+
+    @Override
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public void setName(String name) {
+        updated |= !Objects.equals(this.name, name);
+        this.name = name;
+    }
+
+    @Override
+    public String getProtocolMapper() {
+        return protocolMapper;
+    }
+
+    @Override
+    public void setProtocolMapper(String protocolMapper) {
+        updated |= !Objects.equals(this.protocolMapper, protocolMapper);
+        this.protocolMapper = protocolMapper;
+    }
+
+    @Override
+    public Map<String, String> getConfig() {
+        return config.stream().collect(Collectors.toMap(HotRodPair::getFirst, HotRodPair::getSecond));
+    }
+
+    @Override
+    public void setConfig(Map<String, String> config) {
+        updated |= !Objects.equals(this.config, config);
+        this.config.clear();
+
+        config.entrySet().stream().map(entry -> new HotRodPair<>(entry.getKey(), entry.getValue())).forEach(this.config::add);
+    }
+
+    @Override
+    public boolean isUpdated() {
+        return updated;
     }
 }

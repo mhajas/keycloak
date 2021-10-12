@@ -141,7 +141,7 @@ public class MapClientProvider implements ClientProvider {
     public ClientModel addClient(RealmModel realm, String id, String clientId) {
         LOG.tracef("addClient(%s, %s, %s)%s", realm, id, clientId, getShortStackTrace());
 
-        MapClientEntity entity = clientStore.newEntityInstance(id);
+        MapClientEntity entity = clientStore.newEntityInstance(id); // TODO: This need to be removed when cloners are implemented
         entity.setRealmId(realm.getId());
         entity.setClientId(clientId);
         entity.setEnabled(true);
