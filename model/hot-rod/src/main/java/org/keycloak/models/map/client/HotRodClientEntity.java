@@ -28,8 +28,6 @@ public class HotRodClientEntity implements MapClientEntity, Versioned {
     @ProtoField(number = 3, required = true)
     public String realmId;
 
-
-
     @ProtoField(number = 4, required = true)
     public String clientId;
 

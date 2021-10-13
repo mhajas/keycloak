@@ -2,6 +2,7 @@ package org.keycloak.models.map.storage.hotRod;
 
 import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.Search;
+import org.infinispan.commons.util.CloseableIterator;
 import org.infinispan.query.dsl.Query;
 import org.infinispan.query.dsl.QueryFactory;
 import org.keycloak.models.KeycloakSession;
@@ -14,16 +15,17 @@ import org.keycloak.models.map.storage.MapKeycloakTransaction;
 import org.keycloak.models.map.storage.MapStorage;
 import org.keycloak.models.map.storage.ModelCriteriaBuilder;
 import org.keycloak.models.map.storage.QueryParameters;
-import org.keycloak.models.map.storage.chm.ConcurrentHashMapKeycloakTransaction;
 import org.keycloak.storage.SearchableModelField;
 
 import java.util.Objects;
+import java.util.Spliterators;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static org.keycloak.models.map.common.HotRodUtils.paginateQuery;
+import static org.keycloak.utils.StreamsUtil.closing;
 
 public class HotRodMapStorage<K, V extends AbstractEntity & UpdatableEntity, M> implements MapStorage<V, M> {
 
@@ -97,7 +99,9 @@ public class HotRodMapStorage<K, V extends AbstractEntity & UpdatableEntity, M> 
 
         query.setParameters(iqmcb.getParameters());
 
-        return StreamSupport.stream(query.spliterator(), false);
+        CloseableIterator<V> iterator = query.iterator();
+        return closing(StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, 0), false))
+                .onClose(iterator::close);
     }
 
     @Override
@@ -143,10 +147,12 @@ public class HotRodMapStorage<K, V extends AbstractEntity & UpdatableEntity, M> 
 
         AtomicLong result = new AtomicLong();
 
-        StreamSupport.stream(query.spliterator(), false)
+        CloseableIterator<V> iterator = query.iterator();
+        StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, 0), false)
                 .peek(e -> {result.incrementAndGet();})
                 .map(AbstractEntity::getId)
                 .forEach(this::delete);
+        iterator.close();
 
         return result.get();
     }
