@@ -122,4 +122,12 @@ public class IckleQueryMapModelCriteriaBuilder<K, V extends AbstractEntity, M> i
     public Map<String, Object> getParameters() {
         return parameters;
     }
+
+    @Override
+    public <T extends ModelCriteriaBuilder> T unwrap(Class<T> clazz) {
+        if (clazz.equals(MapModelCriteriaBuilder.class)) {
+            return (T) mapModelCriteria;
+        }
+        return ModelCriteriaBuilder.super.unwrap(clazz);
+    }
 }

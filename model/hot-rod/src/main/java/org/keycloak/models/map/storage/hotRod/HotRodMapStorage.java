@@ -15,6 +15,7 @@ import org.keycloak.models.map.storage.MapKeycloakTransaction;
 import org.keycloak.models.map.storage.MapStorage;
 import org.keycloak.models.map.storage.ModelCriteriaBuilder;
 import org.keycloak.models.map.storage.QueryParameters;
+import org.keycloak.models.map.storage.chm.ConcurrentHashMapKeycloakTransaction;
 import org.keycloak.storage.SearchableModelField;
 
 import java.util.Objects;
@@ -164,7 +165,7 @@ public class HotRodMapStorage<K, V extends AbstractEntity & UpdatableEntity, M> 
 
     @Override
     public MapKeycloakTransaction<V, M> createTransaction(KeycloakSession session) {
-        return new HotRodMapKeycloakTransaction<>(this, keyConvertor);
+        return new ConcurrentHashMapKeycloakTransaction<>(this, keyConvertor);
     }
 
     @Override

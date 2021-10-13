@@ -97,6 +97,20 @@ public class ClientModelTest extends KeycloakModelTest {
             List<ClientModel> attribute2 = withRealm(realmId, (session, realm) -> session.clients().searchClientsByAttributes(realm, Collections.singletonMap("attribute2", ""), null, null)).collect(Collectors.toList());
             assertThat(attribute2, hasSize(0));
         }
+
+        // Test storing flow binding override
+        {
+            // Add some override
+            withRealm(realmId, (session, realm) -> {
+                ClientModel clientById = session.clients().getClientById(realm, originalModel.getId());
+                clientById.setAuthenticationFlowBindingOverride("browser", "customFlowId");
+                return clientById;
+            });
+
+            ClientModel client = withRealm(realmId, (session, realm) -> session.clients().getClientById(realm, originalModel.getId()));
+            String browser = client.getAuthenticationFlowBindingOverride("browser");
+            assertThat(browser, is(equalTo("customFlowId")));
+        }
     }
 
     @Test
