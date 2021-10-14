@@ -57,11 +57,11 @@ public class HotRodMapStorageProviderFactory implements AmphibianProviderFactory
         ConfigurationBuilder remoteBuilder = new ConfigurationBuilder();
         remoteBuilder.addServer()
                 .host("localhost")
-                .port(11222)
+                .port(14232)
                 .security()
                 .authentication()
-                .username("admin")
-                .password("admin")
+                .username("myuser")
+                .password("qwer1234!")
                 .realm("default")
                 .clientIntelligence(ClientIntelligence.BASIC)
                 .marshaller(new ProtoStreamMarshaller());
