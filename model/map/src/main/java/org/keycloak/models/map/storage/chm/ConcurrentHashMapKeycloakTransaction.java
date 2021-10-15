@@ -195,7 +195,7 @@ public class ConcurrentHashMapKeycloakTransaction<K, V extends AbstractEntity & 
         }
 
 
-        return StreamsUtil.paginatedStream(res, queryParameters.getOffset(), queryParameters.getLimit());
+        return res;
     }
 
     @Override

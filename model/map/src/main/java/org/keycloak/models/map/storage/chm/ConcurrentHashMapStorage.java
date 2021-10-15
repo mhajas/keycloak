@@ -36,6 +36,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import org.keycloak.models.map.storage.chm.MapModelCriteriaBuilder.UpdatePredicatesFunc;
+import org.keycloak.utils.StreamsUtil;
+
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -160,9 +162,13 @@ public class ConcurrentHashMapStorage<K, V extends AbstractEntity & UpdatableEnt
         }
         Predicate<? super K> keyFilter = b.getKeyFilter();
         Predicate<? super V> entityFilter = b.getEntityFilter();
-        stream = stream.filter(me -> keyFilter.test(me.getKey()) && entityFilter.test(me.getValue()));
+        Stream<V> valuesStream = stream.filter(me -> keyFilter.test(me.getKey()) && entityFilter.test(me.getValue())).map(Map.Entry::getValue);
 
-        return stream.map(Map.Entry::getValue);
+        if (!queryParameters.getOrderBy().isEmpty()) {
+            valuesStream = valuesStream.sorted(MapFieldPredicates.getComparator(queryParameters.getOrderBy().stream()));
+        }
+
+        return StreamsUtil.paginatedStream(valuesStream, queryParameters.getOffset(), queryParameters.getLimit());
     }
 
     @Override
