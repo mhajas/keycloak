@@ -162,7 +162,8 @@ public class ConcurrentHashMapStorage<K, V extends AbstractEntity & UpdatableEnt
         }
         Predicate<? super K> keyFilter = b.getKeyFilter();
         Predicate<? super V> entityFilter = b.getEntityFilter();
-        Stream<V> valuesStream = stream.filter(me -> keyFilter.test(me.getKey()) && entityFilter.test(me.getValue())).map(Map.Entry::getValue);
+        Stream<V> valuesStream = stream.filter(me -> keyFilter.test(me.getKey()) && entityFilter.test(me.getValue()))
+                                        .map(Map.Entry::getValue);
 
         if (!queryParameters.getOrderBy().isEmpty()) {
             valuesStream = valuesStream.sorted(MapFieldPredicates.getComparator(queryParameters.getOrderBy().stream()));
