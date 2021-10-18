@@ -52,7 +52,9 @@ public class HotRodClientEntity implements MapClientEntity, Versioned {
     @ProtoField(number = 11)
     public String secret;
 
+    @ProtoField(number = 12)
     public String registrationToken;
+
     @ProtoField(number = 13)
     public String protocol;
 
