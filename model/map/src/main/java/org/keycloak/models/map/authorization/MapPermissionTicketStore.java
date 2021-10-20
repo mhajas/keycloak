@@ -29,7 +29,6 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.ModelDuplicateException;
 import org.keycloak.models.map.authorization.adapter.MapPermissionTicketAdapter;
 import org.keycloak.models.map.authorization.entity.MapPermissionTicketEntity;
-import org.keycloak.models.map.storage.MapKeycloakTransaction;
 import org.keycloak.models.map.storage.MapStorage;
 import org.keycloak.models.map.storage.ModelCriteriaBuilder;
 import org.keycloak.models.map.storage.ModelCriteriaBuilder.Operator;
@@ -52,14 +51,11 @@ public class MapPermissionTicketStore implements PermissionTicketStore {
 
     private static final Logger LOG = Logger.getLogger(MapPermissionTicketStore.class);
     private final AuthorizationProvider authorizationProvider;
-    final MapKeycloakTransaction<MapPermissionTicketEntity, PermissionTicket> tx;
     private final MapStorage<MapPermissionTicketEntity, PermissionTicket> permissionTicketStore;
 
     public MapPermissionTicketStore(KeycloakSession session, MapStorage<MapPermissionTicketEntity, PermissionTicket> permissionTicketStore, AuthorizationProvider provider) {
         this.authorizationProvider = provider;
         this.permissionTicketStore = permissionTicketStore;
-        this.tx = permissionTicketStore.createTransaction(session);
-        session.getTransactionManager().enlist(tx);
     }
 
     private PermissionTicket entityToAdapter(MapPermissionTicketEntity origEntity) {
@@ -85,7 +81,7 @@ public class MapPermissionTicketStore implements PermissionTicketStore {
                         .toArray(ModelCriteriaBuilder[]::new)
         );
 
-        return tx.getCount(withCriteria(mcb));
+        return permissionTicketStore.getCount(withCriteria(mcb));
     }
 
     @Override
@@ -104,7 +100,7 @@ public class MapPermissionTicketStore implements PermissionTicketStore {
             mcb = mcb.compare(SearchableFields.SCOPE_ID, Operator.EQ, scopeId);
         }
 
-        if (tx.getCount(withCriteria(mcb)) > 0) {
+        if (permissionTicketStore.getCount(withCriteria(mcb)) > 0) {
             throw new ModelDuplicateException("Permission ticket for resource server: '" + resourceServer.getId()
                     + ", Resource: " + resourceId + ", owner: " + owner + ", scopeId: " + scopeId + " already exists.");
         }
@@ -121,7 +117,7 @@ public class MapPermissionTicketStore implements PermissionTicketStore {
         entity.setOwner(owner);
         entity.setResourceServerId(resourceServer.getId());
 
-        entity = tx.create(entity);
+        entity = permissionTicketStore.create(entity);
 
         return entityToAdapter(entity);
     }
@@ -129,14 +125,14 @@ public class MapPermissionTicketStore implements PermissionTicketStore {
     @Override
     public void delete(String id) {
         LOG.tracef("delete(%s)%s", id, getShortStackTrace());
-        tx.delete(id);
+        permissionTicketStore.delete(id);
     }
 
     @Override
     public PermissionTicket findById(String id, String resourceServerId) {
         LOG.tracef("findById(%s, %s)%s", id, resourceServerId, getShortStackTrace());
 
-        return tx.read(withCriteria(forResourceServer(resourceServerId)
+        return permissionTicketStore.read(withCriteria(forResourceServer(resourceServerId)
                 .compare(SearchableFields.ID, Operator.EQ, id)))
                 .findFirst()
                 .map(this::entityToAdapter)
@@ -147,7 +143,7 @@ public class MapPermissionTicketStore implements PermissionTicketStore {
     public List<PermissionTicket> findByResourceServer(String resourceServerId) {
         LOG.tracef("findByResourceServer(%s)%s", resourceServerId, getShortStackTrace());
 
-        return tx.read(withCriteria(forResourceServer(resourceServerId)))
+        return permissionTicketStore.read(withCriteria(forResourceServer(resourceServerId)))
                 .map(this::entityToAdapter)
                 .collect(Collectors.toList());
     }
@@ -156,7 +152,7 @@ public class MapPermissionTicketStore implements PermissionTicketStore {
     public List<PermissionTicket> findByOwner(String owner, String resourceServerId) {
         LOG.tracef("findByOwner(%s, %s)%s", owner, resourceServerId, getShortStackTrace());
 
-        return tx.read(withCriteria(forResourceServer(resourceServerId)
+        return permissionTicketStore.read(withCriteria(forResourceServer(resourceServerId)
                 .compare(SearchableFields.OWNER, Operator.EQ, owner)))
                 .map(this::entityToAdapter)
                 .collect(Collectors.toList());
@@ -166,7 +162,7 @@ public class MapPermissionTicketStore implements PermissionTicketStore {
     public List<PermissionTicket> findByResource(String resourceId, String resourceServerId) {
         LOG.tracef("findByResource(%s, %s)%s", resourceId, resourceServerId, getShortStackTrace());
 
-        return tx.read(withCriteria(forResourceServer(resourceServerId)
+        return permissionTicketStore.read(withCriteria(forResourceServer(resourceServerId)
                 .compare(SearchableFields.RESOURCE_ID, Operator.EQ, resourceId)))
                 .map(this::entityToAdapter)
                 .collect(Collectors.toList());
@@ -176,7 +172,7 @@ public class MapPermissionTicketStore implements PermissionTicketStore {
     public List<PermissionTicket> findByScope(String scopeId, String resourceServerId) {
         LOG.tracef("findByScope(%s, %s)%s", scopeId, resourceServerId, getShortStackTrace());
 
-        return tx.read(withCriteria(forResourceServer(resourceServerId)
+        return permissionTicketStore.read(withCriteria(forResourceServer(resourceServerId)
                 .compare(SearchableFields.SCOPE_ID, Operator.EQ, scopeId)))
                 .map(this::entityToAdapter)
                 .collect(Collectors.toList());
@@ -206,7 +202,7 @@ public class MapPermissionTicketStore implements PermissionTicketStore {
                     .toArray(ModelCriteriaBuilder[]::new)
         );
 
-        return tx.read(withCriteria(mcb).pagination(firstResult, maxResult, SearchableFields.ID))
+        return permissionTicketStore.read(withCriteria(mcb).pagination(firstResult, maxResult, SearchableFields.ID))
                 .map(this::entityToAdapter)
                 .collect(Collectors.toList());
     }
@@ -289,7 +285,7 @@ public class MapPermissionTicketStore implements PermissionTicketStore {
                     .findById(ticket.getResourceId(), ticket.getResourceServerId());
         }
 
-        return paginatedStream(tx.read(withCriteria(mcb).orderBy(SearchableFields.RESOURCE_ID, ASCENDING))
+        return paginatedStream(permissionTicketStore.read(withCriteria(mcb).orderBy(SearchableFields.RESOURCE_ID, ASCENDING))
             .filter(distinctByKey(MapPermissionTicketEntity::getResourceId))
             .map(ticketResourceMapper)
             .filter(Objects::nonNull), first, max)
@@ -301,7 +297,7 @@ public class MapPermissionTicketStore implements PermissionTicketStore {
         ModelCriteriaBuilder<PermissionTicket> mcb = permissionTicketStore.createCriteriaBuilder()
                 .compare(SearchableFields.OWNER, Operator.EQ, owner);
 
-        return paginatedStream(tx.read(withCriteria(mcb).orderBy(SearchableFields.RESOURCE_ID, ASCENDING))
+        return paginatedStream(permissionTicketStore.read(withCriteria(mcb).orderBy(SearchableFields.RESOURCE_ID, ASCENDING))
             .filter(distinctByKey(MapPermissionTicketEntity::getResourceId)), first, max)
             .map(ticket -> authorizationProvider.getStoreFactory().getResourceStore()
                     .findById(ticket.getResourceId(), ticket.getResourceServerId()))

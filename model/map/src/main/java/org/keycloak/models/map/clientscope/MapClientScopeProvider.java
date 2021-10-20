@@ -30,7 +30,6 @@ import org.keycloak.models.ClientScopeProvider;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.ModelDuplicateException;
 import org.keycloak.models.RealmModel;
-import org.keycloak.models.map.storage.MapKeycloakTransaction;
 import org.keycloak.models.map.storage.MapStorage;
 import org.keycloak.models.map.storage.ModelCriteriaBuilder;
 import org.keycloak.models.map.storage.ModelCriteriaBuilder.Operator;
@@ -43,14 +42,11 @@ public class MapClientScopeProvider implements ClientScopeProvider {
 
     private static final Logger LOG = Logger.getLogger(MapClientScopeProvider.class);
     private final KeycloakSession session;
-    private final MapKeycloakTransaction<MapClientScopeEntity, ClientScopeModel> tx;
     private final MapStorage<MapClientScopeEntity, ClientScopeModel> clientScopeStore;
 
     public MapClientScopeProvider(KeycloakSession session, MapStorage<MapClientScopeEntity, ClientScopeModel> clientScopeStore) {
         this.session = session;
         this.clientScopeStore = clientScopeStore;
-        this.tx = clientScopeStore.createTransaction(session);
-        session.getTransactionManager().enlist(tx);
     }
 
     private Function<MapClientScopeEntity, ClientScopeModel> entityToAdapterFunc(RealmModel realm) {
@@ -72,7 +68,7 @@ public class MapClientScopeProvider implements ClientScopeProvider {
         ModelCriteriaBuilder<ClientScopeModel> mcb = clientScopeStore.createCriteriaBuilder()
             .compare(SearchableFields.REALM_ID, Operator.EQ, realm.getId());
 
-        return tx.read(withCriteria(mcb).orderBy(SearchableFields.NAME, ASCENDING))
+        return clientScopeStore.read(withCriteria(mcb).orderBy(SearchableFields.NAME, ASCENDING))
           .map(entityToAdapterFunc(realm));
     }
 
@@ -83,7 +79,7 @@ public class MapClientScopeProvider implements ClientScopeProvider {
             .compare(SearchableFields.REALM_ID, Operator.EQ, realm.getId())
             .compare(SearchableFields.NAME, Operator.EQ, name);
 
-        if (tx.getCount(withCriteria(mcb)) > 0) {
+        if (clientScopeStore.getCount(withCriteria(mcb)) > 0) {
             throw new ModelDuplicateException("Client scope with name '" + name + "' in realm " + realm.getName());
         }
 
@@ -91,10 +87,10 @@ public class MapClientScopeProvider implements ClientScopeProvider {
 
         MapClientScopeEntity entity = new MapClientScopeEntity(id, realm.getId());
         entity.setName(KeycloakModelUtils.convertClientScopeName(name));
-        if (id != null && tx.read(id) != null) {
+        if (id != null && clientScopeStore.read(id) != null) {
             throw new ModelDuplicateException("Client scope exists: " + id);
         }
-        entity = tx.create(entity);
+        entity = clientScopeStore.create(entity);
         return entityToAdapterFunc(realm).apply(entity);
     }
 
@@ -120,7 +116,7 @@ public class MapClientScopeProvider implements ClientScopeProvider {
             }
         });
 
-        tx.delete(id);
+        clientScopeStore.delete(id);
         return true;
     }
 
@@ -142,7 +138,7 @@ public class MapClientScopeProvider implements ClientScopeProvider {
 
         LOG.tracef("getClientScopeById(%s, %s)%s", realm, id, getShortStackTrace());
 
-        MapClientScopeEntity entity = tx.read(id);
+        MapClientScopeEntity entity = clientScopeStore.read(id);
         return (entity == null || ! entityRealmFilter(realm).test(entity))
           ? null
           : entityToAdapterFunc(realm).apply(entity);

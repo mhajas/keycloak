@@ -22,13 +22,13 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.UserSessionModel;
 import org.keycloak.models.map.common.AbstractEntity;
 import org.keycloak.models.map.common.DeepCloner;
-import org.keycloak.models.map.storage.MapKeycloakTransaction;
 import org.keycloak.models.map.storage.ModelCriteriaBuilder;
 import org.keycloak.models.map.storage.ModelCriteriaBuilder.Operator;
 import org.keycloak.models.map.storage.QueryParameters;
 import org.keycloak.models.map.userSession.MapAuthenticatedClientSessionEntity;
 import org.keycloak.models.map.userSession.MapUserSessionEntity;
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 import static org.keycloak.models.map.storage.QueryParameters.withCriteria;
@@ -43,43 +43,28 @@ public class UserSessionConcurrentHashMapStorage<K> extends ConcurrentHashMapSto
 
     private final ConcurrentHashMapStorage<K, MapAuthenticatedClientSessionEntity, AuthenticatedClientSessionModel> clientSessionStore;
 
-    private class Transaction extends ConcurrentHashMapKeycloakTransaction<K, MapUserSessionEntity, UserSessionModel> {
-
-        private final MapKeycloakTransaction<MapAuthenticatedClientSessionEntity, AuthenticatedClientSessionModel> clientSessionTr;
-
-        public Transaction(MapKeycloakTransaction<MapAuthenticatedClientSessionEntity, AuthenticatedClientSessionModel> clientSessionTr, StringKeyConvertor<K> keyConvertor, DeepCloner cloner) {
-            super(UserSessionConcurrentHashMapStorage.this, keyConvertor, cloner);
-            this.clientSessionTr = clientSessionTr;
-        }
-
-        @Override
-        public long delete(QueryParameters<UserSessionModel> queryParameters) {
-            Set<String> ids = read(queryParameters).map(AbstractEntity::getId).collect(Collectors.toSet());
-            ModelCriteriaBuilder<AuthenticatedClientSessionModel> csMcb = clientSessionStore.createCriteriaBuilder().compare(AuthenticatedClientSessionModel.SearchableFields.USER_SESSION_ID, Operator.IN, ids);
-            clientSessionTr.delete(withCriteria(csMcb));
-            return super.delete(queryParameters);
-        }
-
-        @Override
-        public boolean delete(String key) {
-            ModelCriteriaBuilder<AuthenticatedClientSessionModel> csMcb = clientSessionStore.createCriteriaBuilder().compare(AuthenticatedClientSessionModel.SearchableFields.USER_SESSION_ID, Operator.EQ, key);
-            clientSessionTr.delete(withCriteria(csMcb));
-            return super.delete(key);
-        }
-
-    }
-
     @SuppressWarnings("unchecked")
-    public UserSessionConcurrentHashMapStorage(ConcurrentHashMapStorage<K, MapAuthenticatedClientSessionEntity, AuthenticatedClientSessionModel> clientSessionStore,
-      StringKeyConvertor<K> keyConvertor, DeepCloner cloner) {
-        super(UserSessionModel.class, keyConvertor, cloner);
+    public UserSessionConcurrentHashMapStorage(KeycloakSession session, ConcurrentMap<K, MapUserSessionEntity> store,
+                                               ConcurrentHashMapStorage<K, MapAuthenticatedClientSessionEntity, AuthenticatedClientSessionModel> clientSessionStore,
+                                               StringKeyConvertor<K> keyConvertor, DeepCloner cloner) {
+        super(session, store, UserSessionModel.class, keyConvertor, cloner);
         this.clientSessionStore = clientSessionStore;
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public MapKeycloakTransaction<MapUserSessionEntity, UserSessionModel> createTransaction(KeycloakSession session) {
-        MapKeycloakTransaction<MapUserSessionEntity, UserSessionModel> sessionTransaction = session.getAttribute("map-transaction-" + hashCode(), MapKeycloakTransaction.class);
-        return sessionTransaction == null ? new Transaction(clientSessionStore.createTransaction(session), clientSessionStore.getKeyConvertor(), cloner) : sessionTransaction;
+    public boolean delete(String key) {
+        ModelCriteriaBuilder<AuthenticatedClientSessionModel> csMcb = clientSessionStore.createCriteriaBuilder().compare(AuthenticatedClientSessionModel.SearchableFields.USER_SESSION_ID, Operator.EQ, key);
+        clientSessionStore.delete(withCriteria(csMcb));
+
+        return super.delete(key);
+    }
+
+    @Override
+    public long delete(QueryParameters<UserSessionModel> queryParameters) {
+        Set<String> ids = read(queryParameters).map(AbstractEntity::getId).collect(Collectors.toSet());
+        ModelCriteriaBuilder<AuthenticatedClientSessionModel> csMcb = clientSessionStore.createCriteriaBuilder().compare(AuthenticatedClientSessionModel.SearchableFields.USER_SESSION_ID, Operator.IN, ids);
+        clientSessionStore.delete(withCriteria(csMcb));
+        
+        return super.delete(queryParameters);
     }
 }

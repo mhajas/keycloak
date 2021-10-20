@@ -16,6 +16,7 @@
  */
 package org.keycloak.models.map.storage;
 
+import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.map.common.AbstractEntity;
 import org.keycloak.models.map.storage.MapStorageProviderFactory.Flag;
 import org.keycloak.provider.Provider;
@@ -30,10 +31,11 @@ public interface MapStorageProvider extends Provider {
      * Returns a key-value storage implementation for the given types.
      * @param <V> type of the value
      * @param <M> type of the corresponding model (e.g. {@code UserModel})
+     * @param session
      * @param modelType Model type
      * @param flags Flags of the returned storage. Best effort, flags may be not honored by underlying implementation
      * @return
      * @throws IllegalArgumentException If some of the types is not supported by the underlying implementation.
      */
-    <V extends AbstractEntity, M> MapStorage<V, M> getStorage(Class<M> modelType, Flag... flags);
+    <V extends AbstractEntity, M> MapStorage<V, M> getStorage(KeycloakSession session, Class<M> modelType, Flag... flags);
 }

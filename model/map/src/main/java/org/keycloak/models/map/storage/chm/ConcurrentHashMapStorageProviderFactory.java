@@ -76,6 +76,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
 
 import static org.keycloak.models.map.storage.QueryParameters.withCriteria;
 
@@ -89,7 +90,7 @@ public class ConcurrentHashMapStorageProviderFactory implements AmphibianProvide
 
     private static final Logger LOG = Logger.getLogger(ConcurrentHashMapStorageProviderFactory.class);
 
-    private final ConcurrentHashMap<String, ConcurrentHashMapStorage<?,?,?>> storages = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, ConcurrentMap<?,?>> storages = new ConcurrentHashMap<>();
 
     private final Map<String, StringKeyConvertor> keyConvertors = new HashMap<>();
 
@@ -234,14 +235,13 @@ public class ConcurrentHashMapStorageProviderFactory implements AmphibianProvide
     }
 
     @SuppressWarnings("unchecked")
-    private void storeMap(String mapName, ConcurrentHashMapStorage<?, ?, ?> store) {
+    private void storeMap(String mapName, ConcurrentMap<?, ?> store) {
         if (mapName != null) {
             File f = getFile(mapName);
             try {
                 if (storageDirectory != null) {
                     LOG.debugf("Storing contents to %s", f.getCanonicalPath());
-                    final ModelCriteriaBuilder readAllCriteria = store.createCriteriaBuilder();
-                    Serialization.MAPPER.writeValue(f, store.read(withCriteria(readAllCriteria)));
+                    Serialization.MAPPER.writeValue(f, store.values().stream());
                 } else {
                     LOG.debugf("Not storing contents of %s because directory not set", mapName);
                 }
@@ -252,29 +252,13 @@ public class ConcurrentHashMapStorageProviderFactory implements AmphibianProvide
     }
 
     @SuppressWarnings("unchecked")
-    private <K, V extends AbstractEntity & UpdatableEntity, M> ConcurrentHashMapStorage<K, V, M> loadMap(String mapName,
+    private <K, V extends AbstractEntity & UpdatableEntity, M> ConcurrentMap<K, V> loadMap(String mapName,
       Class<M> modelType, EnumSet<Flag> flags) {
-        final StringKeyConvertor kc = keyConvertors.getOrDefault(mapName, defaultKeyConvertor);
+        final StringKeyConvertor<K> kc = keyConvertors.getOrDefault(mapName, defaultKeyConvertor);
         Class<?> valueType = MODEL_TO_VALUE_TYPE.get(modelType);
         LOG.debugf("Initializing new map storage: %s", mapName);
 
-        ConcurrentHashMapStorage<K, V, M> store;
-        if (modelType == UserSessionModel.class) {
-            ConcurrentHashMapStorage clientSessionStore = getStorage(AuthenticatedClientSessionModel.class);
-            store = new UserSessionConcurrentHashMapStorage(clientSessionStore, kc, CLONER) {
-                @Override
-                public String toString() {
-                    return "ConcurrentHashMapStorage(" + mapName + suffix + ")";
-                }
-            };
-        } else {
-            store = new ConcurrentHashMapStorage(modelType, kc, CLONER) {
-                @Override
-                public String toString() {
-                    return "ConcurrentHashMapStorage(" + mapName + suffix + ")";
-                }
-            };
-        }
+        ConcurrentMap<K, V> store = new ConcurrentHashMap<>();
 
         if (! flags.contains(Flag.INITIALIZE_EMPTY)) {
             final File f = getFile(mapName);
@@ -285,7 +269,7 @@ public class ConcurrentHashMapStorageProviderFactory implements AmphibianProvide
                     JavaType type = Serialization.MAPPER.getTypeFactory().constructCollectionType(LinkedList.class, valueImplType);
 
                     List<V> values = Serialization.MAPPER.readValue(f, type);
-                    values.forEach((V mce) -> store.create(mce));
+                    values.forEach((V mce) -> store.put(kc.fromStringSafe(mce.getId()), mce));
                 } catch (IOException ex) {
                     throw new RuntimeException(ex);
                 }
@@ -301,8 +285,7 @@ public class ConcurrentHashMapStorageProviderFactory implements AmphibianProvide
     }
 
     @SuppressWarnings("unchecked")
-    public <K, V extends AbstractEntity & UpdatableEntity, M> ConcurrentHashMapStorage<K, V, M> getStorage(
-      Class<M> modelType, Flag... flags) {
+    public <K, V extends AbstractEntity & UpdatableEntity, M> ConcurrentHashMapStorage<K, V, M> getStorage(KeycloakSession session, Class<M> modelType, Flag... flags) {
         EnumSet<Flag> f = flags == null || flags.length == 0 ? EnumSet.noneOf(Flag.class) : EnumSet.of(flags[0], flags);
         String name = MODEL_TO_NAME.getOrDefault(modelType, modelType.getSimpleName());
         /* From ConcurrentHashMapStorage.computeIfAbsent javadoc:
@@ -314,9 +297,31 @@ public class ConcurrentHashMapStorageProviderFactory implements AmphibianProvide
          * to prepare clientSessionStore outside computeIfAbsent, otherwise deadlock occurs.
          */
         if (modelType == UserSessionModel.class) {
-            getStorage(AuthenticatedClientSessionModel.class, flags);
+            getStorage(session, AuthenticatedClientSessionModel.class, flags);
         }
-        return (ConcurrentHashMapStorage<K, V, M>) storages.computeIfAbsent(name, n -> loadMap(name, modelType, f));
+
+        ConcurrentMap<K, V> store = (ConcurrentMap<K, V>) storages.computeIfAbsent(name, n -> loadMap(name, modelType, f));
+        final StringKeyConvertor<K> kc = keyConvertors.getOrDefault(name, defaultKeyConvertor);
+        
+        ConcurrentHashMapStorage<K, V, M> hashMapStore;
+        if (modelType == UserSessionModel.class) {
+            ConcurrentHashMapStorage clientSessionStore = getStorage(session, AuthenticatedClientSessionModel.class);
+            hashMapStore = new UserSessionConcurrentHashMapStorage(session, store, clientSessionStore, kc, CLONER) {
+                @Override
+                public String toString() {
+                    return "ConcurrentHashMapStorage(" + name + suffix + ")";
+                }
+            };
+        } else {
+            hashMapStore = new ConcurrentHashMapStorage(session, store, modelType, kc, CLONER) {
+                @Override
+                public String toString() {
+                    return "ConcurrentHashMapStorage(" + name + suffix + ")";
+                }
+            };
+        }
+        
+        return hashMapStore;
     }
 
     private File getFile(String fileName) {

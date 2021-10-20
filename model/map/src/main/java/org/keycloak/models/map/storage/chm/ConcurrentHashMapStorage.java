@@ -16,9 +16,11 @@
  */
 package org.keycloak.models.map.storage.chm;
 
+import org.keycloak.models.AuthenticatedClientSessionModel;
+import org.keycloak.models.UserLoginFailureModel;
+import org.keycloak.models.UserSessionModel;
 import org.keycloak.models.map.common.StringKeyConvertor;
 import org.keycloak.models.KeycloakSession;
-import org.keycloak.models.map.storage.MapKeycloakTransaction;
 import org.keycloak.models.map.common.AbstractEntity;
 import org.keycloak.models.map.common.DeepCloner;
 import org.keycloak.models.map.common.UpdatableEntity;
@@ -30,11 +32,12 @@ import org.keycloak.storage.SearchableModelField;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 import org.keycloak.models.map.storage.chm.MapModelCriteriaBuilder.UpdatePredicatesFunc;
+import org.keycloak.utils.StreamsUtil;
+
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -46,17 +49,28 @@ import static org.keycloak.utils.StreamsUtil.paginatedStream;
  */
 public class ConcurrentHashMapStorage<K, V extends AbstractEntity & UpdatableEntity, M> implements MapStorage<V, M> {
 
-    protected final ConcurrentMap<K, V> store = new ConcurrentHashMap<>();
+    protected final ConcurrentMap<K, V> store;
 
     protected final Map<SearchableModelField<M>, UpdatePredicatesFunc<K, V, M>> fieldPredicates;
     protected final StringKeyConvertor<K> keyConvertor;
     protected final DeepCloner cloner;
-
+    protected final Class<M> modelClass;
+    protected ConcurrentHashMapKeycloakTransaction<K, V, M> tx;
+    
     @SuppressWarnings("unchecked")
-    public ConcurrentHashMapStorage(Class<M> modelClass, StringKeyConvertor<K> keyConvertor, DeepCloner cloner) {
+    public ConcurrentHashMapStorage(KeycloakSession session, ConcurrentMap<K, V> store, Class<M> modelClass, StringKeyConvertor<K> keyConvertor, DeepCloner cloner) {
+        this.store = store;
         this.fieldPredicates = MapFieldPredicates.getPredicates(modelClass);
         this.keyConvertor = keyConvertor;
         this.cloner = cloner;
+        this.modelClass = modelClass;
+        this.tx = createMyTransaction(session);
+
+        if (modelClass == UserLoginFailureModel.class || modelClass == AuthenticatedClientSessionModel.class || modelClass == UserSessionModel.class) {
+            session.getTransactionManager().enlistAfterCompletion(tx);
+        } else {
+            session.getTransactionManager().enlist(tx);
+        }
     }
 
     @Override
@@ -66,37 +80,49 @@ public class ConcurrentHashMapStorage<K, V extends AbstractEntity & UpdatableEnt
             key = keyConvertor.yieldNewUniqueKey();
             value = cloner.from(keyConvertor.keyToString(key), value);
         }
-        store.putIfAbsent(key, value);
+
+        return tx.addCreateTask(value);
+    }
+    
+    protected V createNonTx(V value) {
+        store.putIfAbsent(keyConvertor.fromStringSafe(value.getId()), value);
         return value;
     }
 
     @Override
     public V read(String key) {
-        Objects.requireNonNull(key, "Key must be non-null");
-        K k = keyConvertor.fromStringSafe(key);
-        return store.get(k);
+        if (key == null) return null;
+
+        V value = tx.readValueFromTransaction(key);
+        
+        if (value != null) return value;
+
+        value = store.get(keyConvertor.fromStringSafe(key));
+
+        return value != null && tx.testNonRemovedByBulkDelete(value) ? tx.registerEntityForChanges(value) : null;
     }
 
     @Override
     public V update(V value) {
-        K key = getKeyConvertor().fromStringSafe(value.getId());
-        return store.replace(key, value);
+        return tx.updateIfChanged(value, v -> true);
     }
 
     @Override
     public boolean delete(String key) {
-        K k = getKeyConvertor().fromStringSafe(key);
-        return store.remove(k) != null;
+        return tx.addDeleteTask(key);
     }
 
     @Override
     public long delete(QueryParameters<M> queryParameters) {
+        return tx.addBulkDeleteTask(queryParameters, this::bulkDelete) + getCount(queryParameters);
+    }
+
+    private void bulkDelete(QueryParameters<M> queryParameters) {
         ModelCriteriaBuilder<M> criteria = queryParameters.getModelCriteriaBuilder();
 
         if (criteria == null) {
-            long res = store.size();
             store.clear();
-            return res;
+            return;
         }
 
         @SuppressWarnings("unchecked")
@@ -119,8 +145,6 @@ public class ConcurrentHashMapStorage<K, V extends AbstractEntity & UpdatableEnt
                 .peek(item -> {res.incrementAndGet();})
                 .map(Entry::getKey)
                 .forEach(store::remove);
-
-        return res.get();
     }
 
     @Override
@@ -128,11 +152,10 @@ public class ConcurrentHashMapStorage<K, V extends AbstractEntity & UpdatableEnt
         return new MapModelCriteriaBuilder<>(keyConvertor, fieldPredicates);
     }
 
-    @Override
     @SuppressWarnings("unchecked")
-    public MapKeycloakTransaction<V, M> createTransaction(KeycloakSession session) {
-        MapKeycloakTransaction<V, M> sessionTransaction = session.getAttribute("map-transaction-" + hashCode(), MapKeycloakTransaction.class);
-        return sessionTransaction == null ? new ConcurrentHashMapKeycloakTransaction<>(this, keyConvertor, cloner) : sessionTransaction;
+    private ConcurrentHashMapKeycloakTransaction<K, V, M> createMyTransaction(KeycloakSession session) {
+        ConcurrentHashMapKeycloakTransaction<K, V, M> sessionTransaction = session.getAttribute("map-transaction-" + hashCode(), ConcurrentHashMapKeycloakTransaction.class);
+        return sessionTransaction == null ? new ConcurrentHashMapKeycloakTransaction<>(store, keyConvertor, cloner) : sessionTransaction;
     }
 
     public StringKeyConvertor<K> getKeyConvertor() {
@@ -141,6 +164,31 @@ public class ConcurrentHashMapStorage<K, V extends AbstractEntity & UpdatableEnt
 
     @Override
     public Stream<V> read(QueryParameters<M> queryParameters) {
+        Stream<V> updatedAndNotRemovedObjectsStream = filteredStream(queryParameters)
+                .filter(tx::testNonRemovedByBulkDelete)
+                .map(tx::getUpdated)      // If the object has been removed, tx.get will return null, otherwise it will return me.getValue()
+                .filter(Objects::nonNull);
+
+
+        ModelCriteriaBuilder<M> mcb = queryParameters.getModelCriteriaBuilder();
+
+        // In case of created values stored in MapKeycloakTransaction, we need filter those according to the filter
+        MapModelCriteriaBuilder<K, V, M> mapMcb = mcb.unwrap(MapModelCriteriaBuilder.class);
+        Stream<V> res = mapMcb == null
+                ? updatedAndNotRemovedObjectsStream
+                : Stream.concat(
+                tx.createdValuesStream(queryParameters),
+                updatedAndNotRemovedObjectsStream
+        );
+
+        if (!queryParameters.getOrderBy().isEmpty()) {
+            res = res.sorted(MapFieldPredicates.getComparator(queryParameters.getOrderBy().stream()));
+        }
+
+        return StreamsUtil.paginatedStream(res, queryParameters.getOffset(), queryParameters.getLimit());
+    }
+
+    private Stream<V> filteredStream(QueryParameters<M> queryParameters) {
         ModelCriteriaBuilder<M> criteria = queryParameters.getModelCriteriaBuilder();
 
         if (criteria == null) {

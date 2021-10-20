@@ -120,15 +120,4 @@ public interface MapStorage<V extends AbstractEntity, M> {
      * @return See description. Never returns {@code null}
      */
     ModelCriteriaBuilder<M> createCriteriaBuilder();
-    
-    /**
-     * Creates a {@code MapKeycloakTransaction} object that tracks a new transaction related to this storage.
-     * In case of JPA or similar, the transaction object might be supplied by the container (via JTA) or
-     * shared same across storages accessing the same database within the same session; in other cases
-     * (e.g. plain map) a separate transaction handler might be created per each storage.
-     *
-     * @return See description. Never returns {@code null}
-     */
-    MapKeycloakTransaction<V, M> createTransaction(KeycloakSession session);
-
 }

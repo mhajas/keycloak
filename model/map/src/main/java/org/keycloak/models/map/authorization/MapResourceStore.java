@@ -27,7 +27,6 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.ModelDuplicateException;
 import org.keycloak.models.map.authorization.adapter.MapResourceAdapter;
 import org.keycloak.models.map.authorization.entity.MapResourceEntity;
-import org.keycloak.models.map.storage.MapKeycloakTransaction;
 import org.keycloak.models.map.storage.MapStorage;
 import org.keycloak.models.map.storage.ModelCriteriaBuilder;
 import org.keycloak.models.map.storage.ModelCriteriaBuilder.Operator;
@@ -46,13 +45,10 @@ public class MapResourceStore implements ResourceStore {
 
     private static final Logger LOG = Logger.getLogger(MapResourceStore.class);
     private final AuthorizationProvider authorizationProvider;
-    final MapKeycloakTransaction<MapResourceEntity, Resource> tx;
     private final MapStorage<MapResourceEntity, Resource> resourceStore;
 
     public MapResourceStore(KeycloakSession session, MapStorage<MapResourceEntity, Resource> resourceStore, AuthorizationProvider provider) {
         this.resourceStore = resourceStore;
-        this.tx = resourceStore.createTransaction(session);
-        session.getTransactionManager().enlist(tx);
         authorizationProvider = provider;
     }
 
@@ -79,7 +75,7 @@ public class MapResourceStore implements ResourceStore {
                 .compare(SearchableFields.NAME, Operator.EQ, name)
                 .compare(SearchableFields.OWNER, Operator.EQ, owner);
 
-        if (tx.getCount(withCriteria(mcb)) > 0) {
+        if (resourceStore.getCount(withCriteria(mcb)) > 0) {
             throw new ModelDuplicateException("Resource with name '" + name + "' for " + resourceServer.getId() + " already exists for request owner " + owner);
         }
 
@@ -89,7 +85,7 @@ public class MapResourceStore implements ResourceStore {
         entity.setResourceServerId(resourceServer.getId());
         entity.setOwner(owner);
 
-        entity = tx.create(entity);
+        entity = resourceStore.create(entity);
 
         return entityToAdapter(entity);
     }
@@ -98,14 +94,14 @@ public class MapResourceStore implements ResourceStore {
     public void delete(String id) {
         LOG.tracef("delete(%s)%s", id, getShortStackTrace());
 
-        tx.delete(id);
+        resourceStore.delete(id);
     }
 
     @Override
     public Resource findById(String id, String resourceServerId) {
         LOG.tracef("findById(%s, %s)%s", id, resourceServerId, getShortStackTrace());
 
-        return tx.read(withCriteria(forResourceServer(resourceServerId)
+        return resourceStore.read(withCriteria(forResourceServer(resourceServerId)
                 .compare(SearchableFields.ID, Operator.EQ, id)))
                 .findFirst()
                 .map(this::entityToAdapter)
@@ -120,7 +116,7 @@ public class MapResourceStore implements ResourceStore {
     private void findByOwnerFilter(String ownerId, String resourceServerId, Consumer<Resource> consumer, int firstResult, int maxResult) {
         LOG.tracef("findByOwnerFilter(%s, %s, %s, %d, %d)%s", ownerId, resourceServerId, consumer, firstResult, maxResult, getShortStackTrace());
 
-        tx.read(withCriteria(forResourceServer(resourceServerId).compare(SearchableFields.OWNER, Operator.EQ, ownerId))
+        resourceStore.read(withCriteria(forResourceServer(resourceServerId).compare(SearchableFields.OWNER, Operator.EQ, ownerId))
                 .pagination(firstResult, maxResult, SearchableFields.ID)
             ).map(this::entityToAdapter)
             .forEach(consumer);
@@ -139,7 +135,7 @@ public class MapResourceStore implements ResourceStore {
     public List<Resource> findByUri(String uri, String resourceServerId) {
         LOG.tracef("findByUri(%s, %s)%s", uri, resourceServerId, getShortStackTrace());
 
-        return tx.read(withCriteria(forResourceServer(resourceServerId)
+        return resourceStore.read(withCriteria(forResourceServer(resourceServerId)
                 .compare(SearchableFields.URI, Operator.EQ, uri)))
                 .map(this::entityToAdapter)
                 .collect(Collectors.toList());
@@ -149,7 +145,7 @@ public class MapResourceStore implements ResourceStore {
     public List<Resource> findByResourceServer(String resourceServerId) {
         LOG.tracef("findByResourceServer(%s)%s", resourceServerId, getShortStackTrace());
 
-        return tx.read(withCriteria(forResourceServer(resourceServerId)))
+        return resourceStore.read(withCriteria(forResourceServer(resourceServerId)))
                 .map(this::entityToAdapter)
                 .collect(Collectors.toList());
     }
@@ -163,7 +159,7 @@ public class MapResourceStore implements ResourceStore {
                         .toArray(ModelCriteriaBuilder[]::new)
         );
 
-        return tx.read(withCriteria(mcb).pagination(firstResult, maxResult, SearchableFields.NAME))
+        return resourceStore.read(withCriteria(mcb).pagination(firstResult, maxResult, SearchableFields.NAME))
                 .map(this::entityToAdapter)
                 .collect(Collectors.toList());
     }
@@ -200,7 +196,7 @@ public class MapResourceStore implements ResourceStore {
     public void findByScope(List<String> scopes, String resourceServerId, Consumer<Resource> consumer) {
         LOG.tracef("findByScope(%s, %s, %s)%s", scopes, resourceServerId, consumer, getShortStackTrace());
 
-        tx.read(withCriteria(forResourceServer(resourceServerId)
+        resourceStore.read(withCriteria(forResourceServer(resourceServerId)
                 .compare(SearchableFields.SCOPE_ID, Operator.IN, scopes)))
                 .map(this::entityToAdapter)
                 .forEach(consumer);
@@ -214,7 +210,7 @@ public class MapResourceStore implements ResourceStore {
     @Override
     public Resource findByName(String name, String ownerId, String resourceServerId) {
         LOG.tracef("findByName(%s, %s, %s)%s", name, ownerId, resourceServerId, getShortStackTrace());
-        return tx.read(withCriteria(forResourceServer(resourceServerId)
+        return resourceStore.read(withCriteria(forResourceServer(resourceServerId)
                 .compare(SearchableFields.OWNER, Operator.EQ, ownerId)
                 .compare(SearchableFields.NAME, Operator.EQ, name)))
                 .findFirst()
@@ -225,7 +221,7 @@ public class MapResourceStore implements ResourceStore {
     @Override
     public void findByType(String type, String resourceServerId, Consumer<Resource> consumer) {
         LOG.tracef("findByType(%s, %s, %s)%s", type, resourceServerId, consumer, getShortStackTrace());
-        tx.read(withCriteria(forResourceServer(resourceServerId)
+        resourceStore.read(withCriteria(forResourceServer(resourceServerId)
                 .compare(SearchableFields.TYPE, Operator.EQ, type)))
             .map(this::entityToAdapter)
             .forEach(consumer);
@@ -242,7 +238,7 @@ public class MapResourceStore implements ResourceStore {
             mcb = mcb.compare(SearchableFields.OWNER, Operator.EQ, owner);
         }
 
-        tx.read(withCriteria(mcb))
+        resourceStore.read(withCriteria(mcb))
                 .map(this::entityToAdapter)
                 .forEach(consumer);
     }
@@ -250,7 +246,7 @@ public class MapResourceStore implements ResourceStore {
     @Override
     public void findByTypeInstance(String type, String resourceServerId, Consumer<Resource> consumer) {
         LOG.tracef("findByTypeInstance(%s, %s, %s)%s", type, resourceServerId, consumer, getShortStackTrace());
-        tx.read(withCriteria(forResourceServer(resourceServerId)
+        resourceStore.read(withCriteria(forResourceServer(resourceServerId)
                 .compare(SearchableFields.OWNER, Operator.NE, resourceServerId)
                 .compare(SearchableFields.TYPE, Operator.EQ, type)))
                 .map(this::entityToAdapter)

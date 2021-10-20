@@ -25,7 +25,6 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.ModelDuplicateException;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.RoleModel;
-import org.keycloak.models.map.storage.MapKeycloakTransaction;
 import org.keycloak.models.map.storage.MapStorage;
 
 import org.keycloak.models.map.storage.ModelCriteriaBuilder;
@@ -46,14 +45,11 @@ public class MapGroupProvider implements GroupProvider {
 
     private static final Logger LOG = Logger.getLogger(MapGroupProvider.class);
     private final KeycloakSession session;
-    final MapKeycloakTransaction<MapGroupEntity, GroupModel> tx;
     private final MapStorage<MapGroupEntity, GroupModel> groupStore;
 
     public MapGroupProvider(KeycloakSession session, MapStorage<MapGroupEntity, GroupModel> groupStore) {
         this.session = session;
         this.groupStore = groupStore;
-        this.tx = groupStore.createTransaction(session);
-        session.getTransactionManager().enlist(tx);
     }
 
     private Function<MapGroupEntity, GroupModel> entityToAdapterFunc(RealmModel realm) {
@@ -69,7 +65,7 @@ public class MapGroupProvider implements GroupProvider {
 
         LOG.tracef("getGroupById(%s, %s)%s", realm, id, getShortStackTrace());
 
-        MapGroupEntity entity = tx.read(id);
+        MapGroupEntity entity = groupStore.read(id);
         String realmId = realm.getId();
         return (entity == null || ! Objects.equals(realmId, entity.getRealmId()))
                 ? null
@@ -95,7 +91,7 @@ public class MapGroupProvider implements GroupProvider {
             queryParameters = queryParametersModifier.apply(queryParameters);
         }
 
-        return tx.read(queryParameters)
+        return groupStore.read(queryParameters)
                 .map(entityToAdapterFunc(realm))
                 ;
     }
@@ -110,7 +106,7 @@ public class MapGroupProvider implements GroupProvider {
             mcb = mcb.compare(SearchableFields.NAME, Operator.ILIKE, "%" + search + "%");
         }
 
-        return tx.read(withCriteria(mcb).pagination(first, max, SearchableFields.NAME))
+        return groupStore.read(withCriteria(mcb).pagination(first, max, SearchableFields.NAME))
                 .map(entityToAdapterFunc(realm));
     }
 
@@ -124,7 +120,7 @@ public class MapGroupProvider implements GroupProvider {
             mcb = mcb.compare(SearchableFields.PARENT_ID, Operator.EQ, (Object) null);
         }
 
-        return tx.getCount(withCriteria(mcb));
+        return groupStore.getCount(withCriteria(mcb));
     }
 
     @Override
@@ -133,7 +129,7 @@ public class MapGroupProvider implements GroupProvider {
           .compare(SearchableFields.REALM_ID, Operator.EQ, realm.getId())
           .compare(SearchableFields.NAME, Operator.ILIKE, "%" + search + "%");
 
-        return tx.getCount(withCriteria(mcb));
+        return groupStore.getCount(withCriteria(mcb));
     }
 
     @Override
@@ -173,7 +169,7 @@ public class MapGroupProvider implements GroupProvider {
                 .compare(SearchableFields.NAME, Operator.ILIKE, "%" + search + "%");
 
 
-        return tx.read(withCriteria(mcb).pagination(firstResult, maxResults, SearchableFields.NAME))
+        return groupStore.read(withCriteria(mcb).pagination(firstResult, maxResults, SearchableFields.NAME))
             .map(MapGroupEntity::getId)
             .map(id -> {
                 GroupModel groupById = session.groups().getGroupById(realm, id);
@@ -194,17 +190,17 @@ public class MapGroupProvider implements GroupProvider {
           .compare(SearchableFields.PARENT_ID, Operator.EQ, parentId)
           .compare(SearchableFields.NAME, Operator.EQ, name);
 
-        if (tx.getCount(withCriteria(mcb)) > 0) {
+        if (groupStore.getCount(withCriteria(mcb)) > 0) {
             throw new ModelDuplicateException("Group with name '" + name + "' in realm " + realm.getName() + " already exists for requested parent" );
         }
 
         MapGroupEntity entity = new MapGroupEntity(id, realm.getId());
         entity.setName(name);
         entity.setParentId(toParent == null ? null : toParent.getId());
-        if (id != null && tx.read(id) != null) {
+        if (id != null && groupStore.read(id) != null) {
             throw new ModelDuplicateException("Group exists: " + id);
         }
-        entity = tx.create(entity);
+        entity = groupStore.create(entity);
 
         return entityToAdapterFunc(realm).apply(entity);
     }
@@ -240,7 +236,7 @@ public class MapGroupProvider implements GroupProvider {
 
         // TODO: ^^^^^^^ Up to here
 
-        tx.delete(group.getId());
+        groupStore.delete(group.getId());
         
         return true;
     }
@@ -261,7 +257,7 @@ public class MapGroupProvider implements GroupProvider {
           .compare(SearchableFields.PARENT_ID, Operator.EQ, parentId)
           .compare(SearchableFields.NAME, Operator.EQ, group.getName());
 
-        try (Stream<MapGroupEntity> possibleSiblings = tx.read(withCriteria(mcb))) {
+        try (Stream<MapGroupEntity> possibleSiblings = groupStore.read(withCriteria(mcb))) {
             if (possibleSiblings.findAny().isPresent()) {
                 throw new ModelDuplicateException("Parent already contains subgroup named '" + group.getName() + "'");
             }
@@ -283,7 +279,7 @@ public class MapGroupProvider implements GroupProvider {
           .compare(SearchableFields.PARENT_ID, Operator.EQ, (Object) null)
           .compare(SearchableFields.NAME, Operator.EQ, subGroup.getName());
 
-        try (Stream<MapGroupEntity> possibleSiblings = tx.read(withCriteria(mcb))) {
+        try (Stream<MapGroupEntity> possibleSiblings = groupStore.read(withCriteria(mcb))) {
             if (possibleSiblings.findAny().isPresent()) {
                 throw new ModelDuplicateException("There is already a top level group named '" + subGroup.getName() + "'");
             }
@@ -297,7 +293,7 @@ public class MapGroupProvider implements GroupProvider {
         ModelCriteriaBuilder<GroupModel> mcb = groupStore.createCriteriaBuilder()
           .compare(SearchableFields.REALM_ID, Operator.EQ, realm.getId())
           .compare(SearchableFields.ASSIGNED_ROLE, Operator.EQ, role.getId());
-        try (Stream<MapGroupEntity> toRemove = tx.read(withCriteria(mcb))) {
+        try (Stream<MapGroupEntity> toRemove = groupStore.read(withCriteria(mcb))) {
             toRemove
                 .map(groupEntity -> session.groups().getGroupById(realm, groupEntity.getId()))
                 .forEach(groupModel -> groupModel.deleteRoleMapping(role));

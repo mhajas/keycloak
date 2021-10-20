@@ -34,7 +34,6 @@ import org.keycloak.models.ModelDuplicateException;
 import org.keycloak.models.ModelException;
 import org.keycloak.models.map.authorization.adapter.MapResourceServerAdapter;
 import org.keycloak.models.map.authorization.entity.MapResourceServerEntity;
-import org.keycloak.models.map.storage.MapKeycloakTransaction;
 import org.keycloak.models.map.storage.MapStorage;
 import org.keycloak.storage.StorageId;
 
@@ -44,14 +43,11 @@ public class MapResourceServerStore implements ResourceServerStore {
 
     private static final Logger LOG = Logger.getLogger(MapResourceServerStore.class);
     private final AuthorizationProvider authorizationProvider;
-    final MapKeycloakTransaction<MapResourceServerEntity, ResourceServer> tx;
     private final MapStorage<MapResourceServerEntity, ResourceServer> resourceServerStore;
 
     public MapResourceServerStore(KeycloakSession session, MapStorage<MapResourceServerEntity, ResourceServer> resourceServerStore, AuthorizationProvider provider) {
         this.resourceServerStore = resourceServerStore;
-        this.tx = resourceServerStore.createTransaction(session);
         this.authorizationProvider = provider;
-        session.getTransactionManager().enlist(tx);
     }
 
     private ResourceServer entityToAdapter(MapResourceServerEntity origEntity) {
@@ -70,13 +66,13 @@ public class MapResourceServerStore implements ResourceServerStore {
             throw new ModelException("Creating resource server from federated ClientModel not supported");
         }
 
-        if (tx.read(clientId) != null) {
+        if (resourceServerStore.read(clientId) != null) {
             throw new ModelDuplicateException("Resource server already exists: " + clientId);
         }
 
         MapResourceServerEntity entity = new MapResourceServerEntity(clientId);
 
-        return entityToAdapter(tx.create(entity));
+        return entityToAdapter(resourceServerStore.create(entity));
     }
 
     @Override
@@ -105,7 +101,7 @@ public class MapResourceServerStore implements ResourceServerStore {
                 .map(Scope::getId)
                 .forEach(scopeStore::delete);
 
-        tx.delete(id);
+        resourceServerStore.delete(id);
     }
 
     @Override
@@ -116,7 +112,7 @@ public class MapResourceServerStore implements ResourceServerStore {
             return null;
         }
 
-        MapResourceServerEntity entity = tx.read(id);
+        MapResourceServerEntity entity = resourceServerStore.read(id);
         return entityToAdapter(entity);
     }
 }

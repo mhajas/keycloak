@@ -27,7 +27,6 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.ModelDuplicateException;
 import org.keycloak.models.map.authorization.adapter.MapScopeAdapter;
 import org.keycloak.models.map.authorization.entity.MapScopeEntity;
-import org.keycloak.models.map.storage.MapKeycloakTransaction;
 import org.keycloak.models.map.storage.MapStorage;
 import org.keycloak.models.map.storage.ModelCriteriaBuilder;
 import org.keycloak.models.map.storage.ModelCriteriaBuilder.Operator;
@@ -44,14 +43,11 @@ public class MapScopeStore implements ScopeStore {
 
     private static final Logger LOG = Logger.getLogger(MapScopeStore.class);
     private final AuthorizationProvider authorizationProvider;
-    final MapKeycloakTransaction<MapScopeEntity, Scope> tx;
     private final MapStorage<MapScopeEntity, Scope> scopeStore;
 
     public MapScopeStore(KeycloakSession session, MapStorage<MapScopeEntity, Scope> scopeStore, AuthorizationProvider provider) {
         this.authorizationProvider = provider;
         this.scopeStore = scopeStore;
-        this.tx = scopeStore.createTransaction(session);
-        session.getTransactionManager().enlist(tx);
     }
 
     private Scope entityToAdapter(MapScopeEntity origEntity) {
@@ -78,7 +74,7 @@ public class MapScopeStore implements ScopeStore {
         ModelCriteriaBuilder<Scope> mcb = forResourceServer(resourceServer.getId())
                 .compare(SearchableFields.NAME, Operator.EQ, name);
 
-        if (tx.getCount(withCriteria(mcb)) > 0) {
+        if (scopeStore.getCount(withCriteria(mcb)) > 0) {
             throw new ModelDuplicateException("Scope with name '" + name + "' for " + resourceServer.getId() + " already exists");
         }
 
@@ -87,7 +83,7 @@ public class MapScopeStore implements ScopeStore {
         entity.setName(name);
         entity.setResourceServerId(resourceServer.getId());
 
-        entity = tx.create(entity);
+        entity = scopeStore.create(entity);
 
         return entityToAdapter(entity);
     }
@@ -95,14 +91,14 @@ public class MapScopeStore implements ScopeStore {
     @Override
     public void delete(String id) {
         LOG.tracef("delete(%s)%s", id, getShortStackTrace());
-        tx.delete(id);
+        scopeStore.delete(id);
     }
 
     @Override
     public Scope findById(String id, String resourceServerId) {
         LOG.tracef("findById(%s, %s)%s", id, resourceServerId, getShortStackTrace());
 
-        return tx.read(withCriteria(forResourceServer(resourceServerId)
+        return scopeStore.read(withCriteria(forResourceServer(resourceServerId)
                 .compare(SearchableFields.ID, Operator.EQ, id)))
                 .findFirst()
                 .map(this::entityToAdapter)
@@ -113,7 +109,7 @@ public class MapScopeStore implements ScopeStore {
     public Scope findByName(String name, String resourceServerId) {
         LOG.tracef("findByName(%s, %s)%s", name, resourceServerId, getShortStackTrace());
 
-        return tx.read(withCriteria(forResourceServer(resourceServerId).compare(SearchableFields.NAME,
+        return scopeStore.read(withCriteria(forResourceServer(resourceServerId).compare(SearchableFields.NAME,
                 Operator.EQ, name)))
                 .findFirst()
                 .map(this::entityToAdapter)
@@ -124,7 +120,7 @@ public class MapScopeStore implements ScopeStore {
     public List<Scope> findByResourceServer(String id) {
         LOG.tracef("findByResourceServer(%s)%s", id, getShortStackTrace());
 
-        return tx.read(withCriteria(forResourceServer(id)))
+        return scopeStore.read(withCriteria(forResourceServer(id)))
                 .map(this::entityToAdapter)
                 .collect(Collectors.toList());
     }
@@ -148,7 +144,7 @@ public class MapScopeStore implements ScopeStore {
             }
         }
 
-        return tx.read(withCriteria(mcb).pagination(firstResult, maxResult, SearchableFields.NAME))
+        return scopeStore.read(withCriteria(mcb).pagination(firstResult, maxResult, SearchableFields.NAME))
             .map(this::entityToAdapter)
             .collect(Collectors.toList());
     }

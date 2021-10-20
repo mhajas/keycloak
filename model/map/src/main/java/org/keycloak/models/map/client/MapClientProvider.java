@@ -27,8 +27,6 @@ import org.keycloak.models.ModelDuplicateException;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.RoleModel;
 
-import org.keycloak.models.map.storage.MapKeycloakTransaction;
-
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -54,7 +52,6 @@ public class MapClientProvider implements ClientProvider {
 
     private static final Logger LOG = Logger.getLogger(MapClientProvider.class);
     private final KeycloakSession session;
-    final MapKeycloakTransaction<MapClientEntity, ClientModel> tx;
     private final MapStorage<MapClientEntity, ClientModel> clientStore;
     private final ConcurrentMap<String, ConcurrentMap<String, Integer>> clientRegisteredNodesStore;
 
@@ -62,8 +59,6 @@ public class MapClientProvider implements ClientProvider {
         this.session = session;
         this.clientStore = clientStore;
         this.clientRegisteredNodesStore = clientRegisteredNodesStore;
-        this.tx = clientStore.createTransaction(session);
-        session.getTransactionManager().enlist(tx);
     }
 
     private ClientUpdatedEvent clientUpdatedEvent(ClientModel c) {
@@ -123,7 +118,7 @@ public class MapClientProvider implements ClientProvider {
         ModelCriteriaBuilder<ClientModel> mcb = clientStore.createCriteriaBuilder()
                 .compare(SearchableFields.REALM_ID, Operator.EQ, realm.getId());
 
-        return tx.read(withCriteria(mcb).pagination(firstResult, maxResults, SearchableFields.CLIENT_ID))
+        return clientStore.read(withCriteria(mcb).pagination(firstResult, maxResults, SearchableFields.CLIENT_ID))
             .map(entityToAdapterFunc(realm));
     }
 
@@ -132,7 +127,7 @@ public class MapClientProvider implements ClientProvider {
         ModelCriteriaBuilder<ClientModel> mcb = clientStore.createCriteriaBuilder()
           .compare(SearchableFields.REALM_ID, Operator.EQ, realm.getId());
 
-        return tx.read(withCriteria(mcb).orderBy(SearchableFields.CLIENT_ID, ASCENDING))
+        return clientStore.read(withCriteria(mcb).orderBy(SearchableFields.CLIENT_ID, ASCENDING))
           .map(entityToAdapterFunc(realm));
     }
 
@@ -146,10 +141,10 @@ public class MapClientProvider implements ClientProvider {
         entity.setClientId(clientId);
         entity.setEnabled(true);
         entity.setStandardFlowEnabled(true);
-        if (id != null && tx.read(id) != null) {
+        if (id != null && clientStore.read(id) != null) {
             throw new ModelDuplicateException("Client exists: " + id);
         }
-        entity = tx.create(entity);
+        entity = clientStore.create(entity);
         if (clientId == null) {
             clientId = entity.getId();
             entity.setClientId(clientId);
@@ -206,7 +201,7 @@ public class MapClientProvider implements ClientProvider {
         });
         // TODO: ^^^^^^^ Up to here
 
-        tx.delete(id);
+        clientStore.delete(id);
 
         return true;
     }
@@ -227,7 +222,7 @@ public class MapClientProvider implements ClientProvider {
 
         LOG.tracef("getClientById(%s, %s)%s", realm, id, getShortStackTrace());
 
-        MapClientEntity entity = tx.read(id);
+        MapClientEntity entity = clientStore.read(id);
         return (entity == null || ! entityRealmFilter(realm).test(entity))
           ? null
           : entityToAdapterFunc(realm).apply(entity);
@@ -244,7 +239,7 @@ public class MapClientProvider implements ClientProvider {
           .compare(SearchableFields.REALM_ID, Operator.EQ, realm.getId())
           .compare(SearchableFields.CLIENT_ID, Operator.ILIKE, clientId);
 
-        return tx.read(withCriteria(mcb))
+        return clientStore.read(withCriteria(mcb))
           .map(entityToAdapterFunc(realm))
           .findFirst()
           .orElse(null)
@@ -261,7 +256,7 @@ public class MapClientProvider implements ClientProvider {
           .compare(SearchableFields.REALM_ID, Operator.EQ, realm.getId())
           .compare(SearchableFields.CLIENT_ID, Operator.ILIKE, "%" + clientId + "%");
 
-        return tx.read(withCriteria(mcb).pagination(firstResult, maxResults, SearchableFields.CLIENT_ID))
+        return clientStore.read(withCriteria(mcb).pagination(firstResult, maxResults, SearchableFields.CLIENT_ID))
                 .map(entityToAdapterFunc(realm));
     }
 
@@ -274,14 +269,14 @@ public class MapClientProvider implements ClientProvider {
             mcb = mcb.compare(SearchableFields.ATTRIBUTE, Operator.EQ, entry.getKey(), entry.getValue());
         }
 
-        return tx.read(withCriteria(mcb).pagination(firstResult, maxResults, SearchableFields.CLIENT_ID))
+        return clientStore.read(withCriteria(mcb).pagination(firstResult, maxResults, SearchableFields.CLIENT_ID))
                 .map(entityToAdapterFunc(realm));
     }
 
     @Override
     public void addClientScopes(RealmModel realm, ClientModel client, Set<ClientScopeModel> clientScopes, boolean defaultScope) {
         final String id = client.getId();
-        MapClientEntity entity = tx.read(id);
+        MapClientEntity entity = clientStore.read(id);
 
         if (entity == null) return;
 
@@ -302,7 +297,7 @@ public class MapClientProvider implements ClientProvider {
     @Override
     public void removeClientScope(RealmModel realm, ClientModel client, ClientScopeModel clientScope) {
         final String id = client.getId();
-        MapClientEntity entity = tx.read(id);
+        MapClientEntity entity = clientStore.read(id);
 
         if (entity == null) return;
 
@@ -314,7 +309,7 @@ public class MapClientProvider implements ClientProvider {
     @Override
     public Map<String, ClientScopeModel> getClientScopes(RealmModel realm, ClientModel client, boolean defaultScopes) {
         final String id = client.getId();
-        MapClientEntity entity = tx.read(id);
+        MapClientEntity entity = clientStore.read(id);
 
         if (entity == null) return null;
 
@@ -336,7 +331,7 @@ public class MapClientProvider implements ClientProvider {
           .compare(SearchableFields.REALM_ID, Operator.EQ, realm.getId())
           .compare(SearchableFields.ENABLED, Operator.EQ, Boolean.TRUE);
 
-        try (Stream<MapClientEntity> st = tx.read(withCriteria(mcb))) {
+        try (Stream<MapClientEntity> st = clientStore.read(withCriteria(mcb))) {
             return st
               .filter(mce -> mce.getRedirectUris() != null && ! mce.getRedirectUris().isEmpty())
               .collect(Collectors.toMap(
@@ -350,7 +345,7 @@ public class MapClientProvider implements ClientProvider {
         ModelCriteriaBuilder<ClientModel> mcb = clientStore.createCriteriaBuilder()
           .compare(SearchableFields.REALM_ID, Operator.EQ, realm.getId())
           .compare(SearchableFields.SCOPE_MAPPING_ROLE, Operator.EQ, role.getId());
-        try (Stream<MapClientEntity> toRemove = tx.read(withCriteria(mcb))) {
+        try (Stream<MapClientEntity> toRemove = clientStore.read(withCriteria(mcb))) {
             toRemove
                 .map(clientEntity -> session.clients().getClientById(realm, clientEntity.getId()))
                 .filter(Objects::nonNull)

@@ -61,7 +61,7 @@ public abstract class AbstractMapProviderFactory<T extends Provider, V extends A
           MapStorageProvider.class, storageConfigScope, MapStorageSpi.NAME);
         final MapStorageProvider factory = storageProviderFactory.create(session);
 
-        return factory.getStorage(modelType);
+        return factory.getStorage(session, modelType);
     }
 
     @Override

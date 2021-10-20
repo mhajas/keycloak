@@ -29,11 +29,6 @@ import org.keycloak.authorization.store.StoreFactory;
 import org.keycloak.common.Profile;
 import org.keycloak.component.AmphibianProviderFactory;
 import org.keycloak.models.KeycloakSession;
-import org.keycloak.models.map.authorization.entity.MapPermissionTicketEntity;
-import org.keycloak.models.map.authorization.entity.MapPolicyEntity;
-import org.keycloak.models.map.authorization.entity.MapResourceEntity;
-import org.keycloak.models.map.authorization.entity.MapResourceServerEntity;
-import org.keycloak.models.map.authorization.entity.MapScopeEntity;
 import org.keycloak.models.map.common.AbstractMapProviderFactory;
 import org.keycloak.models.map.storage.MapStorage;
 import org.keycloak.models.map.storage.MapStorageProvider;
@@ -65,11 +60,11 @@ public class MapAuthorizationStoreFactory implements AmphibianProviderFactory<St
         MapStorage resourceStore;
         MapStorage scopeStore;
 
-        permissionTicketStore = mapStorageProvider.getStorage(PermissionTicket.class);
-        policyStore = mapStorageProvider.getStorage(Policy.class);
-        resourceServerStore = mapStorageProvider.getStorage(ResourceServer.class);
-        resourceStore = mapStorageProvider.getStorage(Resource.class);
-        scopeStore = mapStorageProvider.getStorage(Scope.class);
+        permissionTicketStore = mapStorageProvider.getStorage(session, PermissionTicket.class);
+        policyStore = mapStorageProvider.getStorage(session, Policy.class);
+        resourceServerStore = mapStorageProvider.getStorage(session, ResourceServer.class);
+        resourceStore = mapStorageProvider.getStorage(session, Resource.class);
+        scopeStore = mapStorageProvider.getStorage(session, Scope.class);
         
         return new MapAuthorizationStore(session,
                     permissionTicketStore,

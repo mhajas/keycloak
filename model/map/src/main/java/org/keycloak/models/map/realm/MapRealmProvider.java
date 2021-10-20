@@ -32,7 +32,6 @@ import org.keycloak.models.RealmModel;
 import org.keycloak.models.RealmModel.SearchableFields;
 import org.keycloak.models.RealmProvider;
 import org.keycloak.models.RoleModel;
-import org.keycloak.models.map.storage.MapKeycloakTransaction;
 import org.keycloak.models.map.storage.MapStorage;
 import org.keycloak.models.map.storage.ModelCriteriaBuilder;
 import org.keycloak.models.map.storage.ModelCriteriaBuilder.Operator;
@@ -44,14 +43,11 @@ public class MapRealmProvider implements RealmProvider {
 
     private static final Logger LOG = Logger.getLogger(MapRealmProvider.class);
     private final KeycloakSession session;
-    final MapKeycloakTransaction<MapRealmEntity, RealmModel> tx;
     private final MapStorage<MapRealmEntity, RealmModel> realmStore;
 
     public MapRealmProvider(KeycloakSession session, MapStorage<MapRealmEntity, RealmModel> realmStore) {
         this.session = session;
         this.realmStore = realmStore;
-        this.tx = realmStore.createTransaction(session);
-        session.getTransactionManager().enlist(tx);
     }
 
     private RealmModel entityToAdapter(MapRealmEntity entity) {
@@ -69,7 +65,7 @@ public class MapRealmProvider implements RealmProvider {
             throw new ModelDuplicateException("Realm with given name exists: " + name);
         }
 
-        if (id != null && tx.read(id) != null) {
+        if (id != null && realmStore.read(id) != null) {
             throw new ModelDuplicateException("Realm exists: " + id);
         }
 
@@ -78,7 +74,7 @@ public class MapRealmProvider implements RealmProvider {
         MapRealmEntity entity = new MapRealmEntity(id);
         entity.setName(name);
 
-        entity = tx.create(entity);
+        entity = realmStore.create(entity);
         return entityToAdapter(entity);
     }
 
@@ -88,7 +84,7 @@ public class MapRealmProvider implements RealmProvider {
 
         LOG.tracef("getRealm(%s)%s", id, getShortStackTrace());
 
-        MapRealmEntity entity = tx.read(id);
+        MapRealmEntity entity = realmStore.read(id);
         return entity == null ? null : entityToAdapter(entity);
     }
 
@@ -101,7 +97,7 @@ public class MapRealmProvider implements RealmProvider {
         ModelCriteriaBuilder<RealmModel> mcb = realmStore.createCriteriaBuilder()
                 .compare(SearchableFields.NAME, Operator.EQ, name);
 
-        String realmId = tx.read(withCriteria(mcb))
+        String realmId = realmStore.read(withCriteria(mcb))
                 .findFirst()
                 .map(MapRealmEntity::getId)
                 .orElse(null);
@@ -123,7 +119,7 @@ public class MapRealmProvider implements RealmProvider {
     }
 
     private Stream<RealmModel> getRealmsStream(ModelCriteriaBuilder<RealmModel> mcb) {
-        return tx.read(withCriteria(mcb).orderBy(SearchableFields.NAME, ASCENDING))
+        return realmStore.read(withCriteria(mcb).orderBy(SearchableFields.NAME, ASCENDING))
                 .map(this::entityToAdapter);
     }
 
@@ -155,7 +151,7 @@ public class MapRealmProvider implements RealmProvider {
         });
         // TODO: ^^^^^^^ Up to here
 
-        tx.delete(id);
+        realmStore.delete(id);
         return true;
     }
 
@@ -164,7 +160,7 @@ public class MapRealmProvider implements RealmProvider {
         ModelCriteriaBuilder<RealmModel> mcb = realmStore.createCriteriaBuilder()
                 .compare(SearchableFields.CLIENT_INITIAL_ACCESS, Operator.EXISTS);
 
-        tx.read(withCriteria(mcb))
+        realmStore.read(withCriteria(mcb))
                 .forEach(MapRealmEntity::removeExpiredClientInitialAccesses);
     }
 
