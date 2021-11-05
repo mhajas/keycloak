@@ -25,6 +25,7 @@ import org.keycloak.testsuite.arquillian.annotation.DisableFeature;
 import org.keycloak.testsuite.auth.page.account.Applications;
 import org.keycloak.testsuite.auth.page.login.OAuthGrant;
 import org.keycloak.testsuite.auth.page.login.UpdatePassword;
+import org.keycloak.testsuite.updaters.UserAttributeUpdater;
 import org.keycloak.testsuite.util.JavascriptBrowser;
 import org.keycloak.testsuite.util.OAuthClient;
 import org.keycloak.testsuite.util.RealmBuilder;
@@ -38,6 +39,7 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.WebElement;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -45,6 +47,7 @@ import static java.lang.Math.toIntExact;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.both;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
@@ -146,6 +149,24 @@ public class JavascriptAdapterTest extends AbstractJavascriptTest {
                 .init(defaultArguments(), this::assertInitAuth)
                 .logout(this::assertOnTestAppUrl)
                 .init(defaultArguments(), this::assertInitNotAuth);
+    }
+
+    @Test
+    public void testChangeEmail() {
+        testExecutor.init(defaultArguments(), this::assertInitNotAuth)
+                .login(this::assertOnLoginPage)
+                .loginForm(testUser, this::assertOnTestAppUrl)
+                .init(defaultArguments(), this::assertInitAuth);
+
+
+        try (UserAttributeUpdater uau = UserAttributeUpdater.forUserByUsername(adminClient.realm(REALM_NAME), testUser.getUsername())
+                .setEmail("changed@email.com").update()) {
+            testExecutor.refreshToken(-1, (driver1, output, events1) -> assertThat((Map<String, String>) output, hasEntry("email", "changed@email.com")))
+                    .executeScript("return window.keycloak.tokenParsed", (driver1, output, events1) -> assertThat((Map<String, String>) output, hasEntry("email", "changed@email.com")));
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Test

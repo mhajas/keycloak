@@ -86,7 +86,7 @@ public abstract class AbstractJavascriptTest extends AbstractAuthTest {
     public static final UserRepresentation unauthorizedUser;
 
     static {
-        testUser = UserBuilder.create().username("test-user@localhost").password(USER_PASSWORD).build();
+        testUser = UserBuilder.create().username("myusername").password(USER_PASSWORD).build();
         unauthorizedUser = UserBuilder.create().username("unauthorized").password(USER_PASSWORD).build();
     }
 
@@ -111,7 +111,8 @@ public abstract class AbstractJavascriptTest extends AbstractAuthTest {
                 )
                 .user(
                         UserBuilder.create()
-                                .username("test-user@localhost").password("password")
+                                .username("myusername").password("password")
+                                .email("test-user@localhost")
                                 .addRoles("user")
                                 .role("realm-management", "view-realm")
                                 .role("realm-management", "manage-users")

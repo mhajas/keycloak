@@ -111,6 +111,11 @@ public class UserAttributeUpdater extends ServerResourceUpdater<UserAttributeUpd
         return this;
     }
 
+    public UserAttributeUpdater setEmail(String email) {
+        this.rep.setEmail(email);
+        return this;
+    }
+
     public RoleScopeUpdater realmRoleScope() {
         return new RoleScopeUpdater(resource.roles().realmLevel());
     }
