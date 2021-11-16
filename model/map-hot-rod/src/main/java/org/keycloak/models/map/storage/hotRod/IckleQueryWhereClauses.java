@@ -45,6 +45,7 @@ public class IckleQueryWhereClauses {
 
     static {
         WHERE_CLAUSE_PRODUCER_OVERRIDES.put(ClientModel.SearchableFields.ATTRIBUTE, IckleQueryWhereClauses::whereClauseForClientsAttributes);
+        WHERE_CLAUSE_PRODUCER_OVERRIDES.put(ClientModel.SearchableFields.CLIENT_ID, IckleQueryWhereClauses::clientIdWhereClauseMigration);
     }
 
     @FunctionalInterface
@@ -95,5 +96,23 @@ public class IckleQueryWhereClauses {
         String valueClause = IckleQueryOperators.combineExpressions(op, modelFieldName + ".values", realValues, parameters);
 
         return "(" + nameClause + ")" + " AND " + "(" + valueClause + ")";
+    }
+
+    private static String whereClauseEntityVersion(ModelCriteriaBuilder.Operator op, int version, Map<String, Object> paramaeters) {
+        return IckleQueryOperators.combineExpressions(op, "entityVersion", new Object[]{version}, paramaeters);
+    }
+
+    private static String clientIdWhereClauseMigration(String modelFieldName, ModelCriteriaBuilder.Operator op, Object[] values, Map<String, Object> parameters) {
+        return "(" +
+            whereClauseEntityVersion(ModelCriteriaBuilder.Operator.LT, 1, parameters) +
+            " AND " +
+            IckleQueryOperators.combineExpressions(op, "oldClientId", values, parameters) +
+        ") OR (" +
+            whereClauseEntityVersion(ModelCriteriaBuilder.Operator.GE, 1, parameters) +
+            " AND " +
+            whereClauseEntityVersion(ModelCriteriaBuilder.Operator.LT, 2, parameters) +
+            " AND " +
+            IckleQueryOperators.combineExpressions(op, modelFieldName, values, parameters) +
+        ")";
     }
 }

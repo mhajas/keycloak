@@ -24,6 +24,7 @@ import org.infinispan.query.dsl.Query;
 import org.infinispan.query.dsl.QueryFactory;
 import org.jboss.logging.Logger;
 import org.keycloak.models.KeycloakSession;
+import org.keycloak.models.map.common.Migration;
 import org.keycloak.models.map.common.AbstractEntity;
 import org.keycloak.models.map.common.DeepCloner;
 import org.keycloak.models.map.common.HotRodEntityDescriptor;
@@ -73,7 +74,7 @@ public class HotRodMapStorage<K, V extends AbstractEntity & UpdatableEntity, M> 
             value = cloner.from(keyConvertor.keyToString(key), value);
         }
 
-        remoteCache.putIfAbsent(key, value);
+        remoteCache.putIfAbsent(key, Migration.getMigration(storedEntityDescriptor.getEntityTypeClass()).makeBackwardCompatible(value));
 
         return value;
     }
@@ -82,13 +83,13 @@ public class HotRodMapStorage<K, V extends AbstractEntity & UpdatableEntity, M> 
     public V read(String key) {
         Objects.requireNonNull(key, "Key must be non-null");
         K k = keyConvertor.fromStringSafe(key);
-        return remoteCache.get(k);
+        return Migration.getMigration(storedEntityDescriptor.getEntityTypeClass()).migrate(remoteCache.get(k));
     }
 
     @Override
     public V update(V value) {
         K key = keyConvertor.fromStringSafe(value.getId());
-        return remoteCache.replace(key, value);
+        return remoteCache.replace(key, Migration.getMigration(storedEntityDescriptor.getEntityTypeClass()).makeBackwardCompatible(value));
     }
 
     @Override
@@ -117,6 +118,9 @@ public class HotRodMapStorage<K, V extends AbstractEntity & UpdatableEntity, M> 
         }
 
         LOG.tracef("Executing read Ickle query: %s", queryString);
+        if (LOG.isTraceEnabled()) {
+            iqmcb.getParameters().forEach((key, value) -> LOG.tracef("'%s' = '%s'", key, value));
+        }
 
         QueryFactory queryFactory = Search.getQueryFactory(remoteCache);
 
@@ -127,7 +131,7 @@ public class HotRodMapStorage<K, V extends AbstractEntity & UpdatableEntity, M> 
 
         CloseableIterator<V> iterator = query.iterator();
         return closing(StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, 0), false))
-                .onClose(iterator::close);
+                .onClose(iterator::close).map(Migration.getMigration(storedEntityDescriptor.getEntityTypeClass())::migrate);
     }
 
     @Override
@@ -137,6 +141,9 @@ public class HotRodMapStorage<K, V extends AbstractEntity & UpdatableEntity, M> 
         String queryString = iqmcb.getIckleQuery();
 
         LOG.tracef("Executing count Ickle query: %s", queryString);
+        if (LOG.isTraceEnabled()) {
+            iqmcb.getParameters().forEach((key, value) -> LOG.tracef("'%s' = '%s'", key, value));
+        }
 
         QueryFactory queryFactory = Search.getQueryFactory(remoteCache);
 
@@ -158,6 +165,9 @@ public class HotRodMapStorage<K, V extends AbstractEntity & UpdatableEntity, M> 
         }
 
         LOG.tracef("Executing delete Ickle query: %s", queryString);
+        if (LOG.isTraceEnabled()) {
+            iqmcb.getParameters().forEach((key, value) -> LOG.tracef("'%s' = '%s'", key, value));
+        }
 
         QueryFactory queryFactory = Search.getQueryFactory(remoteCache);
 

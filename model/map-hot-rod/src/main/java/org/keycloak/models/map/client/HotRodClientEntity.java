@@ -141,6 +141,9 @@ public class HotRodClientEntity implements MapClientEntity, Versioned {
     @ProtoField(number = 35)
     public Integer nodeReRegistrationTimeout;
 
+    @ProtoField(number = 36)
+    public String oldClientId;
+
     private boolean updated = false;
 
     private final DeepCloner cloner;
