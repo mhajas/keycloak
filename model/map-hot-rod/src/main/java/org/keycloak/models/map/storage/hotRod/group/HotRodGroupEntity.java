@@ -21,8 +21,8 @@ import org.infinispan.protostream.annotations.ProtoField;
 import org.keycloak.models.map.annotations.GenerateHotRodEntityImplementation;
 import org.keycloak.models.map.common.UpdatableEntity;
 import org.keycloak.models.map.group.MapGroupEntity;
-import org.keycloak.models.map.storage.hotRod.client.HotRodAttributeEntity;
 import org.keycloak.models.map.storage.hotRod.common.AbstractHotRodEntity;
+import org.keycloak.models.map.storage.hotRod.common.HotRodAttributeEntityNonIndexed;
 import org.keycloak.models.map.storage.hotRod.common.HotRodEntityDelegate;
 
 import java.util.Set;
@@ -65,7 +65,7 @@ public class HotRodGroupEntity implements AbstractHotRodEntity {
     public String parentId;
 
     @ProtoField(number = 6)
-    public Set<HotRodAttributeEntity> attributes;
+    public Set<HotRodAttributeEntityNonIndexed> attributes;
 
     @ProtoField(number = 7)
     public Set<String> grantedRoles;
