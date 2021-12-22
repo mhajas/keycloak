@@ -96,15 +96,7 @@ public class IckleQueryOperators {
     }
 
     private static String iLike(SearchableModelField<?> modelField, String modelFieldName, Object[] values, Map<String, Object> parameters) {
-        if (IckleQueryMapModelCriteriaBuilder.isAnalyzedModelField(modelField)) {
-            // query parameters don't work for full-text search see https://github.com/keycloak/keycloak/issues/9292
-            return C + "." + modelFieldName + " : '" + values[0] + "'";
-        }
-        else if (!IckleQueryMapModelCriteriaBuilder.MODEL_FIELD_OVERRIDES.containsKey(modelField)) {
-            throw new CriterionNotSupportedException(modelField, ModelCriteriaBuilder.Operator.ILIKE, "ILIKE operator needs to be used either with an analyzed field or lowercase variant of a field!");
-        } else {
-            return singleValueOperator(ModelCriteriaBuilder.Operator.ILIKE).combine(modelField, modelFieldName, values, parameters);
-        }
+        return singleValueOperator(ModelCriteriaBuilder.Operator.ILIKE).combine(modelField, modelFieldName + "Lowercase", new String[] {((String)values[0]).toLowerCase()}, parameters);
     }
 
     private static String in(SearchableModelField<?> modelField, String modelFieldName, Object[] values, Map<String, Object> parameters) {
@@ -131,7 +123,7 @@ public class IckleQueryOperators {
         return operands.isEmpty() ? "false" : C + "." + modelField + " IN (" + operands.stream()
                 .map(operand -> {
                     String namedParam = findAvailableNamedParam(parameters.keySet(), modelFieldName);
-                    parameters.put(namedParam, operand);
+                    parameters.put(namedParam, sanitize(operand));
                     return ":" + namedParam;
                 })
                 .collect(Collectors.joining(", ")) +
@@ -170,7 +162,7 @@ public class IckleQueryOperators {
             }
 
             String namedParameter = findAvailableNamedParam(parameters.keySet(), modelFieldName);
-            parameters.put(namedParameter, values[0]);
+            parameters.put(namedParameter, sanitize(values[0]));
 
             return C + "." + modelFieldName + " " + IckleQueryOperators.operatorToString(op) + " :" + namedParameter;
         };

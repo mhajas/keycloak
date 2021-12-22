@@ -17,6 +17,7 @@
 
 package org.keycloak.models.map.storage.hotRod;
 
+import org.checkerframework.checker.units.qual.C;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.map.storage.CriterionNotSupportedException;
 import org.keycloak.models.map.storage.ModelCriteriaBuilder;
@@ -73,17 +74,20 @@ public class IckleQueryWhereClauses {
      */
     public static String produceWhereClause(SearchableModelField<?> modelField, ModelCriteriaBuilder.Operator op,
                                             Object[] values, Map<String, Object> parameters) {
-        if (IckleQueryMapModelCriteriaBuilder.isAnalyzedModelField(modelField) && !op.equals(ModelCriteriaBuilder.Operator.ILIKE)) {
-            throw new CriterionNotSupportedException(modelField, op, "Analyzed field " + modelField.getName() + " can be only used with ILIKE operator!");
+        String fieldName = IckleQueryMapModelCriteriaBuilder.getFieldName(modelField);
+        if (IckleQueryMapModelCriteriaBuilder.isAnalyzedModelField(modelField) &&
+                (op.equals(ModelCriteriaBuilder.Operator.ILIKE) || op.equals(ModelCriteriaBuilder.Operator.EQ) || op.equals(ModelCriteriaBuilder.Operator.NE))
+        ) {
+            String clause = C + "." + fieldName + " : " + sanitizeAnalyzed(values[0]);
+            if (op.equals(ModelCriteriaBuilder.Operator.NE)) {
+                return "not(" + clause + ")";
+            }
+
+            return clause;
         }
 
-        // determine, based on the operator and type of field, whether we need to use lowercase variant of a field
-        String fieldName = op.equals(ModelCriteriaBuilder.Operator.ILIKE) && !IckleQueryMapModelCriteriaBuilder.isAnalyzedModelField(modelField) ?
-                IckleQueryMapModelCriteriaBuilder.MODEL_FIELD_OVERRIDES.getOrDefault(modelField, modelField.getName()) :
-                IckleQueryMapModelCriteriaBuilder.getFieldName(modelField);
-
         return whereClauseProducerForModelField(modelField)
-                .produceWhereClause(modelField, fieldName, op, sanitizeValues(modelField, op, values), parameters);
+                .produceWhereClause(modelField, fieldName, op, values, parameters);
     }
 
     private static String whereClauseForClientsAttributes(SearchableModelField<?> modelField, String modelFieldName, ModelCriteriaBuilder.Operator op, Object[] values, Map<String, Object> parameters) {

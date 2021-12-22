@@ -47,7 +47,7 @@ public class IckleQueryMapModelCriteriaBuilder<E extends AbstractHotRodEntity, M
     private static final String NON_ANALYZED_FIELD_REGEX = "[%_\\\\]";
     private static final String ANALYZED_FIELD_REGEX = "[+!^\"~*?:\\\\]";
     public static final Map<SearchableModelField<?>, String> INFINISPAN_NAME_OVERRIDES = new HashMap<>();
-    public static final Map<SearchableModelField<?>, String> MODEL_FIELD_OVERRIDES = new HashMap<>();
+//    public static final Map<SearchableModelField<?>, String> MODEL_FIELD_OVERRIDES = new HashMap<>();
     public static final Set<SearchableModelField<?>> ANALYZED_MODEL_FIELDS = new HashSet<>();
 
 
@@ -59,14 +59,14 @@ public class IckleQueryMapModelCriteriaBuilder<E extends AbstractHotRodEntity, M
         INFINISPAN_NAME_OVERRIDES.put(GroupModel.SearchableFields.ASSIGNED_ROLE, "grantedRoles");
     }
 
-    static {
-        MODEL_FIELD_OVERRIDES.put(ClientModel.SearchableFields.CLIENT_ID, "clientIdLowercase");
-        //MODEL_FIELD_OVERRIDES.put(GroupModel.SearchableFields.NAME, GroupModel.SearchableFields.NAME_LOWERCASE);
-        //MODEL_FIELD_OVERRIDES.put(RoleModel.SearchableFields.NAME, RoleModel.SearchableFields.NAME_LOWERCASE);
-        //MODEL_FIELD_OVERRIDES.put(UserModel.SearchableFields.USERNAME, UserModel.SearchableFields.USERNAME_LOWERCASE);
-        //MODEL_FIELD_OVERRIDES.put(Resource.SearchableFields.NAME, Resource.SearchableFields.NAME_LOWERCASE);
-        //MODEL_FIELD_OVERRIDES.put(Scope.SearchableFields.NAME, Scope.SearchableFields.NAME_LOWERCASE);
-    }
+//    static {
+//        MODEL_FIELD_OVERRIDES.put(ClientModel.SearchableFields.CLIENT_ID, "clientIdLowercase");
+//        //MODEL_FIELD_OVERRIDES.put(GroupModel.SearchableFields.NAME, GroupModel.SearchableFields.NAME_LOWERCASE);
+//        //MODEL_FIELD_OVERRIDES.put(RoleModel.SearchableFields.NAME, RoleModel.SearchableFields.NAME_LOWERCASE);
+//        //MODEL_FIELD_OVERRIDES.put(UserModel.SearchableFields.USERNAME, UserModel.SearchableFields.USERNAME_LOWERCASE);
+//        //MODEL_FIELD_OVERRIDES.put(Resource.SearchableFields.NAME, Resource.SearchableFields.NAME_LOWERCASE);
+//        //MODEL_FIELD_OVERRIDES.put(Scope.SearchableFields.NAME, Scope.SearchableFields.NAME_LOWERCASE);
+//    }
 
     static {
         // the "filename" analyzer in Infinispan works correctly for case-insensitive search with whitespaces
@@ -200,35 +200,35 @@ public class IckleQueryMapModelCriteriaBuilder<E extends AbstractHotRodEntity, M
         return whereClauseBuilder;
     }
 
-    public static Object getFirstArrayElement(Object[] value) throws IllegalStateException {
-        if (value == null || value.length == 0) {
-            throw new IllegalStateException("Invalid argument: " + Arrays.toString(value));
-        }
-        return value[0];
-    }
-
-    public static Object[] sanitizeValues(SearchableModelField<?> modelField, Operator op, Object[] values) {
-        if (isAnalyzedModelField(modelField) || isOverriddenModelField(modelField, op)) {
-            Object value0 = IckleQueryMapModelCriteriaBuilder.getFirstArrayElement(values);
-            if (value0 instanceof String) {
-                sanitizeStringInputs(modelField, op, values);
-            }
-        }
-
-        return values;
-    }
-
-    private static void sanitizeStringInputs(SearchableModelField modelField, Operator op, Object[] values) {
-        if (isAnalyzedModelField(modelField)) {
-            IntStream.range(0, values.length).forEach(i -> values[i] = sanitizeAnalyzed((String) values[i]));
-        } else {
-            if (isOverriddenModelField(modelField, op)) {
-                IntStream.range(0, values.length).forEach(i -> values[i] = sanitize((String) values[i]).toLowerCase());
-            } else {
-                IntStream.range(0, values.length).forEach(i -> values[i] = sanitize((String) values[i]));
-            }
-        }
-    }
+//    public static Object getFirstArrayElement(Object[] value) throws IllegalStateException {
+//        if (value == null || value.length == 0) {
+//            throw new IllegalStateException("Invalid argument: " + Arrays.toString(value));
+//        }
+//        return value[0];
+//    }
+//
+//    public static Object[] sanitizeValues(SearchableModelField<?> modelField, Operator op, Object[] values) {
+//        if (isAnalyzedModelField(modelField) || isOverriddenModelField(modelField, op)) {
+//            Object value0 = IckleQueryMapModelCriteriaBuilder.getFirstArrayElement(values);
+//            if (value0 instanceof String) {
+//                sanitizeStringInputs(modelField, op, values);
+//            }
+//        }
+//
+//        return values;
+//    }
+//
+//    private static void sanitizeStringInputs(SearchableModelField modelField, Operator op, Object[] values) {
+//        if (isAnalyzedModelField(modelField)) {
+//            IntStream.range(0, values.length).forEach(i -> values[i] = sanitizeAnalyzed((String) values[i]));
+//        } else {
+//            if (isOverriddenModelField(modelField, op)) {
+//                IntStream.range(0, values.length).forEach(i -> values[i] = sanitize((String) values[i]).toLowerCase());
+//            } else {
+//                IntStream.range(0, values.length).forEach(i -> values[i] = sanitize((String) values[i]));
+//            }
+//        }
+//    }
 
     private static String sanitize(String value) {
         boolean anyBeginning = value.startsWith("%");
@@ -257,9 +257,9 @@ public class IckleQueryMapModelCriteriaBuilder<E extends AbstractHotRodEntity, M
         return ANALYZED_MODEL_FIELDS.contains(modelField);
     }
 
-    public static boolean isOverriddenModelField(SearchableModelField<?> modelField, Operator op) {
-        return op.equals(ModelCriteriaBuilder.Operator.ILIKE) ? MODEL_FIELD_OVERRIDES.containsKey(modelField) : false;
-    }
+//    public static boolean isOverriddenModelField(SearchableModelField<?> modelField, Operator op) {
+//        return op.equals(ModelCriteriaBuilder.Operator.ILIKE) ? MODEL_FIELD_OVERRIDES.containsKey(modelField) : false;
+//    }
 
     /**
      *
