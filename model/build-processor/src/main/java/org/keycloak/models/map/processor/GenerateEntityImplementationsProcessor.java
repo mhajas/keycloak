@@ -20,9 +20,13 @@ import org.keycloak.models.map.annotations.GenerateEntityImplementations;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.AbstractMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.annotation.processing.SupportedSourceVersion;
@@ -38,6 +42,8 @@ import javax.tools.Diagnostic;
 import javax.tools.Diagnostic.Kind;
 import javax.tools.JavaFileObject;
 import static org.keycloak.models.map.processor.FieldAccessorType.*;
+import static org.keycloak.models.map.processor.Util.getGenericsDeclaration;
+import static org.keycloak.models.map.processor.Util.isMapType;
 import static org.keycloak.models.map.processor.Util.isSetType;
 import static org.keycloak.models.map.processor.Util.methodParameters;
 import java.util.Collection;
@@ -67,6 +73,7 @@ public class GenerateEntityImplementationsProcessor extends AbstractGenerateEnti
         new FieldsGenerator(),
         new FieldDelegateGenerator(),
         new ImplGenerator(),
+        new HotRodEntityImpl()
     };
 
     @Override
@@ -757,6 +764,258 @@ public class GenerateEntityImplementationsProcessor extends AbstractGenerateEnti
             } else {
                 processingEnv.getMessager().printMessage(Kind.ERROR, "Could not determine way to clone " + fieldName + " property", e);
             }
+        }
+    }
+
+
+    public class HotRodEntityImpl implements Generator {
+
+        private static final String CURRENT_PACKAGE = "realm";
+
+        @Override
+        public void generate(TypeElement e) throws IOException {
+            Map<String, HashSet<ExecutableElement>> methodsPerAttribute = methodsPerAttributeMapping(e);
+            String className = e.getQualifiedName().toString();
+
+            if (!className.contains(CURRENT_PACKAGE)) return;
+
+            int lastDot = className.lastIndexOf('.');
+            String packageName = null;
+            if (lastDot > 0) {
+                packageName = className.substring(0, lastDot);
+                packageName = packageName.replaceFirst(CURRENT_PACKAGE, "storage.hotRod." + CURRENT_PACKAGE);
+                 // org.keycloak.models.map.realm
+                 // org.keycloak.models.map.storage.hotRod.client
+            }
+
+            String classNameSimple = className.substring(lastDot + 1);
+            String hotRodClassName = packageName + "." + classNameSimple.replaceFirst("Map", "HotRod") ;
+            lastDot = hotRodClassName.lastIndexOf(".");
+            String hotRodSimpleClassName = hotRodClassName.substring(lastDot + 1);
+            JavaFileObject file = processingEnv.getFiler().createSourceFile(hotRodClassName);
+            try (PrintWriter pw = new PrintWriterNoJavaLang(file.openWriter())) {
+                if (packageName != null) {
+                    pw.println("package " + packageName + ";");
+                }
+
+                pw.println();
+                pw.println("import org.infinispan.protostream.annotations.ProtoField;");
+                pw.println();
+
+                pw.println("import java.util.Collection;\n" +
+                        "import java.util.Map;\n" +
+                        "import java.util.Set;");
+                pw.println("import org.keycloak.models.map.annotations.GenerateHotRodEntityImplementation;");
+                pw.println("import org.keycloak.models.map.storage.hotRod.common.AbstractHotRodEntity;");
+
+
+                List<ExecutableElement> nonImplementableMethods = methodsPerAttribute.entrySet().stream()
+                        .flatMap(this::toNonImplementable)
+                        .collect(Collectors.toList());
+                boolean hasAbstractClass = !nonImplementableMethods.isEmpty();
+
+                pw.println("@GenerateHotRodEntityImplementation(");
+                pw.print("        implementInterface = \"" + e.getQualifiedName().toString() + "\"");
+                if (hasAbstractClass) {
+                    pw.println(",");
+                    pw.print("        inherits = \"" + packageName + "." + hotRodSimpleClassName + ".Abstract" + hotRodSimpleClassName + "Delegate\"");
+                }
+                pw.println("");
+                pw.println(")");
+
+                pw.println("public class " + hotRodSimpleClassName + " extends AbstractHotRodEntity {");
+
+                AtomicInteger i = new AtomicInteger();
+
+                if (hotRodSimpleClassName.equals("HotRodRealmEntity")) {
+                    pw.println("    @ProtoField(number = " + i.incrementAndGet() + ", required = true)\n" +
+                            "    public int entityVersion = 1;");
+                }
+
+                methodsPerAttribute.entrySet().stream()
+                        .map(entry -> new AbstractMap.SimpleEntry<>(toHotRodName(entry.getKey()), determineFieldType(entry.getKey(), entry.getValue())))
+                        .sorted(new HotRodComparator())
+                                .forEach(entry -> {
+                                    pw.println("    @ProtoField(number = " + i.incrementAndGet() + ")");
+                                    pw.println("    public " + toHotRodType(entry.getValue()) + " " + entry.getKey() + ";");
+                                });
+
+//                        forEach((fieldName, methods) -> {
+//                    TypeMirror m = determineFieldType(f)
+//                });
+
+                if (hasAbstractClass) {
+                    pw.println("    public static abstract class Abstract" + hotRodSimpleClassName + "Delegate extends UpdatableHotRodEntityDelegateImpl<" + hotRodSimpleClassName + "> implements " + e.getSimpleName().toString() + " {");
+
+
+                    pw.println(
+                            "        @Override\n" +
+                            "        public String getId() {\n" +
+                            "            return getHotRodEntity().id;\n" +
+                            "        }\n" +
+                            "\n" +
+                            "        @Override\n" +
+                            "        public void setId(String id) {\n" +
+                            "            " + hotRodSimpleClassName + " entity = getHotRodEntity();\n" +
+                            "            if (entity.id != null) throw new IllegalStateException(\"Id cannot be changed\");\n" +
+                            "            entity.id = id;\n" +
+                            "            entity.updated |= id != null;\n" +
+                            "        }");
+
+                    pw.println("");
+                    pw.println("        // TODO: Implement isUpdated/clearUpdatedFlag if necessary");
+                    pw.println("");
+
+                    nonImplementableMethods.forEach(ee -> printMethodBody(pw, ee));
+
+                    pw.println("    }");
+                }
+
+                // Add equals and hashcode
+                pw.println("    @Override\n" +
+                        "    public boolean equals(Object o) {\n" +
+                        "        return " + hotRodSimpleClassName + "Delegate.entityEquals(this, o);\n" +
+                        "    }\n" +
+                        "\n" +
+                        "    @Override\n" +
+                        "    public int hashCode() {\n" +
+                        "        return " + hotRodSimpleClassName + "Delegate.entityHashCode(this);\n" +
+                        "    }");
+
+                pw.println("}");
+
+            }
+
+        }
+
+        private void printMethodBody(PrintWriter pw, ExecutableElement ee) {
+            pw.println("");
+
+
+            String methodName = ee.getSimpleName().toString();
+            String returnType = toSimpleName(ee.getReturnType());
+
+
+            pw.println("        @Override");
+            pw.println("        public " + toSimpleName(ee.getReturnType()) + " " + ee.getSimpleName().toString() + "(" + ee.getParameters().stream().map(var -> var.asType().toString() + " " + var.getSimpleName()).collect(Collectors.joining(", ")) + ") {");
+            if (methodName.startsWith("get") && returnType.startsWith("Optional") && ee.getParameters().size() == 1) {
+                String setType = toHotRodType(getGenericsDeclaration(ee.getReturnType()).get(0));
+                String hotRodName = toHotRodName(methodName.substring("get".length()));
+                String paramName = ee.getParameters().get(0).getSimpleName().toString();
+
+                pw.println(
+                        "            Set<" + setType + "> set = getHotRodEntity()." + hotRodName + "s;\n" +
+                        "            if (set == null || set.isEmpty()) return Optional.empty();\n" +
+                        "\n" +
+                        "            return set.stream().filter(ob -> Objects.equals(ob." + (paramName.toLowerCase(Locale.ROOT).endsWith("id") ? "id" : "TODO") + ", " + paramName + ")).findFirst().map(" + setType + "Delegate::new);");
+            } else if (methodName.startsWith("remove")) {
+                String entityName = methodName.substring("remove".length());
+                String hotRodName = toHotRodName(entityName);
+                String setType = "HotRod" + entityName + "Entity";
+                String paramName = ee.getParameters().get(0).getSimpleName().toString();
+
+                pw.println(
+                        "            Set<" + setType + "> set = getHotRodEntity()." + hotRodName + "s;\n" +
+                        "            boolean removed = set != null && set.removeIf(ob -> Objects.equals(ob." + (paramName.toLowerCase(Locale.ROOT).endsWith("id") ? "id" : "TODO") + ", " + paramName + "));\n" +
+                        "            getHotRodEntity().updated |= removed;\n" +
+                        "            return removed;");
+            } else {
+                pw.println("            // TODO: implement");
+            }
+            pw.println("        }");
+
+        }
+
+        private Stream<ExecutableElement> toNonImplementable(Map.Entry<String, HashSet<ExecutableElement>> entry) {
+            String fieldName = entry.getKey();
+            HashSet<ExecutableElement> methods = entry.getValue();
+            TypeMirror fieldType = determineFieldType(fieldName, methods);
+
+            return methods.stream().filter(ee -> FieldAccessorType.determineType(ee, fieldName,types, fieldType) == UNKNOWN);
+        }
+
+        private String toHotRodType(TypeMirror typeMirror) {
+            List<TypeMirror> generics = getGenericsDeclaration(typeMirror);
+            TypeElement typeElement = elements.getTypeElement(types.erasure(typeMirror).toString());
+
+            if (generics.isEmpty()) {
+                if (isBoxedPrimitiveType(typeMirror) || Objects.equals("java.lang.String", typeMirror.toString())) {
+                    return typeElement.getSimpleName().toString();
+                }
+
+                String name = typeElement.getSimpleName().toString();
+                return name.startsWith("Map") ? "HotRod" + name.substring("Map".length()) : "HotRod" + name;
+            }
+
+            // Collections
+            if (isMapType(typeElement)) {
+                String key = toSimpleName(generics.get(0));
+                String value = toSimpleName(generics.get(1));
+
+                if (value.startsWith("List")) return "Set<HotRodAttributeEntityNonIndexed>";
+                return "Set<HotRodPair<" + key + ", " + value + ">>";
+            }
+
+            if (isSetType(typeElement)) {
+                TypeMirror setVal = generics.get(0);
+
+                if (isBoxedPrimitiveType(setVal) || Objects.equals("java.lang.String", setVal.toString())) {
+                    return "Set<" + toSimpleName(setVal) + ">";
+                }
+
+                return "Set<" + toHotRodName(setVal) + ">";
+            }
+
+            return elements.getTypeElement(types.erasure(typeMirror).toString()).getSimpleName().toString();
+        }
+
+        private String toSimpleName(TypeMirror t) {
+            List<TypeMirror> generics = getGenericsDeclaration(t);
+
+            String simpleName = elements.getTypeElement(types.erasure(t).toString()).getSimpleName().toString();
+
+            if (generics.isEmpty()) {
+                return simpleName;
+            }
+
+            return simpleName + "<" + generics.stream().map(this::toSimpleName).collect(Collectors.joining(", ")) + ">";
+        }
+
+        private String toHotRodName(TypeMirror t) {
+            String name = elements.getTypeElement(types.erasure(t).toString()).getSimpleName().toString();
+            return name.startsWith("Map") ? "HotRod" + name.substring("Map".length()) : "HotRod" + name;
+        }
+
+        private String toHotRodName(String s) {
+            char[] c = s.toCharArray();
+            c[0] = Character.toLowerCase(c[0]);
+            return new String(c);
+        }
+
+        private class HotRodComparator implements Comparator<Map.Entry<String, TypeMirror>> {
+            @Override
+            public int compare(Map.Entry<String, TypeMirror> o1, Map.Entry<String, TypeMirror> o2) {
+                String name1 = o1.getKey();
+                String name2 = o2.getKey();
+
+                String type1 = toSimpleName(o1.getValue());
+                String type2 = toSimpleName(o2.getValue());
+
+                if (name1.equals("id")) return -1;
+                if (name2.equals("id")) return 1;
+
+                if (name1.equals("name")) return -1;
+                if (name2.equals("name")) return 1;
+
+                int compareTypes = type1.compareTo(type2);
+                if (!isCollection(o1.getValue()) || !isCollection(o2.getValue())) {
+                    if (isCollection(o1.getValue())) compareTypes = 1;
+                    if (isCollection(o2.getValue())) compareTypes = -1;
+                }
+
+                return compareTypes == 0 ? name1.compareTo(name2) : compareTypes;
+            }
+
         }
     }
 }
