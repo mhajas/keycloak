@@ -204,7 +204,7 @@ public class ResourceAdapter implements Resource, CachedModel<Resource> {
         for (Scope scope : updated.getScopes()) {
             if (!scopes.contains(scope)) {
                 PermissionTicketStore permissionStore = cacheSession.getPermissionTicketStore();
-                List<PermissionTicket> permissions = permissionStore.findByScope(getResourceServerId(), scope.getId());
+                List<PermissionTicket> permissions = permissionStore.findByScope(getResourceServer().getId(), scope.getId());
 
                 for (PermissionTicket permission : permissions) {
                     permissionStore.delete(permission.getId());
@@ -216,7 +216,7 @@ public class ResourceAdapter implements Resource, CachedModel<Resource> {
 
         for (Scope scope : updated.getScopes()) {
             if (!scopes.contains(scope)) {
-                policyStore.findByResource(getResourceServerId(), getId(), policy -> policy.removeScope(scope));
+                policyStore.findByResource(getResourceServer().getId(), getId(), policy -> policy.removeScope(scope));
             }
         }
 

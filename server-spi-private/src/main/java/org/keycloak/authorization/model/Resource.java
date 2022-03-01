@@ -163,10 +163,6 @@ public interface Resource {
      *
      * @return the resource server associated with this resource
      */
-     default String getResourceServerId() {
-         return getResourceServer().getId();
-     }
-
      ResourceServer getResourceServer();
 
     /**
