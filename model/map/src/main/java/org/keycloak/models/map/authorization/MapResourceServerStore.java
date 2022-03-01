@@ -34,6 +34,7 @@ import org.keycloak.models.ClientModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.ModelDuplicateException;
 import org.keycloak.models.ModelException;
+import org.keycloak.models.RealmModel;
 import org.keycloak.models.map.authorization.adapter.MapResourceServerAdapter;
 import org.keycloak.models.map.authorization.entity.MapResourceServerEntity;
 import org.keycloak.models.map.authorization.entity.MapResourceServerEntityImpl;
@@ -44,6 +45,8 @@ import org.keycloak.models.map.storage.criteria.DefaultModelCriteria;
 import org.keycloak.models.utils.KeycloakModelUtils;
 import org.keycloak.storage.StorageId;
 
+import java.util.function.Function;
+
 import static org.keycloak.common.util.StackUtil.getShortStackTrace;
 import static org.keycloak.models.map.storage.QueryParameters.withCriteria;
 import static org.keycloak.models.map.storage.criteria.DefaultModelCriteria.criteria;
@@ -51,6 +54,7 @@ import static org.keycloak.models.map.storage.criteria.DefaultModelCriteria.crit
 public class MapResourceServerStore implements ResourceServerStore {
 
     private static final Logger LOG = Logger.getLogger(MapResourceServerStore.class);
+    private final KeycloakSession session;
     private final AuthorizationProvider authorizationProvider;
     final MapKeycloakTransaction<MapResourceServerEntity, ResourceServer> tx;
 
@@ -58,11 +62,12 @@ public class MapResourceServerStore implements ResourceServerStore {
         this.tx = resourceServerStore.createTransaction(session);
         this.authorizationProvider = provider;
         session.getTransactionManager().enlist(tx);
+        this.session = session;
     }
 
-    private ResourceServer entityToAdapter(MapResourceServerEntity origEntity) {
+    private Function<MapResourceServerEntity, ResourceServer> entityToAdapterFunc(RealmModel realm) {
         // Clone entity before returning back, to avoid giving away a reference to the live object to the caller
-        return new MapResourceServerAdapter(origEntity, authorizationProvider.getStoreFactory());
+        return origEntity -> new MapResourceServerAdapter(realm, origEntity, authorizationProvider.getStoreFactory());
     }
 
     @Override
@@ -86,7 +91,7 @@ public class MapResourceServerStore implements ResourceServerStore {
         entity.setRealmId(client.getRealm().getId());
 
         entity = tx.create(entity);
-        return entityToAdapter(entity);
+        return entityToAdapterFunc(client.getRealm()).apply(entity);
     }
 
     @Override
@@ -131,7 +136,8 @@ public class MapResourceServerStore implements ResourceServerStore {
         }
 
         MapResourceServerEntity entity = tx.read(id);
-        return entity == null ? null : entityToAdapter(entity);
+        // TODO: findById should take RealmModel as parameter and we should check entity belongs to the realm
+        return entity == null ? null : entityToAdapterFunc(session.realms().getRealm(entity.getRealmId())).apply(entity);
     }
 
     @Override
@@ -139,8 +145,9 @@ public class MapResourceServerStore implements ResourceServerStore {
         LOG.tracef("findByClient(%s) in realm(%s)%s", client.getClientId(), client.getRealm().getName(), getShortStackTrace());
 
         DefaultModelCriteria<ResourceServer> mcb = criteria();
-        mcb = mcb.compare(SearchableFields.CLIENT_ID, Operator.EQ, client.getId());
+        mcb = mcb.compare(SearchableFields.CLIENT_ID, Operator.EQ, client.getId())
+                .compare(SearchableFields.REALM_ID, Operator.EQ, client.getRealm().getId());
 
-        return tx.read(withCriteria(mcb)).map(this::entityToAdapter).findFirst().orElse(null);
+        return tx.read(withCriteria(mcb)).map(entityToAdapterFunc(client.getRealm())).findFirst().orElse(null);
     }
 }

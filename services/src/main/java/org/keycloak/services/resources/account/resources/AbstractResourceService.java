@@ -83,7 +83,7 @@ public abstract class AbstractResourceService {
 
             setScopes(resource.getScopes().stream().map(Scope::new).collect(Collectors.toSet()));
 
-            ResourceServer resourceServer = provider.getStoreFactory().getResourceServerStore().findById(resource.getResourceServer());
+            ResourceServer resourceServer = provider.getStoreFactory().getResourceServerStore().findById(resource.getResourceServerId());
             this.client = new Client(provider.getRealm().getClientById(resourceServer.getClientId()));
         }
 
