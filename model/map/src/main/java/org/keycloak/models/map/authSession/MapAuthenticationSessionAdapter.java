@@ -58,7 +58,7 @@ public class MapAuthenticationSessionAdapter implements AuthenticationSessionMod
 
     @Override
     public Map<String, ExecutionStatus> getExecutionStatus() {
-        Map<String, ExecutionStatus> executionStatus = entity.getExecutionStatus();
+        Map<String, ExecutionStatus> executionStatus = entity.getExecutionStatuses();
         return executionStatus == null ? Collections.emptyMap() : Collections.unmodifiableMap(executionStatus);
     }
 
@@ -66,12 +66,12 @@ public class MapAuthenticationSessionAdapter implements AuthenticationSessionMod
     public void setExecutionStatus(String authenticator, ExecutionStatus status) {
         Objects.requireNonNull(authenticator, "The provided authenticator can't be null!");
         Objects.requireNonNull(status, "The provided execution status can't be null!");
-        this.entity.addExecutionStatus(authenticator, status);
+        this.entity.setExecutionStatus(authenticator, status);
     }
 
     @Override
     public void clearExecutionStatus() {
-        entity.setExecutionStatus(null);
+        entity.setExecutionStatuses(null);
     }
 
     @Override

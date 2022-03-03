@@ -29,22 +29,9 @@ import java.util.Set;
 /**
  * @author <a href="mailto:mkanis@redhat.com">Martin Kanis</a>
  */
-@GenerateEntityImplementations(
-        inherits = "org.keycloak.models.map.authSession.MapAuthenticationSessionEntity.AbstractAuthenticationSessionEntity"
-)
+@GenerateEntityImplementations
 @DeepCloner.Root
 public interface MapAuthenticationSessionEntity extends UpdatableEntity {
-
-    public abstract class AbstractAuthenticationSessionEntity extends UpdatableEntity.Impl implements MapAuthenticationSessionEntity {
-
-        @Override
-        public void addExecutionStatus(String authenticator, AuthenticationSessionModel.ExecutionStatus status) {
-            if (getExecutionStatus() == null) {
-                setExecutionStatus(new HashMap<>());
-            }
-            this.updated |= !Objects.equals(getExecutionStatus().put(authenticator, status), status);
-        }
-    }
 
     Map<String, String> getUserSessionNotes();
     void setUserSessionNotes(Map<String, String> userSessionNotes);
@@ -86,7 +73,7 @@ public interface MapAuthenticationSessionEntity extends UpdatableEntity {
     void setAuthNote(String name, String value);
     void removeAuthNote(String name);
 
-    Map<String, AuthenticationSessionModel.ExecutionStatus> getExecutionStatus();
-    void setExecutionStatus(Map<String, AuthenticationSessionModel.ExecutionStatus> executionStatus);
-    void addExecutionStatus(String authenticator, AuthenticationSessionModel.ExecutionStatus status);
+    Map<String, AuthenticationSessionModel.ExecutionStatus> getExecutionStatuses();
+    void setExecutionStatuses(Map<String, AuthenticationSessionModel.ExecutionStatus> executionStatus);
+    void setExecutionStatus(String authenticator, AuthenticationSessionModel.ExecutionStatus status);
 }
