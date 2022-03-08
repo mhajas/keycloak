@@ -105,7 +105,7 @@ public class MapResourceServerStore implements ResourceServerStore {
 
         // TODO: Simplify the following, ideally by leveraging triggers, stored procedures or ref integrity
         PolicyStore policyStore = authorizationProvider.getStoreFactory().getPolicyStore();
-        policyStore.findByResourceServer(id).stream()
+        policyStore.findByResourceServer(resourceServer).stream()
             .map(Policy::getId)
             .forEach(policyStore::delete);
 
