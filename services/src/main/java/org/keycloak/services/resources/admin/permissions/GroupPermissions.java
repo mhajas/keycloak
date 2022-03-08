@@ -325,7 +325,7 @@ class GroupPermissions implements GroupPermissionEvaluator, GroupPermissionManag
 
         Set<String> granted = new HashSet<>();
 
-        resourceStore.findByType(server.getId(), "Group", resource -> {
+        resourceStore.findByType(server, "Group", resource -> {
             if (hasPermission(resource, null, VIEW_MEMBERS_SCOPE, MANAGE_MEMBERS_SCOPE)) {
                 granted.add(resource.getName().substring(RESOURCE_NAME_PREFIX.length()));
             }
