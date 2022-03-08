@@ -288,9 +288,8 @@ public class PolicyAdapter implements Policy, CachedModel<Policy> {
         if (scopes != null) return scopes;
         scopes = new HashSet<>();
         ScopeStore scopeStore = cacheSession.getScopeStore();
-        String resourceServerId = cached.getResourceServerId();
         for (String scopeId : cached.getScopesIds(modelSupplier)) {
-            Scope scope = scopeStore.findById(resourceServerId, scopeId);
+            Scope scope = scopeStore.findById(getResourceServer(), scopeId);
             cacheSession.cacheScope(scope);
             scopes.add(scope);
         }
