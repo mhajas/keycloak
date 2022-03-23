@@ -25,14 +25,15 @@ import org.keycloak.authorization.model.Scope.SearchableFields;
 import org.keycloak.authorization.store.ScopeStore;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.ModelDuplicateException;
+import org.keycloak.models.RealmModel;
 import org.keycloak.models.map.authorization.adapter.MapScopeAdapter;
 import org.keycloak.models.map.authorization.entity.MapScopeEntity;
 import org.keycloak.models.map.authorization.entity.MapScopeEntityImpl;
 import org.keycloak.models.map.storage.MapKeycloakTransaction;
 import org.keycloak.models.map.storage.MapStorage;
-
 import org.keycloak.models.map.storage.ModelCriteriaBuilder.Operator;
 import org.keycloak.models.map.storage.criteria.DefaultModelCriteria;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -86,6 +87,7 @@ public class MapScopeStore implements ScopeStore {
         entity.setId(id);
         entity.setName(name);
         entity.setResourceServerId(resourceServer.getId());
+        entity.setRealmId(resourceServer.getRealmId());
 
         entity = tx.create(entity);
 
@@ -151,5 +153,20 @@ public class MapScopeStore implements ScopeStore {
         return tx.read(withCriteria(mcb).pagination(firstResult, maxResults, SearchableFields.NAME))
             .map(this::entityToAdapter)
             .collect(Collectors.toList());
+    }
+
+    public void preRemove(RealmModel realm) {
+        LOG.tracef("preRemove(%s)%s", realm, getShortStackTrace());
+
+        DefaultModelCriteria<Scope> mcb = criteria();
+        mcb = mcb.compare(SearchableFields.REALM_ID, Operator.EQ, realm.getId());
+
+        tx.delete(withCriteria(mcb));
+    }
+
+    public void preRemove(ResourceServer resourceServer) {
+        LOG.tracef("preRemove(%s)%s", resourceServer, getShortStackTrace());
+
+        tx.delete(withCriteria(forResourceServer(resourceServer)));
     }
 }

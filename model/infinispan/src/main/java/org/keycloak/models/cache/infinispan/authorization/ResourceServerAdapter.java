@@ -117,6 +117,16 @@ public class ResourceServerAdapter implements ResourceServer, CachedModel<Resour
     }
 
     @Override
+    public String getClientId() {
+        return getId();
+    }
+
+    @Override
+    public String getRealmId() {
+        return getDelegateForUpdate().getRealmId();
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof ResourceServer)) return false;

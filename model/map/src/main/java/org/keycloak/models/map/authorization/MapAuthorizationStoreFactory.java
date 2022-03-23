@@ -29,11 +29,8 @@ import org.keycloak.authorization.store.StoreFactory;
 import org.keycloak.common.Profile;
 import org.keycloak.component.AmphibianProviderFactory;
 import org.keycloak.models.KeycloakSession;
-import org.keycloak.models.map.authorization.entity.MapPermissionTicketEntity;
-import org.keycloak.models.map.authorization.entity.MapPolicyEntity;
-import org.keycloak.models.map.authorization.entity.MapResourceEntity;
-import org.keycloak.models.map.authorization.entity.MapResourceServerEntity;
-import org.keycloak.models.map.authorization.entity.MapScopeEntity;
+import org.keycloak.models.KeycloakSessionFactory;
+import org.keycloak.models.RealmModel;
 import org.keycloak.models.map.common.AbstractMapProviderFactory;
 import org.keycloak.models.map.storage.MapStorage;
 import org.keycloak.models.map.storage.MapStorageProvider;
@@ -41,15 +38,18 @@ import org.keycloak.models.map.storage.MapStorageProviderFactory;
 import org.keycloak.models.map.storage.MapStorageSpi;
 import org.keycloak.provider.EnvironmentDependentProviderFactory;
 import static org.keycloak.models.utils.KeycloakModelUtils.getComponentFactory;
+import org.keycloak.provider.ProviderEvent;
+import org.keycloak.provider.ProviderEventListener;
 
 /**
  * @author mhajas
  */
-public class MapAuthorizationStoreFactory implements AmphibianProviderFactory<StoreFactory>, AuthorizationStoreFactory, EnvironmentDependentProviderFactory {
+public class MapAuthorizationStoreFactory implements AmphibianProviderFactory<StoreFactory>, AuthorizationStoreFactory, EnvironmentDependentProviderFactory, ProviderEventListener {
 
     public static final String PROVIDER_ID = AbstractMapProviderFactory.PROVIDER_ID;
 
     private Config.Scope storageConfigScope;
+    private Runnable onClose;
 
     @Override
     public StoreFactory create(KeycloakSession session) {
@@ -87,8 +87,15 @@ public class MapAuthorizationStoreFactory implements AmphibianProviderFactory<St
     }
 
     @Override
-    public void close() {
+    public void postInit(KeycloakSessionFactory factory) {
+        registerSynchronizationListeners(factory);
+        factory.register(this);
+        onClose = () -> factory.unregister(this);
+    }
 
+    @Override
+    public void close() {
+        onClose.run();
     }
 
     @Override
@@ -104,5 +111,28 @@ public class MapAuthorizationStoreFactory implements AmphibianProviderFactory<St
     @Override
     public boolean isSupported() {
         return Profile.isFeatureEnabled(Profile.Feature.MAP_STORAGE);
+    }
+
+    @Override
+    public void onEvent(ProviderEvent event) {
+        if (event instanceof RealmModel.RealmPreRemoveEvent) {
+            RealmModel.RealmPreRemoveEvent e = ((RealmModel.RealmPreRemoveEvent) event);
+            MapAuthorizationStore authorizationStore = (MapAuthorizationStore) e.getKeycloakSession().getProvider(StoreFactory.class);
+
+            ((MapScopeStore) authorizationStore.getScopeStore()).preRemove(e.getRealm());
+            ((MapPolicyStore) authorizationStore.getPolicyStore()).preRemove(e.getRealm());
+            ((MapResourceStore) authorizationStore.getResourceStore()).preRemove(e.getRealm());
+            ((MapPermissionTicketStore) authorizationStore.getPermissionTicketStore()).preRemove(e.getRealm());
+            ((MapResourceServerStore) authorizationStore.getResourceServerStore()).preRemove(e.getRealm());
+
+        } else if (event instanceof ResourceServer.ResourceServerPreRemoveEvent) {
+            ResourceServer.ResourceServerPreRemoveEvent e = ((ResourceServer.ResourceServerPreRemoveEvent) event);
+            MapAuthorizationStore authorizationStore = (MapAuthorizationStore) e.getKeycloakSession().getProvider(StoreFactory.class);
+
+            ((MapScopeStore) authorizationStore.getScopeStore()).preRemove(e.getResourceServer());
+            ((MapPolicyStore) authorizationStore.getPolicyStore()).preRemove(e.getResourceServer());
+            ((MapResourceStore) authorizationStore.getResourceStore()).preRemove(e.getResourceServer());
+            ((MapPermissionTicketStore) authorizationStore.getPermissionTicketStore()).preRemove(e.getResourceServer());
+        }
     }
 }

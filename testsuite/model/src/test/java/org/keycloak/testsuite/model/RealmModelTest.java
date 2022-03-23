@@ -17,10 +17,16 @@
 package org.keycloak.testsuite.model;
 
 import org.junit.Test;
+import org.keycloak.authorization.AuthorizationProvider;
+import org.keycloak.authorization.model.ResourceServer;
+import org.keycloak.models.ClientModel;
 import org.keycloak.models.Constants;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.RealmProvider;
+
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -28,6 +34,7 @@ import static org.hamcrest.Matchers.aMapWithSize;
 import static org.hamcrest.Matchers.anEmptyMap;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.notNullValue;
 
 @RequireProvider(RealmProvider.class)
 public class RealmModelTest extends KeycloakModelTest {
@@ -93,6 +100,32 @@ public class RealmModelTest extends KeycloakModelTest {
 
             return null;
         });
+    }
 
+    @Test
+    public void testRealmPreRemoveDoesntRemoveEntitiesFromOtherRealms() {
+        String realm1Id = inComittedTransaction((Function<KeycloakSession, String>)  session -> session.realms().createRealm("realm1").getId());
+        String realm2Id = inComittedTransaction((Function<KeycloakSession, String>) session -> session.realms().createRealm("realm2").getId());
+
+        // Create client with resource server
+        String clientRealm1 = withRealm(realm1Id, (keycloakSession, realmModel) -> {
+            ClientModel clientRealm = realmModel.addClient("clientRealm1");
+            AuthorizationProvider provider = keycloakSession.getProvider(AuthorizationProvider.class);
+            provider.getStoreFactory().getResourceServerStore().create(clientRealm);
+
+            return clientRealm.getId();
+        });
+
+        // Remove realm 2
+        inComittedTransaction( (Consumer<KeycloakSession>)  keycloakSession -> keycloakSession.realms().removeRealm(realm2Id));
+
+
+        // ResourceServer in realm1 must still exist
+        ResourceServer resourceServer = withRealm(realm1Id, (keycloakSession, realmModel) -> {
+            ClientModel client1 = realmModel.getClientById(clientRealm1);
+            return keycloakSession.getProvider(AuthorizationProvider.class).getStoreFactory().getResourceServerStore().findByClient(client1);
+        });
+
+        assertThat(resourceServer, notNullValue());
     }
 }

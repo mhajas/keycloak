@@ -31,6 +31,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 import org.keycloak.models.map.storage.MapStorage;
 import static org.keycloak.common.util.StackUtil.getShortStackTrace;
+import org.keycloak.models.RealmModel.RealmPreRemoveEvent;
 import static org.keycloak.models.map.storage.QueryParameters.Order.ASCENDING;
 import static org.keycloak.models.map.storage.QueryParameters.withCriteria;
 import static org.keycloak.models.map.storage.criteria.DefaultModelCriteria.criteria;

@@ -31,14 +31,15 @@ import org.keycloak.authorization.store.ResourceStore;
 import org.keycloak.common.util.Time;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.ModelDuplicateException;
+import org.keycloak.models.RealmModel;
 import org.keycloak.models.map.authorization.adapter.MapPermissionTicketAdapter;
 import org.keycloak.models.map.authorization.entity.MapPermissionTicketEntity;
 import org.keycloak.models.map.authorization.entity.MapPermissionTicketEntityImpl;
 import org.keycloak.models.map.storage.MapKeycloakTransaction;
 import org.keycloak.models.map.storage.MapStorage;
-
 import org.keycloak.models.map.storage.ModelCriteriaBuilder.Operator;
 import org.keycloak.models.map.storage.criteria.DefaultModelCriteria;
+
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
@@ -124,6 +125,7 @@ public class MapPermissionTicketStore implements PermissionTicketStore {
 
         entity.setOwner(owner);
         entity.setResourceServerId(resourceServer.getId());
+        entity.setRealmId(resourceServer.getRealmId());
 
         entity = tx.create(entity);
 
@@ -316,5 +318,20 @@ public class MapPermissionTicketStore implements PermissionTicketStore {
             .filter(distinctByKey(MapPermissionTicketEntity::getResourceId)), firstResult, maxResults)
             .map(ticket -> resourceStore.findById(resourceServerStore.findById(ticket.getResourceServerId()), ticket.getResourceId()))
             .collect(Collectors.toList());
+    }
+
+    public void preRemove(RealmModel realm) {
+        LOG.tracef("preRemove(%s)%s", realm, getShortStackTrace());
+
+        DefaultModelCriteria<PermissionTicket> mcb = criteria();
+        mcb = mcb.compare(SearchableFields.REALM_ID, Operator.EQ, realm.getId());
+
+        tx.delete(withCriteria(mcb));
+    }
+
+    public void preRemove(ResourceServer resourceServer) {
+        LOG.tracef("preRemove(%s)%s", resourceServer, getShortStackTrace());
+
+        tx.delete(withCriteria(forResourceServer(resourceServer)));
     }
 }

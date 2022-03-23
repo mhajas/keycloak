@@ -71,6 +71,16 @@ public class MapResourceServerAdapter extends AbstractResourceServerModel<MapRes
     }
 
     @Override
+    public String getClientId() {
+        return entity.getClientId();
+    }
+
+    @Override
+    public String getRealmId() {
+        return entity.getRealmId();
+    }
+
+    @Override
     public String toString() {
         return String.format("%s@%08x", getId(), System.identityHashCode(this));
     }

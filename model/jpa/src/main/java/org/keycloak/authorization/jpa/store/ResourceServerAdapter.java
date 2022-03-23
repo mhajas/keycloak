@@ -25,6 +25,7 @@ import org.keycloak.representations.idm.authorization.DecisionStrategy;
 import org.keycloak.representations.idm.authorization.PolicyEnforcementMode;
 
 import javax.persistence.EntityManager;
+import org.keycloak.models.jpa.entities.ClientEntity;
 
 /**
  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
@@ -85,6 +86,20 @@ public class ResourceServerAdapter extends AbstractAuthorizationModel implements
     public void setDecisionStrategy(DecisionStrategy decisionStrategy) {
         throwExceptionIfReadonly();
         entity.setDecisionStrategy(decisionStrategy);
+    }
+
+    @Override
+    public String getClientId() {
+        return getId();
+    }
+
+    @Override
+    public String getRealmId() {
+//        ClientEntity client = em.getReference(ClientEntity.class, getId());
+//        return client == null ? null : client.getRealmId();
+
+        //TODO should we use code above instead?
+        return null;
     }
 
     @Override
