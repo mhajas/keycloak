@@ -28,6 +28,7 @@ import org.keycloak.representations.idm.authorization.Logic;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -37,6 +38,7 @@ public class MapPolicyAdapter extends AbstractPolicyModel<MapPolicyEntity> {
 
     public MapPolicyAdapter(ResourceServer resourceServer, MapPolicyEntity entity, StoreFactory storeFactory) {
         super(entity, storeFactory);
+        Objects.requireNonNull(resourceServer);
         this.resourceServer = resourceServer;
     }
 

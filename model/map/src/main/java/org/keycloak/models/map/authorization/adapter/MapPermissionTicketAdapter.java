@@ -18,6 +18,7 @@
 package org.keycloak.models.map.authorization.adapter;
 
 
+import java.util.Objects;
 import org.keycloak.authorization.model.Policy;
 import org.keycloak.authorization.model.Resource;
 import org.keycloak.authorization.model.ResourceServer;
@@ -34,6 +35,7 @@ public class MapPermissionTicketAdapter extends AbstractPermissionTicketModel<Ma
 
     public MapPermissionTicketAdapter(ResourceServer resourceServer, MapPermissionTicketEntity entity, StoreFactory storeFactory) {
         super(entity, storeFactory);
+        Objects.requireNonNull(resourceServer);
         this.resourceServer = resourceServer;
     }
 

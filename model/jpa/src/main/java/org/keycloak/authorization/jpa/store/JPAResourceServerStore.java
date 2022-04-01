@@ -59,7 +59,7 @@ public class JPAResourceServerStore implements ResourceServerStore {
 
         this.entityManager.persist(entity);
 
-        return new ResourceServerAdapter(entity, entityManager, provider.getStoreFactory());
+        return new ResourceServerAdapter(client.getRealm(), entity, entityManager, provider.getStoreFactory());
     }
 
     @Override
@@ -126,7 +126,7 @@ public class JPAResourceServerStore implements ResourceServerStore {
     public ResourceServer findById(RealmModel realm, String id) {
         ResourceServerEntity entity = entityManager.find(ResourceServerEntity.class, id);
         if (entity == null) return null;
-        return new ResourceServerAdapter(entity, entityManager, provider.getStoreFactory());
+        return new ResourceServerAdapter(provider.getRealm(), entity, entityManager, provider.getStoreFactory());
     }
 
     @Override

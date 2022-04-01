@@ -18,6 +18,7 @@ package org.keycloak.models.cache.infinispan.authorization;
 
 import org.keycloak.authorization.model.CachedModel;
 import org.keycloak.authorization.model.ResourceServer;
+import org.keycloak.models.ClientModel;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.cache.infinispan.authorization.entities.CachedResourceServer;
 import org.keycloak.representations.idm.authorization.DecisionStrategy;

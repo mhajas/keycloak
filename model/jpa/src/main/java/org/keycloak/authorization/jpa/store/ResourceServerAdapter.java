@@ -20,6 +20,7 @@ import org.keycloak.authorization.jpa.entities.ResourceServerEntity;
 import org.keycloak.authorization.model.AbstractAuthorizationModel;
 import org.keycloak.authorization.model.ResourceServer;
 import org.keycloak.authorization.store.StoreFactory;
+import org.keycloak.models.ClientModel;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.jpa.JpaModel;
 import org.keycloak.representations.idm.authorization.DecisionStrategy;
@@ -32,12 +33,14 @@ import javax.persistence.EntityManager;
  * @version $Revision: 1 $
  */
 public class ResourceServerAdapter extends AbstractAuthorizationModel implements ResourceServer, JpaModel<ResourceServerEntity> {
+    private final RealmModel realm;
     private ResourceServerEntity entity;
     private EntityManager em;
     private StoreFactory storeFactory;
 
-    public ResourceServerAdapter(ResourceServerEntity entity, EntityManager em, StoreFactory storeFactory) {
+    public ResourceServerAdapter(RealmModel realm, ResourceServerEntity entity, EntityManager em, StoreFactory storeFactory) {
         super(storeFactory);
+        this.realm = realm;
         this.entity = entity;
         this.em = em;
         this.storeFactory = storeFactory;
@@ -95,11 +98,7 @@ public class ResourceServerAdapter extends AbstractAuthorizationModel implements
 
     @Override
     public RealmModel getRealm() {
-//        ClientEntity client = em.getReference(ClientEntity.class, getId());
-//        return client == null ? null : client.getRealmId();
-
-        //TODO should we use code above instead?
-        return null;
+        return realm;
     }
 
     @Override
