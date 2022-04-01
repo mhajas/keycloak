@@ -18,19 +18,31 @@
 package org.keycloak.models.map.user;
 
 import org.keycloak.models.KeycloakSession;
+import org.keycloak.models.KeycloakSessionFactory;
+import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.UserProvider;
 import org.keycloak.models.UserProviderFactory;
 import org.keycloak.models.map.common.AbstractMapProviderFactory;
+import org.keycloak.provider.ProviderEvent;
+import org.keycloak.provider.ProviderEventListener;
 
 /**
  *
  * @author mhajas
  */
-public class MapUserProviderFactory extends AbstractMapProviderFactory<UserProvider, MapUserEntity, UserModel> implements UserProviderFactory {
+public class MapUserProviderFactory extends AbstractMapProviderFactory<UserProvider, MapUserEntity, UserModel> implements UserProviderFactory, ProviderEventListener {
+
+    private Runnable onClose;
 
     public MapUserProviderFactory() {
         super(UserModel.class);
+    }
+
+    @Override
+    public void postInit(KeycloakSessionFactory factory) {
+        factory.register(this);
+        onClose = () -> factory.unregister(this);
     }
 
     @Override
@@ -39,8 +51,21 @@ public class MapUserProviderFactory extends AbstractMapProviderFactory<UserProvi
     }
 
     @Override
+    public void close() {
+        super.close();
+        onClose.run();
+    }
+
+    @Override
     public String getHelpText() {
         return "User provider";
     }
 
+    @Override
+    public void onEvent(ProviderEvent event) {
+        if (event instanceof RealmModel.RealmPreRemoveEvent) {
+            RealmModel.RealmPreRemoveEvent e = ((RealmModel.RealmPreRemoveEvent) event);
+            e.getKeycloakSession().users().preRemove(e.getRealm());
+        }
+    }
 }

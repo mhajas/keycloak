@@ -80,6 +80,9 @@ public class MapGroupProviderFactory extends AbstractMapProviderFactory<GroupPro
                 return;
             }
             ((MapGroupProvider) e.getKeycloakSession().getProvider(GroupProvider.class)).preRemove(realm, role);
+        } else if (event instanceof RealmModel.RealmPreRemoveEvent) {
+            RealmModel.RealmPreRemoveEvent e = ((RealmModel.RealmPreRemoveEvent) event);
+            ((MapGroupProvider) e.getKeycloakSession().getProvider(GroupProvider.class)).preRemove(e.getRealm());
         }
     }
 }

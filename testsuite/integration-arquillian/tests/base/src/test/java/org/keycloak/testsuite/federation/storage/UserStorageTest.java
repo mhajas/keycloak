@@ -75,6 +75,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import org.junit.Assume;
 import static org.keycloak.models.UserModel.RequiredAction.UPDATE_PROFILE;
 import static org.keycloak.storage.UserStorageProviderModel.CACHE_POLICY;
 import static org.keycloak.storage.UserStorageProviderModel.EVICTION_DAY;
@@ -116,6 +117,8 @@ public class UserStorageTest extends AbstractAuthTest {
 
     @Before
     public void addProvidersBeforeTest() throws URISyntaxException, IOException {
+        Assume.assumeTrue("RealmProvider is not 'jpa'", isJpaRealmProvider());
+
         ComponentRepresentation memProvider = new ComponentRepresentation();
         memProvider.setName("memory");
         memProvider.setProviderId(UserMapStorageFactory.PROVIDER_ID);

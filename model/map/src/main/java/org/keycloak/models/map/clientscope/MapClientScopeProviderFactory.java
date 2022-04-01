@@ -20,12 +20,24 @@ import org.keycloak.models.ClientScopeModel;
 import org.keycloak.models.ClientScopeProvider;
 import org.keycloak.models.ClientScopeProviderFactory;
 import org.keycloak.models.KeycloakSession;
+import org.keycloak.models.KeycloakSessionFactory;
+import org.keycloak.models.RealmModel;
 import org.keycloak.models.map.common.AbstractMapProviderFactory;
+import org.keycloak.provider.ProviderEvent;
+import org.keycloak.provider.ProviderEventListener;
 
-public class MapClientScopeProviderFactory extends AbstractMapProviderFactory<ClientScopeProvider, MapClientScopeEntity, ClientScopeModel> implements ClientScopeProviderFactory {
+public class MapClientScopeProviderFactory extends AbstractMapProviderFactory<ClientScopeProvider, MapClientScopeEntity, ClientScopeModel> implements ClientScopeProviderFactory, ProviderEventListener {
+
+    private Runnable onClose;
 
     public MapClientScopeProviderFactory() {
         super(ClientScopeModel.class);
+    }
+
+    @Override
+    public void postInit(KeycloakSessionFactory factory) {
+        factory.register(this);
+        onClose = () -> factory.unregister(this);
     }
 
     @Override
@@ -34,7 +46,21 @@ public class MapClientScopeProviderFactory extends AbstractMapProviderFactory<Cl
     }
 
     @Override
+    public void close() {
+        super.close();
+        onClose.run();
+    }
+
+    @Override
     public String getHelpText() {
         return "Client scope provider";
+    }
+
+    @Override
+    public void onEvent(ProviderEvent event) {
+        if (event instanceof RealmModel.RealmPreRemoveEvent) {
+            RealmModel.RealmPreRemoveEvent e = ((RealmModel.RealmPreRemoveEvent) event);
+            ((MapClientScopeProvider) e.getKeycloakSession().getProvider(ClientScopeProvider.class)).preRemove(e.getRealm());
+        }
     }
 }

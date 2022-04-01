@@ -82,6 +82,9 @@ public class MapClientProviderFactory extends AbstractMapProviderFactory<ClientP
                 return;
             }
             ((MapClientProvider) e.getKeycloakSession().getProvider(ClientProvider.class)).preRemove(realm, role);
+        } else if (event instanceof RealmModel.RealmPreRemoveEvent) {
+            RealmModel.RealmPreRemoveEvent e = ((RealmModel.RealmPreRemoveEvent) event);
+            ((MapClientProvider) e.getKeycloakSession().getProvider(ClientProvider.class)).preRemove(e.getRealm());
         }
     }
 }

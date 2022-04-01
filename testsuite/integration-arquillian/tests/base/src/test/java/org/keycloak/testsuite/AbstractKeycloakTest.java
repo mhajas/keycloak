@@ -77,6 +77,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Scanner;
 import java.util.concurrent.*;
 import java.util.function.Consumer;
@@ -84,6 +85,7 @@ import java.util.function.Consumer;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import org.keycloak.models.RealmProvider;
 import static org.keycloak.testsuite.admin.Users.setPasswordFor;
 import static org.keycloak.testsuite.util.ServerURLs.AUTH_SERVER_HOST;
 import static org.keycloak.testsuite.util.ServerURLs.AUTH_SERVER_PORT;
@@ -715,5 +717,24 @@ public abstract class AbstractKeycloakTest {
     protected String getProjectName() {
         final boolean isProduct = adminClient.serverInfo().getInfo().getProfileInfo().getName().equals("product");
         return isProduct ? Profile.PRODUCT_NAME : Profile.PROJECT_NAME;
+    }
+
+    /**
+     * MapRealmProvider uses RealmPreRemoveEvent instead of calling e.g. for clients
+     * session.clients().removeClients(realm); (where clients are being removed one by one)
+     *
+     * Therefore it doesn't call session.users().preRemove(realm, client) for each client.
+     * Due to that JpaUserFederatedStorageProvider.preRemove(realm, client) is not called.
+     * So there remains objects in the database in user federation related tables after realm removal.
+     *
+     * Same for roles etc. 
+     *
+     * Legacy federated storage is NOT supposed to work with map storage, so this method 
+     * returns true if realm provider is "jpa" to be able to skip particular tests.
+     */
+    protected boolean isJpaRealmProvider() {
+        String realmProvider = testingClient.server()
+                .fetchString(s -> s.getKeycloakSessionFactory().getProviderFactory(RealmProvider.class).getId());
+        return Objects.equals(realmProvider, "\"jpa\"");
     }
 }

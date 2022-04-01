@@ -306,9 +306,17 @@ public class MapGroupProvider implements GroupProvider {
         }
     }
 
+    public void preRemove(RealmModel realm) {
+        LOG.tracef("preRemove(%s)%s", realm, getShortStackTrace());
+        DefaultModelCriteria<GroupModel> mcb = criteria();
+        mcb = mcb.compare(SearchableFields.REALM_ID, Operator.EQ, realm.getId());
+
+        tx.delete(withCriteria(mcb));
+    }
+
     @Override
     public void close() {
-        
+
     }
 
 }

@@ -135,11 +135,21 @@ public class MapRealmProvider implements RealmProvider {
 
         if (realm == null) return false;
 
-        session.users().preRemove(realm);
-        session.clients().removeClients(realm);
-        session.clientScopes().removeClientScopes(realm);
-        session.roles().removeRoles(realm);
-        realm.getTopLevelGroupsStream().forEach(realm::removeGroup);
+        // TODO: Sending an event should be extracted to store layer
+        session.getKeycloakSessionFactory().publish(new RealmModel.RealmPreRemoveEvent() {
+            @Override
+            public RealmModel getRealm() {
+                return realm;
+            }
+
+            @Override
+            public KeycloakSession getKeycloakSession() {
+                return session;
+            }
+        });
+        // TODO: ^^^^^^^ Up to here
+
+        tx.delete(id);
 
         // TODO: Sending an event should be extracted to store layer
         session.getKeycloakSessionFactory().publish(new RealmModel.RealmRemovedEvent() {
@@ -154,8 +164,7 @@ public class MapRealmProvider implements RealmProvider {
             }
         });
         // TODO: ^^^^^^^ Up to here
-
-        tx.delete(id);
+        
         return true;
     }
 

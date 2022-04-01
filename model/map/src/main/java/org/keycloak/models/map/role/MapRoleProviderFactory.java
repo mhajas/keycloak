@@ -18,14 +18,26 @@ package org.keycloak.models.map.role;
 
 import org.keycloak.models.map.common.AbstractMapProviderFactory;
 import org.keycloak.models.KeycloakSession;
+import org.keycloak.models.KeycloakSessionFactory;
+import org.keycloak.models.RealmModel;
 import org.keycloak.models.RoleModel;
 import org.keycloak.models.RoleProvider;
 import org.keycloak.models.RoleProviderFactory;
+import org.keycloak.provider.ProviderEvent;
+import org.keycloak.provider.ProviderEventListener;
 
-public class MapRoleProviderFactory extends AbstractMapProviderFactory<RoleProvider, MapRoleEntity, RoleModel> implements RoleProviderFactory {
+public class MapRoleProviderFactory extends AbstractMapProviderFactory<RoleProvider, MapRoleEntity, RoleModel> implements RoleProviderFactory, ProviderEventListener {
+
+    private Runnable onClose;
 
     public MapRoleProviderFactory() {
         super(RoleModel.class);
+    }
+
+    @Override
+    public void postInit(KeycloakSessionFactory factory) {
+        factory.register(this);
+        onClose = () -> factory.unregister(this);
     }
 
     @Override
@@ -34,7 +46,21 @@ public class MapRoleProviderFactory extends AbstractMapProviderFactory<RoleProvi
     }
 
     @Override
+    public void close() {
+        super.close();
+        onClose.run();
+    }
+
+    @Override
     public String getHelpText() {
         return "Role provider";
+    }
+
+    @Override
+    public void onEvent(ProviderEvent event) {
+        if (event instanceof RealmModel.RealmPreRemoveEvent) {
+            RealmModel.RealmPreRemoveEvent e = ((RealmModel.RealmPreRemoveEvent) event);
+            ((MapRoleProvider) e.getKeycloakSession().getProvider(RoleProvider.class)).preRemove(e.getRealm());
+        }
     }
 }

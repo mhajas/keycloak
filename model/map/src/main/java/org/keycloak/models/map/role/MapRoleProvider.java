@@ -284,6 +284,14 @@ public class MapRoleProvider implements RoleProvider {
                 .map(entityToAdapterFunc(client.getRealm()));
     }
 
+    public void preRemove(RealmModel realm) {
+        LOG.tracef("preRemove(%s)%s", realm, getShortStackTrace());
+        DefaultModelCriteria<RoleModel> mcb = criteria();
+        mcb = mcb.compare(SearchableFields.REALM_ID, Operator.EQ, realm.getId());
+
+        tx.delete(withCriteria(mcb));
+    }
+
     @Override
     public void close() {
     }

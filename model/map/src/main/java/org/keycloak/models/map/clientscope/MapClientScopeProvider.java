@@ -150,6 +150,14 @@ public class MapClientScopeProvider implements ClientScopeProvider {
           : entityToAdapterFunc(realm).apply(entity);
     }
 
+    public void preRemove(RealmModel realm) {
+        LOG.tracef("preRemove(%s)%s", realm, getShortStackTrace());
+        DefaultModelCriteria<ClientScopeModel> mcb = criteria();
+        mcb = mcb.compare(SearchableFields.REALM_ID, Operator.EQ, realm.getId());
+
+        tx.delete(withCriteria(mcb));
+    }
+
     @Override
     public void close() {
     }

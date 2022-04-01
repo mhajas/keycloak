@@ -25,6 +25,7 @@ import java.util.List;
 
 
 import org.jboss.arquillian.graphene.page.Page;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -88,6 +89,8 @@ public class UserStorageOTPTest extends AbstractTestRealmKeycloakTest {
 
     @Before
     public void addProvidersBeforeTest() throws URISyntaxException, IOException {
+        Assume.assumeTrue("RealmProvider is not 'jpa'", isJpaRealmProvider());
+
         ComponentRepresentation dummyProvider = new ComponentRepresentation();
         dummyProvider.setName("dummy");
         dummyProvider.setId(DummyUserFederationProviderFactory.PROVIDER_NAME);
