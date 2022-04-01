@@ -24,8 +24,11 @@ import org.keycloak.models.map.authorization.entity.MapScopeEntity;
 
 public class MapScopeAdapter extends AbstractScopeModel<MapScopeEntity> {
 
-    public MapScopeAdapter(MapScopeEntity entity, StoreFactory storeFactory) {
+    private final ResourceServer resourceServer;
+
+    public MapScopeAdapter(ResourceServer resourceServer, MapScopeEntity entity, StoreFactory storeFactory) {
         super(entity, storeFactory);
+        this.resourceServer = resourceServer;
     }
 
     @Override
@@ -68,7 +71,7 @@ public class MapScopeAdapter extends AbstractScopeModel<MapScopeEntity> {
 
     @Override
     public ResourceServer getResourceServer() {
-        return storeFactory.getResourceServerStore().findById(entity.getResourceServerId());
+        return resourceServer;
     }
 
     @Override

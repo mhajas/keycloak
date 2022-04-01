@@ -18,6 +18,7 @@ package org.keycloak.models.cache.infinispan.authorization;
 
 import org.keycloak.authorization.model.CachedModel;
 import org.keycloak.authorization.model.ResourceServer;
+import org.keycloak.models.RealmModel;
 import org.keycloak.models.cache.infinispan.authorization.entities.CachedResourceServer;
 import org.keycloak.representations.idm.authorization.DecisionStrategy;
 import org.keycloak.representations.idm.authorization.PolicyEnforcementMode;
@@ -40,7 +41,7 @@ public class ResourceServerAdapter implements ResourceServer, CachedModel<Resour
     public ResourceServer getDelegateForUpdate() {
         if (updated == null) {
             cacheSession.registerResourceServerInvalidation(cached.getId());
-            updated = cacheSession.getResourceServerStoreDelegate().findById(cached.getId());
+            updated = cacheSession.getResourceServerStoreDelegate().findById(null, cached.getId());
             if (updated == null) throw new IllegalStateException("Not found in database");
         }
         return updated;
@@ -67,7 +68,7 @@ public class ResourceServerAdapter implements ResourceServer, CachedModel<Resour
     protected boolean isUpdated() {
         if (updated != null) return true;
         if (!invalidated) return false;
-        updated = cacheSession.getResourceServerStoreDelegate().findById(cached.getId());
+        updated = cacheSession.getResourceServerStoreDelegate().findById(null, cached.getId());
         if (updated == null) throw new IllegalStateException("Not found in database");
         return true;
     }
@@ -122,8 +123,8 @@ public class ResourceServerAdapter implements ResourceServer, CachedModel<Resour
     }
 
     @Override
-    public String getRealmId() {
-        return getDelegateForUpdate().getRealmId();
+    public RealmModel getRealm() {
+        return getDelegateForUpdate().getRealm();
     }
 
     @Override

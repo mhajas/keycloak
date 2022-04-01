@@ -19,14 +19,18 @@ package org.keycloak.models.map.authorization.adapter;
 
 
 import org.keycloak.authorization.store.StoreFactory;
+import org.keycloak.models.RealmModel;
 import org.keycloak.models.map.authorization.entity.MapResourceServerEntity;
 import org.keycloak.representations.idm.authorization.DecisionStrategy;
 import org.keycloak.representations.idm.authorization.PolicyEnforcementMode;
 
 public class MapResourceServerAdapter extends AbstractResourceServerModel<MapResourceServerEntity> {
 
-    public MapResourceServerAdapter(MapResourceServerEntity entity, StoreFactory storeFactory) {
+    private final RealmModel realmModel;
+
+    public MapResourceServerAdapter(RealmModel realmModel, MapResourceServerEntity entity, StoreFactory storeFactory) {
         super(entity, storeFactory);
+        this.realmModel = realmModel;
     }
 
     @Override
@@ -76,8 +80,8 @@ public class MapResourceServerAdapter extends AbstractResourceServerModel<MapRes
     }
 
     @Override
-    public String getRealmId() {
-        return entity.getRealmId();
+    public RealmModel getRealm() {
+        return realmModel;
     }
 
     @Override

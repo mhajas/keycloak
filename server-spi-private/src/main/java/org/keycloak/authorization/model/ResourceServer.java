@@ -19,6 +19,7 @@
 package org.keycloak.authorization.model;
 
 import org.keycloak.models.KeycloakSession;
+import org.keycloak.models.RealmModel;
 import org.keycloak.provider.ProviderEvent;
 import org.keycloak.representations.idm.authorization.DecisionStrategy;
 import org.keycloak.representations.idm.authorization.PolicyEnforcementMode;
@@ -102,10 +103,9 @@ public interface ResourceServer {
     String getClientId();
 
     /**
-     * Returns id of a realm that this {@link ResourceServer} belongs to.
-     * TODO: Or {@code null} if the implementation does not support storing realm ids???
+     * Returns reference of a realm that this {@link ResourceServer} belongs to.
      *
-     * @return id of realm or {@code null} if not supported
+     * @return reference of a realm
      */
-    String getRealmId();
+    RealmModel getRealm();
 }

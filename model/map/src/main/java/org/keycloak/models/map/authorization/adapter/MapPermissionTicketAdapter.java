@@ -29,9 +29,12 @@ import org.keycloak.models.map.authorization.entity.MapPermissionTicketEntity;
 import static org.keycloak.authorization.UserManagedPermissionUtil.updatePolicy;
 
 public class MapPermissionTicketAdapter extends AbstractPermissionTicketModel<MapPermissionTicketEntity> {
-    
-    public MapPermissionTicketAdapter(MapPermissionTicketEntity entity, StoreFactory storeFactory) {
+
+    private final ResourceServer resourceServer;
+
+    public MapPermissionTicketAdapter(ResourceServer resourceServer, MapPermissionTicketEntity entity, StoreFactory storeFactory) {
         super(entity, storeFactory);
+        this.resourceServer = resourceServer;
     }
 
     @Override
@@ -51,13 +54,13 @@ public class MapPermissionTicketAdapter extends AbstractPermissionTicketModel<Ma
 
     @Override
     public Resource getResource() {
-        return storeFactory.getResourceStore().findById(getResourceServer(), entity.getResourceId());
+        return storeFactory.getResourceStore().findById(resourceServer, entity.getResourceId());
     }
 
     @Override
     public Scope getScope() {
         if (entity.getScopeId() == null) return null;
-        return storeFactory.getScopeStore().findById(getResourceServer(), entity.getScopeId());
+        return storeFactory.getScopeStore().findById(resourceServer, entity.getScopeId());
     }
 
     @Override
@@ -83,13 +86,12 @@ public class MapPermissionTicketAdapter extends AbstractPermissionTicketModel<Ma
 
     @Override
     public ResourceServer getResourceServer() {
-        return storeFactory.getResourceServerStore().findById(entity.getResourceServerId());
+        return resourceServer;
     }
 
     @Override
     public Policy getPolicy() {
         if (entity.getPolicyId() == null) return null;
-        ResourceServer resourceServer = storeFactory.getResourceServerStore().findById(entity.getResourceServerId());
         return storeFactory.getPolicyStore().findById(resourceServer, entity.getPolicyId());
     }
 
