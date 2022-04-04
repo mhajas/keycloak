@@ -151,7 +151,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        server: ['quarkus', 'undertow-map', 'wildfly', 'undertow-map-hot-rod']
+        server: ['undertow-map-hot-rod']
         tests: ['group1','group2','group3']
       fail-fast: false
     steps:
