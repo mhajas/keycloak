@@ -113,7 +113,7 @@ public class ResourceSetService {
 
         if (owner == null) {
             owner = new ResourceOwnerRepresentation();
-            owner.setId(resourceServer.getClientId());
+            owner.setId(resourceServer.getClient().getId());
             resource.setOwner(owner);
         }
 
@@ -214,10 +214,10 @@ public class ResourceSetService {
             return representation;
         }).collect(Collectors.toList());
 
-        if (model.getType() != null && !model.getOwner().equals(resourceServer.getClientId())) {
+        if (model.getType() != null && !model.getOwner().equals(resourceServer.getClient().getId())) {
             ResourceStore resourceStore = authorization.getStoreFactory().getResourceStore();
             for (Resource typed : resourceStore.findByType(resourceServer, model.getType())) {
-                if (typed.getOwner().equals(resourceServer.getClientId()) && !typed.getId().equals(model.getId())) {
+                if (typed.getOwner().equals(resourceServer.getClient().getId()) && !typed.getId().equals(model.getId())) {
                     scopes.addAll(typed.getScopes().stream().map(model1 -> {
                         ScopeRepresentation scope = new ScopeRepresentation();
                         scope.setId(model1.getId());
@@ -259,7 +259,7 @@ public class ResourceSetService {
 
             Map<Resource.FilterOption, String[]> resourceFilter = new EnumMap<>(Resource.FilterOption.class);
 
-            resourceFilter.put(Resource.FilterOption.OWNER, new String[]{resourceServer.getClientId()});
+            resourceFilter.put(Resource.FilterOption.OWNER, new String[]{resourceServer.getClient().getId()});
             resourceFilter.put(Resource.FilterOption.TYPE, new String[]{model.getType()});
 
             for (Resource resourceType : resourceStore.findByResourceServer(resourceServer, resourceFilter, null, null)) {
@@ -418,7 +418,7 @@ public class ResourceSetService {
             Map<Resource.FilterOption, String[]> attributes = new EnumMap<>(Resource.FilterOption.class);
 
             attributes.put(Resource.FilterOption.URI_NOT_NULL, new String[] {"true"});
-            attributes.put(Resource.FilterOption.OWNER, new String[] {resourceServer.getClientId()});
+            attributes.put(Resource.FilterOption.OWNER, new String[] {resourceServer.getClient().getId()});
 
             List<Resource> serverResources = storeFactory.getResourceStore().findByResourceServer(this.resourceServer, attributes, firstResult != null ? firstResult : -1, maxResult != null ? maxResult : -1);
 

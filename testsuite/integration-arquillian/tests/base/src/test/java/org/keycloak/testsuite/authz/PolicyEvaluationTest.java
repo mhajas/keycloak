@@ -619,7 +619,7 @@ public class PolicyEvaluationTest extends AbstractAuthzTest {
 
         Policy policy = storeFactory.getPolicyStore().create(resourceServer, policyRepresentation);
         PolicyProvider provider = authorization.getProvider(policy.getType());
-        Resource resource = storeFactory.getResourceStore().create(resourceServer, "testCheckResourceAttributesResource", resourceServer.getClientId());
+        Resource resource = storeFactory.getResourceStore().create(resourceServer, "testCheckResourceAttributesResource", resourceServer.getClient().getId());
 
         resource.setAttribute("a1", Arrays.asList("1", "2"));
         resource.setAttribute("a2", Arrays.asList("3"));
@@ -653,7 +653,7 @@ public class PolicyEvaluationTest extends AbstractAuthzTest {
 
         Policy policy = storeFactory.getPolicyStore().create(resourceServer, policyRepresentation);
 
-        Resource resource = storeFactory.getResourceStore().create(resourceServer, "Resource A", resourceServer.getClientId());
+        Resource resource = storeFactory.getResourceStore().create(resourceServer, "Resource A", resourceServer.getClient().getId());
         Scope scope = storeFactory.getScopeStore().create(resourceServer, "Scope A");
 
         resource.updateScopes(new HashSet<>(Arrays.asList(scope)));
@@ -716,7 +716,7 @@ public class PolicyEvaluationTest extends AbstractAuthzTest {
 
         storeFactory.getPolicyStore().create(resourceServer, writePermission);
 
-        Resource resource = storeFactory.getResourceStore().create(resourceServer, KeycloakModelUtils.generateId(), resourceServer.getClientId());
+        Resource resource = storeFactory.getResourceStore().create(resourceServer, KeycloakModelUtils.generateId(), resourceServer.getClient().getId());
 
         PermissionEvaluator evaluator = authorization.evaluators().from(Arrays.asList(new ResourcePermission(resource, Arrays.asList(readScope, writeScope), resourceServer)), createEvaluationContext(session, Collections.emptyMap()));
         Collection<Permission> permissions = evaluator.evaluate(resourceServer, null);

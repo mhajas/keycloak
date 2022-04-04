@@ -73,7 +73,7 @@ public class ProtectionService {
 
     private AdminEventBuilder createAdminEventBuilder(KeycloakIdentity identity, ResourceServer resourceServer) {
         RealmModel realm = authorization.getRealm();
-        ClientModel client = realm.getClientById(resourceServer.getClientId());
+        ClientModel client = resourceServer.getClient();
         KeycloakSession keycloakSession = authorization.getKeycloakSession();
         UserModel serviceAccount = keycloakSession.users().getServiceAccount(client);
         AdminEventBuilder adminEvent = new AdminEventBuilder(realm, new AdminAuth(realm, identity.getAccessToken(), serviceAccount, client), keycloakSession, clientConnection);
@@ -115,12 +115,9 @@ public class ProtectionService {
 
     private KeycloakIdentity createIdentity(boolean checkProtectionScope) {
         KeycloakIdentity identity = new KeycloakIdentity(this.authorization.getKeycloakSession());
-        ResourceServer resourceServer = getResourceServer(identity);
-        KeycloakSession keycloakSession = authorization.getKeycloakSession();
-        RealmModel realm = keycloakSession.getContext().getRealm();
-        ClientModel client = realm.getClientById(resourceServer.getClientId());
 
         if (checkProtectionScope) {
+            ClientModel client = getResourceServer(identity).getClient();
             if (!identity.hasClientRole(client.getClientId(), "uma_protection")) {
                 throw new ErrorResponseException(OAuthErrorException.INVALID_SCOPE, "Requires uma_protection scope.", Status.FORBIDDEN);
             }

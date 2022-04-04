@@ -313,7 +313,7 @@ public class ExportUtils {
                 .stream().map(resource -> {
                     ResourceRepresentation rep = toRepresentation(resource, settingsModel, authorization);
 
-                    if (rep.getOwner().getId().equals(settingsModel.getClientId())) {
+                    if (rep.getOwner().getId().equals(settingsModel.getClient().getId())) {
                         rep.setOwner((ResourceOwnerRepresentation) null);
                     } else {
                         rep.getOwner().setId(null);

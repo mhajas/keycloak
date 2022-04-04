@@ -253,7 +253,7 @@ public class MapResourceStore implements ResourceStore {
     public void findByTypeInstance(ResourceServer resourceServer, String type, Consumer<Resource> consumer) {
         LOG.tracef("findByTypeInstance(%s, %s, %s)%s", type, resourceServer, consumer, getShortStackTrace());
         tx.read(withCriteria(forResourceServer(resourceServer)
-                .compare(SearchableFields.OWNER, Operator.NE, resourceServer.getClientId())
+                .compare(SearchableFields.OWNER, Operator.NE, resourceServer.getClient().getId())
                 .compare(SearchableFields.TYPE, Operator.EQ, type)))
                 .map(entityToAdapterFunc(resourceServer))
                 .forEach(consumer);

@@ -2337,7 +2337,7 @@ public class RepresentationToModel {
 
             if (owner == null) {
                 owner = new ResourceOwnerRepresentation();
-                owner.setId(resourceServer.getClientId());
+                owner.setId(resourceServer.getClient().getId());
                 resource.setOwner(owner);
             } else if (owner.getName() != null) {
                 UserModel user = session.users().getUserByUsername(realm, owner.getName());
@@ -2642,16 +2642,16 @@ public class RepresentationToModel {
 
         if (owner == null) {
             owner = new ResourceOwnerRepresentation();
-            owner.setId(resourceServer.getClientId());
+            owner.setId(resourceServer.getClient().getId());
         }
 
         String ownerId = owner.getId();
 
         if (ownerId == null) {
-            ownerId = resourceServer.getClientId();
+            ownerId = resourceServer.getClient().getId();
         }
 
-        if (!resourceServer.getClientId().equals(ownerId)) {
+        if (!resourceServer.getClient().getId().equals(ownerId)) {
             RealmModel realm = authorization.getRealm();
             KeycloakSession keycloakSession = authorization.getKeycloakSession();
             UserProvider users = keycloakSession.users();

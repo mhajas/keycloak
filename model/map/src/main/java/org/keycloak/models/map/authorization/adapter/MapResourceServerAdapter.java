@@ -20,6 +20,7 @@ package org.keycloak.models.map.authorization.adapter;
 
 import java.util.Objects;
 import org.keycloak.authorization.store.StoreFactory;
+import org.keycloak.models.ClientModel;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.map.authorization.entity.MapResourceServerEntity;
 import org.keycloak.representations.idm.authorization.DecisionStrategy;
@@ -77,8 +78,8 @@ public class MapResourceServerAdapter extends AbstractResourceServerModel<MapRes
     }
 
     @Override
-    public String getClientId() {
-        return entity.getClientId();
+    public ClientModel getClient() {
+        return realmModel.getClientById(entity.getClientId());
     }
 
     @Override

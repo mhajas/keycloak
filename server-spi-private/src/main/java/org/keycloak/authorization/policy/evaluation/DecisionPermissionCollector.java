@@ -170,7 +170,7 @@ public class DecisionPermissionCollector extends AbstractDecisionCollector {
             return true;
         }
         
-        return resource != null && !resource.getOwner().equals(resourceServer.getClientId());
+        return resource != null && !resource.getOwner().equals(resourceServer.getClient().getId());
     }
 
     public Collection<Permission> results() {

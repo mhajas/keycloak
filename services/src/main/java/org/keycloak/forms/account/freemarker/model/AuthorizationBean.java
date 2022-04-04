@@ -237,7 +237,7 @@ public class AuthorizationBean {
         public ResourceBean(Resource resource) {
             RealmModel realm = authorization.getRealm();
             ResourceServer resourceServerModel = resource.getResourceServer();
-            resourceServer = new ResourceServerBean(realm.getClientById(resourceServerModel.getClientId()), resourceServerModel);
+            resourceServer = new ResourceServerBean(resourceServerModel.getClient(), resourceServerModel);
             this.resource = resource;
             userOwner = authorization.getKeycloakSession().users().getUserById(realm, resource.getOwner());
             if (userOwner == null) {

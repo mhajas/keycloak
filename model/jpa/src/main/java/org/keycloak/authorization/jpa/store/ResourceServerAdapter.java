@@ -92,8 +92,8 @@ public class ResourceServerAdapter extends AbstractAuthorizationModel implements
     }
 
     @Override
-    public String getClientId() {
-        return getId();
+    public ClientModel getClient() {
+        return realm.getClientById(getId());
     }
 
     @Override

@@ -79,7 +79,7 @@ public class PolicyEvaluationCompositeRoleTest extends AbstractAuthzTest {
         Policy policy = createRolePolicy(authz, resourceServer, role1);
 
         Scope scope = authz.getStoreFactory().getScopeStore().create(resourceServer, "myscope");
-        Resource resource = authz.getStoreFactory().getResourceStore().create(resourceServer, "myresource", resourceServer.getClientId());
+        Resource resource = authz.getStoreFactory().getResourceStore().create(resourceServer, "myresource", resourceServer.getClient().getId());
         addScopePermission(authz, resourceServer, "mypermission", resource, scope, policy);
 
         RoleModel composite = realm.addRole("composite");

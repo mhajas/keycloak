@@ -75,7 +75,7 @@ class IdentityProviderPermissions implements  IdentityProviderPermissionManageme
         String resourceName = getResourceName(idp);
         Resource resource = authz.getStoreFactory().getResourceStore().findByName(server, resourceName);
         if (resource == null) {
-            resource = authz.getStoreFactory().getResourceStore().create(server, resourceName, server.getClientId());
+            resource = authz.getStoreFactory().getResourceStore().create(server, resourceName, server.getClient().getId());
             resource.setType("IdentityProvider");
             Set<Scope> scopeset = new HashSet<>();
             scopeset.add(exchangeToScope);

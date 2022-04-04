@@ -104,7 +104,7 @@ class UserPermissions implements UserPermissionEvaluator, UserPermissionManageme
 
         Resource usersResource = resourceStore.findByName(server, USERS_RESOURCE);
         if (usersResource == null) {
-            usersResource = resourceStore.create(server, USERS_RESOURCE, server.getClientId());
+            usersResource = resourceStore.create(server, USERS_RESOURCE, server.getClient().getId());
             Set<Scope> scopeset = new HashSet<>();
             scopeset.add(manageScope);
             scopeset.add(viewScope);

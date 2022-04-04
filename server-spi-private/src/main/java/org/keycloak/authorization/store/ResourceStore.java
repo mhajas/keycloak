@@ -151,7 +151,7 @@ public interface ResourceStore {
      * @return a resource with the given name
      */
     default Resource findByName(ResourceServer resourceServer, String name) {
-        return findByName(resourceServer, name, resourceServer.getClientId());
+        return findByName(resourceServer, name, resourceServer.getClient().getId());
     }
 
     /**

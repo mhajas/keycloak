@@ -224,7 +224,6 @@ public class AuthorizationTokenService {
 
             if (isGranted(ticket, request, permissions)) {
                 AuthorizationProvider authorization = request.getAuthorization();
-                ClientModel targetClient = authorization.getRealm().getClientById(resourceServer.getClientId());
                 Metadata metadata = request.getMetadata();
                 String responseMode = metadata != null ? metadata.getResponseMode() : null;
 
@@ -243,7 +242,7 @@ public class AuthorizationTokenService {
                         throw invalidResponseModeException;
                     }
                 } else {
-                    return createSuccessfulResponse(createAuthorizationResponse(identity, permissions, request, targetClient), request);
+                    return createSuccessfulResponse(createAuthorizationResponse(identity, permissions, request, resourceServer.getClient()), request);
                 }
             }
 
@@ -610,7 +609,7 @@ public class AuthorizationTokenService {
         } else if (resourceId.startsWith("resource-type:")) {
             // only resource types, no resource instances. resource types are owned by the resource server
             String resourceType = resourceId.substring("resource-type:".length());
-            resourceStore.findByType(resourceServer, resourceType, resourceServer.getClientId(),
+            resourceStore.findByType(resourceServer, resourceType, resourceServer.getClient().getId(),
                     resource1 -> addPermission(request, resourceServer, authorization, permissionsToEvaluate, limit, requestedScopesModel, resource1));
         } else if (resourceId.startsWith("resource-type-any:")) {
             // any resource with a given type
@@ -635,7 +634,7 @@ public class AuthorizationTokenService {
                 addPermission(request, resourceServer, authorization, permissionsToEvaluate, limit, requestedScopesModel, ownerResource);
             }
 
-            if (!identity.isResourceServer() || !identity.getId().equals(resourceServer.getClientId())) {
+            if (!identity.isResourceServer() || !identity.getId().equals(resourceServer.getClient().getId())) {
                 List<PermissionTicket> tickets = storeFactory.getPermissionTicketStore().findGranted(resourceServer, resourceId, identity.getId());
 
                 if (!tickets.isEmpty()) {

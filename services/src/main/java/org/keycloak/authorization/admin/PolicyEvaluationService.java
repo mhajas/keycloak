@@ -252,26 +252,25 @@ public class PolicyEvaluationService {
 
             if (userModel != null) {
                 String clientId = representation.getClientId();
-
-                if (clientId == null) {
-                    clientId = resourceServer.getClientId();
-                }
+                ClientModel clientModel;
 
                 if (clientId != null) {
-                    ClientModel clientModel = realm.getClientById(clientId);
-
-                    AuthenticationSessionModel authSession = keycloakSession.authenticationSessions().createRootAuthenticationSession(realm)
-                            .createAuthenticationSession(clientModel);
-                    authSession.setProtocol(OIDCLoginProtocol.LOGIN_PROTOCOL);
-                    authSession.setAuthenticatedUser(userModel);
-                    userSession = keycloakSession.sessions().createUserSession(authSession.getParentSession().getId(), realm, userModel,
-                            userModel.getUsername(), "127.0.0.1", "passwd", false, null, null, UserSessionModel.SessionPersistenceState.PERSISTENT);
-
-                    AuthenticationManager.setClientScopesInSession(authSession);
-                    ClientSessionContext clientSessionCtx = TokenManager.attachAuthenticationSession(keycloakSession, userSession, authSession);
-
-                    accessToken = new TokenManager().createClientAccessToken(keycloakSession, realm, clientModel, userModel, userSession, clientSessionCtx);
+                    clientModel = realm.getClientById(clientId);
+                } else {
+                    clientModel = resourceServer.getClient();
                 }
+
+                AuthenticationSessionModel authSession = keycloakSession.authenticationSessions().createRootAuthenticationSession(realm)
+                        .createAuthenticationSession(clientModel);
+                authSession.setProtocol(OIDCLoginProtocol.LOGIN_PROTOCOL);
+                authSession.setAuthenticatedUser(userModel);
+                userSession = keycloakSession.sessions().createUserSession(authSession.getParentSession().getId(), realm, userModel,
+                        userModel.getUsername(), "127.0.0.1", "passwd", false, null, null, UserSessionModel.SessionPersistenceState.PERSISTENT);
+
+                AuthenticationManager.setClientScopesInSession(authSession);
+                ClientSessionContext clientSessionCtx = TokenManager.attachAuthenticationSession(keycloakSession, userSession, authSession);
+
+                accessToken = new TokenManager().createClientAccessToken(keycloakSession, realm, clientModel, userModel, userSession, clientSessionCtx);
             }
         }
 
@@ -287,7 +286,7 @@ public class PolicyEvaluationService {
             }
 
             if (client == null) {
-                client = realm.getClientById(resourceServer.getClientId());
+                client = resourceServer.getClient();
             }
 
             accessToken.issuedFor(client.getClientId());

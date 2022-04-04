@@ -18,6 +18,7 @@
 
 package org.keycloak.authorization.model;
 
+import org.keycloak.models.ClientModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.provider.ProviderEvent;
@@ -97,10 +98,11 @@ public interface ResourceServer {
     DecisionStrategy getDecisionStrategy();
 
     /**
-     * Returns id of a client that this {@link ResourceServer} is associated with
-     * @return id of client
+     * Returns a client that this {@link ResourceServer} is associated with
+     *
+     * @return client
      */
-    String getClientId();
+    ClientModel getClient();
 
     /**
      * Returns reference of a realm that this {@link ResourceServer} belongs to.
