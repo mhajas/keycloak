@@ -1,13 +1,12 @@
 /*
- * JBoss, Home of Professional Open Source.
- * Copyright 2016 Red Hat, Inc., and individual contributors
- * as indicated by the @author tags.
+ * Copyright 2022 Red Hat, Inc. and/or its affiliates
+ * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -95,16 +94,6 @@ public interface ResourceStore {
     List<Resource> findByOwner(ResourceServer resourceServer, String ownerId, Integer firstResult, Integer maxResults);
 
     /**
-     * Finds all {@link Resource} instances with the given uri.
-     *
-     *
-     * @param resourceServer
-     * @param uri the identifier of the uri
-     * @return a list with all resource instances owned by the given owner
-     */
-    List<Resource> findByUri(ResourceServer resourceServer, String uri);
-
-    /**
      * Finds all {@link Resource} instances associated with a given resource server.
      *
      * @param resourceServer the identifier of the resource server
@@ -176,23 +165,6 @@ public interface ResourceStore {
         List<Resource> list = new LinkedList<>();
 
         findByType(resourceServer, type, list::add);
-
-        return list;
-    }
-
-    /**
-     * Finds all {@link Resource} with the given type.
-     *
-     *
-     * @param resourceServer
-     * @param type the type of the resource
-     * @param owner the resource owner or null for any resource with a given type
-     * @return a list of resources with the given type
-     */
-    default List<Resource> findByType(ResourceServer resourceServer, String type, String owner) {
-        List<Resource> list = new LinkedList<>();
-
-        findByType(resourceServer, type, owner, list::add);
 
         return list;
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Red Hat, Inc. and/or its affiliates
+ * Copyright 2022 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -143,16 +143,6 @@ public class MapResourceStore implements ResourceStore {
         findByOwnerFilter(ownerId, resourceServer, resourceList::add, firstResult, maxResults);
 
         return resourceList;
-    }
-
-    @Override
-    public List<Resource> findByUri(ResourceServer resourceServer, String uri) {
-        LOG.tracef("findByUri(%s, %s)%s", uri, resourceServer, getShortStackTrace());
-
-        return tx.read(withCriteria(forResourceServer(resourceServer)
-                .compare(SearchableFields.URI, Operator.EQ, uri)))
-                .map(entityToAdapterFunc(resourceServer))
-                .collect(Collectors.toList());
     }
 
     @Override

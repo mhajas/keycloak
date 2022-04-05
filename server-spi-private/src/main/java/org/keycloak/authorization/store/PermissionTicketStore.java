@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2022 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -69,23 +69,6 @@ public interface PermissionTicketStore {
      * @return a permission with the given identifier.
      */
     PermissionTicket findById(ResourceServer resourceServer, String id);
-
-    /**
-     * Returns a list of {@link PermissionTicket} associated with a {@link ResourceServer}.
-     *
-     * @param resourceServer the resource server
-     * @return a list of permissions belonging to the given resource server
-     */
-    List<PermissionTicket> findByResourceServer(ResourceServer resourceServer);
-
-    /**
-     * Returns a list of {@link PermissionTicket} associated with the given <code>owner</code>.
-     *
-     * @param resourceServer the resource server
-     * @param owner the identifier of a resource server
-     * @return a list of permissions belonging to the given owner
-     */
-    List<PermissionTicket> findByOwner(ResourceServer resourceServer, String owner);
 
     /**
      * Returns a list of {@link PermissionTicket} associated with the {@link org.keycloak.authorization.model.Resource resource}.

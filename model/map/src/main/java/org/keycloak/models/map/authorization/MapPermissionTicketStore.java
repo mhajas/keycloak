@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Red Hat, Inc. and/or its affiliates
+ * Copyright 2022 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,7 +35,6 @@ import org.keycloak.models.RealmModel;
 import org.keycloak.models.map.authorization.adapter.MapPermissionTicketAdapter;
 import org.keycloak.models.map.authorization.entity.MapPermissionTicketEntity;
 import org.keycloak.models.map.authorization.entity.MapPermissionTicketEntityImpl;
-import org.keycloak.models.map.authorization.entity.MapResourceEntity;
 import org.keycloak.models.map.storage.MapKeycloakTransaction;
 import org.keycloak.models.map.storage.MapStorage;
 import org.keycloak.models.map.storage.ModelCriteriaBuilder.Operator;
@@ -158,25 +157,6 @@ public class MapPermissionTicketStore implements PermissionTicketStore {
                 .findFirst()
                 .map(entityToAdapterFunc(resourceServer))
                 .orElse(null);
-    }
-
-    @Override
-    public List<PermissionTicket> findByResourceServer(ResourceServer resourceServer) {
-        LOG.tracef("findByResourceServer(%s)%s", resourceServer, getShortStackTrace());
-
-        return tx.read(withCriteria(forResourceServer(resourceServer)))
-                .map(entityToAdapterFunc(resourceServer))
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<PermissionTicket> findByOwner(ResourceServer resourceServer, String owner) {
-        LOG.tracef("findByOwner(%s, %s)%s", owner, resourceServer, getShortStackTrace());
-
-        return tx.read(withCriteria(forResourceServer(resourceServer)
-                .compare(SearchableFields.OWNER, Operator.EQ, owner)))
-                .map(entityToAdapterFunc(resourceServer))
-                .collect(Collectors.toList());
     }
 
     @Override

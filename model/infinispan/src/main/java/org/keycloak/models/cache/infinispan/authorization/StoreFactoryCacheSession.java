@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2022 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -698,15 +698,6 @@ public class StoreFactoryCacheSession implements CachedStoreFactoryProvider {
         }
 
         @Override
-        public List<Resource> findByUri(ResourceServer resourceServer, String uri) {
-            if (uri == null) return null;
-            String resourceServerId = resourceServer == null ? null : resourceServer.getId();
-            String cacheKey = getResourceByUriCacheKey(uri, resourceServerId);
-            return cacheQuery(cacheKey, ResourceListQuery.class, () -> getResourceStoreDelegate().findByUri(resourceServer, uri),
-                    (revision, resources) -> new ResourceListQuery(revision, cacheKey, resources.stream().map(Resource::getId).collect(Collectors.toSet()), resourceServerId), resourceServer);
-        }
-
-        @Override
         public List<Resource> findByResourceServer(ResourceServer resourceServer) {
             return getResourceStoreDelegate().findByResourceServer(resourceServer);
         }
@@ -780,19 +771,6 @@ public class StoreFactoryCacheSession implements CachedStoreFactoryProvider {
                         return resources;
                     },
                     (revision, resources) -> new ResourceListQuery(revision, cacheKey, resources.stream().map(Resource::getId).collect(Collectors.toSet()), resourceServerId), resourceServer, consumer);
-        }
-
-        @Override
-        public List<Resource> findByType(ResourceServer resourceServer, String type, String owner) {
-            if (resourceServer != null && resourceServer.getId().equals(owner)) {
-                return findByType(resourceServer, type);
-            } else {
-                if (type == null) return Collections.emptyList();
-                String resourceServerId = resourceServer == null ? null : resourceServer.getId();
-                String cacheKey = getResourceByTypeCacheKey(type, owner, resourceServerId);
-                return cacheQuery(cacheKey, ResourceListQuery.class, () -> getResourceStoreDelegate().findByType(resourceServer, type, owner),
-                        (revision, resources) -> new ResourceListQuery(revision, cacheKey, resources.stream().map(Resource::getId).collect(Collectors.toSet()), resourceServerId), resourceServer);
-            }
         }
 
         @Override
@@ -1197,11 +1175,6 @@ public class StoreFactoryCacheSession implements CachedStoreFactoryProvider {
         }
 
         @Override
-        public List<PermissionTicket> findByResourceServer(ResourceServer resourceServer) {
-            return getPermissionTicketStoreDelegate().findByResourceServer(resourceServer);
-        }
-
-        @Override
         public List<PermissionTicket> findByResource(ResourceServer resourceServer, Resource resource) {
             String resourceServerId = resourceServer == null ? null : resourceServer.getId();
             String cacheKey = getPermissionTicketByResource(resource.getId(), resourceServerId);
@@ -1246,14 +1219,6 @@ public class StoreFactoryCacheSession implements CachedStoreFactoryProvider {
         @Override
         public List<Resource> findGrantedOwnerResources(RealmModel realm, String owner, Integer firstResult, Integer maxResults) {
             return getPermissionTicketStoreDelegate().findGrantedOwnerResources(realm, owner, firstResult, maxResults);
-        }
-
-        @Override
-        public List<PermissionTicket> findByOwner(ResourceServer resourceServer, String owner) {
-            String resourceServerId = resourceServer == null ? null : resourceServer.getId();
-            String cacheKey = getPermissionTicketByOwner(owner, resourceServerId);
-            return cacheQuery(cacheKey, PermissionTicketListQuery.class, () -> getPermissionTicketStoreDelegate().findByOwner(resourceServer, owner),
-                    (revision, permissions) -> new PermissionTicketListQuery(revision, cacheKey, permissions.stream().map(PermissionTicket::getId).collect(Collectors.toSet()), resourceServerId), resourceServer);
         }
 
         private <R, Q extends PermissionTicketQuery> List<R> cacheQuery(String cacheKey, Class<Q> queryType, Supplier<List<R>> resultSupplier, BiFunction<Long, List<R>, Q> querySupplier, ResourceServer resourceServer) {

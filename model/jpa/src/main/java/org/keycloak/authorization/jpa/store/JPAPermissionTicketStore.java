@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2022 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -173,26 +173,6 @@ public class JPAPermissionTicketStore implements PermissionTicketStore {
     }
 
     @Override
-    public List<PermissionTicket> findByResourceServer(final ResourceServer resourceServer) {
-        TypedQuery<String> query = entityManager.createNamedQuery("findPolicyIdByServerId", String.class);
-
-        query.setParameter("serverId", resourceServer == null ? null : resourceServer.getId());
-
-        List<String> result = query.getResultList();
-        List<PermissionTicket> list = new LinkedList<>();
-        PermissionTicketStore ticketStore = provider.getStoreFactory().getPermissionTicketStore();
-
-        for (String id : result) {
-            PermissionTicket ticket = ticketStore.findById(resourceServer, id);
-            if (Objects.nonNull(ticket)) {
-                list.add(ticket);
-            }
-        }
-
-        return list;
-    }
-
-    @Override
     public List<PermissionTicket> findByResource(ResourceServer resourceServer, final Resource resource) {
         TypedQuery<String> query = entityManager.createNamedQuery("findPermissionIdByResource", String.class);
 
@@ -340,25 +320,4 @@ public class JPAPermissionTicketStore implements PermissionTicketStore {
         return list;
     }
 
-    @Override
-    public List<PermissionTicket> findByOwner(ResourceServer resourceServer, String owner) {
-        TypedQuery<String> query = entityManager.createNamedQuery("findPolicyIdByType", String.class);
-
-        query.setFlushMode(FlushModeType.COMMIT);
-        query.setParameter("serverId", resourceServer == null ? null : resourceServer.getId());
-        query.setParameter("owner", owner);
-
-        List<String> result = query.getResultList();
-        List<PermissionTicket> list = new LinkedList<>();
-        PermissionTicketStore ticketStore = provider.getStoreFactory().getPermissionTicketStore();
-
-        for (String id : result) {
-            PermissionTicket ticket = ticketStore.findById(resourceServer, id);
-            if (Objects.nonNull(ticket)) {
-                list.add(ticket);
-            }
-        }
-
-        return list;
-    }
 }
