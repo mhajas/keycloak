@@ -34,9 +34,19 @@ import org.keycloak.models.RealmModel;
 public interface PermissionTicketStore {
 
     /**
+     * Legacy store doesn't store realm id for any entity and no method there is using new introduced RealmModel parameter.
+     * The parameter was introduced for usage only in the new storage. Therefore, in some cases we may break our rule specified in JavaDoc
+     * and use {@code null} value as parameter that otherwise cannot be {@code null}. We need to be careful and place such value only to a method call
+     * that cannot end up in the new store because it would end with {@link NullPointerException}. To mark all places where we do this,
+     * we use this variable so it is easily searchable.
+     */
+    static RealmModel NULL_REALM = null;
+
+    /**
      * Returns count of {@link PermissionTicket}, filtered by the given attributes.
      *
-     * @param resourceServer the resource server
+     *
+     * @param resourceServer the resource server. Cannot be {@code null}.
      * @param attributes permission tickets that do not match the attributes are not included with the count; possible filter options are given by {@link PermissionTicket.FilterOption}
      * @return an integer indicating the amount of permission tickets
      * @throws IllegalArgumentException when there is an unknown attribute in the {@code attributes} map
@@ -46,10 +56,10 @@ public interface PermissionTicketStore {
     /**
      * Creates a new {@link PermissionTicket} instance.
      *
-     * @param resourceServer the resource server to which this policy belongs
-     * @param resource resource id
-     * @param scope scope id
-     * @param requester the policy representation
+     * @param resourceServer the resource server to which this permission ticket belongs. Cannot be {@code null}.
+     * @param resource resource. Cannot be {@code null}.
+     * @param scope scope. Cannot be {@code null}
+     * @param requester requester of the permission
      * @return a new instance of {@link PermissionTicket}
      */
     PermissionTicket create(ResourceServer resourceServer, Resource resource, Scope scope, String requester);
@@ -57,44 +67,48 @@ public interface PermissionTicketStore {
     /**
      * Deletes a permission from the underlying persistence mechanism.
      *
+     * @param realm realm. Cannot be {@code null}.
      * @param id the id of the policy to delete
      */
-    void delete(String id);
+    void delete(RealmModel realm, String id);
 
     /**
      * Returns a {@link PermissionTicket} with the given <code>id</code>
      *
-     * @param resourceServer the resource server
+     *
+     *
+     * @param realm the realm. Cannot be {@code null}.
+     * @param resourceServer the resource server. Ignored if {@code null}.
      * @param id the identifier of the permission
      * @return a permission with the given identifier.
      */
-    PermissionTicket findById(ResourceServer resourceServer, String id);
+    PermissionTicket findById(RealmModel realm, ResourceServer resourceServer, String id);
 
     /**
      * Returns a list of {@link PermissionTicket} associated with the {@link org.keycloak.authorization.model.Resource resource}.
      *
-     * @param resourceServer the resource server
-     * @param resource the resource
+     * @param resourceServer the resource server. Cannot be {@code null}.
+     * @param resource the resource. Cannot be {@code null}
      * @return a list of permissions associated with the given resource
-     * TODO: maybe we can get rid of reosourceServer param here as resource has method getResourceServer()
      */
     List<PermissionTicket> findByResource(ResourceServer resourceServer, Resource resource);
 
     /**
      * Returns a list of {@link PermissionTicket} associated with the {@link org.keycloak.authorization.model.Scope scope}.
      *
-     * @param resourceServer the resource server
-     * @param scope the scope
-     * @return a list of permissions associated with the given scopes
      *
-     * TODO: maybe we can get rid of reosourceServer param here as resource has method getResourceServer()
+     * @param resourceServer the resource server. Cannot be {@code null}.
+     * @param scope the scope. Cannot be {@code null}.
+     * @return a list of permissions associated with the given scopes
      */
     List<PermissionTicket> findByScope(ResourceServer resourceServer, Scope scope);
 
     /**
      * Returns a list of {@link PermissionTicket}, filtered by the given attributes.
      *
-     * @param resourceServer a resource server that resulting tickets should belong to. Ignored if {@code null}
+     *
+     * @param realm the realm. Cannot be {@code null}.
+     * @param resourceServer a resource server that resulting tickets should belong to. Ignored if {@code null}.
      * @param attributes a map of keys and values to filter on; possible filter options are given by {@link PermissionTicket.FilterOption}
      * @param firstResult first result to return. Ignored if negative or {@code null}.
      * @param maxResults maximum number of results to return. Ignored if negative or {@code null}.
@@ -103,12 +117,12 @@ public interface PermissionTicketStore {
      * @throws IllegalArgumentException when there is an unknown attribute in the {@code attributes} map
      *
      */
-    List<PermissionTicket> find(ResourceServer resourceServer, Map<PermissionTicket.FilterOption, String> attributes, Integer firstResult, Integer maxResults);
+    List<PermissionTicket> find(RealmModel realm, ResourceServer resourceServer, Map<PermissionTicket.FilterOption, String> attributes, Integer firstResult, Integer maxResults);
 
     /**
      * Returns a list of {@link PermissionTicket} granted to the given {@code userId}.
      *
-     * @param resourceServer the resource server
+     * @param resourceServer the resource server. Cannot be {@code null}
      * @param userId the user id
      * @return a list of permissions granted for a particular user
      */
@@ -117,7 +131,7 @@ public interface PermissionTicketStore {
     /**
      * Returns a list of {@link PermissionTicket} with name equal to {@code resourceName} granted to the given {@code userId}.
      *
-     * @param resourceServer the resource server
+     * @param resourceServer the resource server. Cannot be {@code null}.
      * @param resourceName the name of a resource
      * @param userId the user id
      * @return a list of permissions granted for a particular user
@@ -130,7 +144,7 @@ public interface PermissionTicketStore {
      * Returns a list of {@link Resource} granted to the given {@code requester}
      *
      *
-     * @param realm
+     * @param realm realm that is searched. Cannot be {@code null}
      * @param requester the requester
      * @param name the keyword to query resources by name or null if any resource
      * @param firstResult first result to return. Ignored if negative or {@code null}.

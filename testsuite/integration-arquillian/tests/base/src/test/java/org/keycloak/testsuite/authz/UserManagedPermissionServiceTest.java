@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Red Hat, Inc. and/or its affiliates
+ * Copyright 2022 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -924,7 +924,7 @@ public class UserManagedPermissionServiceTest extends AbstractResourceServerTest
         filters.put(OWNER, new String[] {user.getId()});
 
         List<Policy> policies = provider.getStoreFactory().getPolicyStore()
-                .findByResourceServer(resourceServer, filters, null, null);
+                .find(realm, resourceServer, filters, null, null);
         assertEquals(1, policies.size());
 
         Policy policy = policies.get(0);
@@ -933,13 +933,13 @@ public class UserManagedPermissionServiceTest extends AbstractResourceServerTest
         Resource resource = policy.getResources().iterator().next();
         assertEquals("Resource A", resource.getName());
 
-        provider.getStoreFactory().getResourceStore().delete(resource.getId());
+        provider.getStoreFactory().getResourceStore().delete(realm, resource.getId());
 
         filters = new HashMap<>();
 
         filters.put(OWNER, new String[] {user.getId()});
         policies = provider.getStoreFactory().getPolicyStore()
-                .findByResourceServer(resourceServer, filters, null, null);
+                .find(realm, resourceServer, filters, null, null);
         assertTrue(policies.isEmpty());
     }
 
@@ -978,7 +978,7 @@ public class UserManagedPermissionServiceTest extends AbstractResourceServerTest
         filters.put(OWNER, new String[] {user.getId()});
 
         List<Policy> policies = provider.getStoreFactory().getPolicyStore()
-                .findByResourceServer(resourceServer, filters, null, null);
+                .find(realm, resourceServer, filters, null, null);
         assertEquals(1, policies.size());
 
         Policy policy = policies.get(0);
@@ -994,7 +994,7 @@ public class UserManagedPermissionServiceTest extends AbstractResourceServerTest
         filters.put(OWNER, new String[] {user.getId()});
 
         policies = provider.getStoreFactory().getPolicyStore()
-                .findByResourceServer(resourceServer, filters, null, null);
+                .find(realm, resourceServer, filters, null, null);
         assertTrue(policies.isEmpty());
     }
 
@@ -1033,7 +1033,7 @@ public class UserManagedPermissionServiceTest extends AbstractResourceServerTest
         filters.put(OWNER, new String[] {user.getId()});
 
         List<Policy> policies = provider.getStoreFactory().getPolicyStore()
-            .findByResourceServer(resourceServer, filters, null, null);
+            .find(realm, resourceServer, filters, null, null);
         assertEquals(1, policies.size());
 
         Policy policy = policies.get(0);
@@ -1049,7 +1049,7 @@ public class UserManagedPermissionServiceTest extends AbstractResourceServerTest
         filters.put(OWNER, new String[] {user.getId()});
 
         policies = provider.getStoreFactory().getPolicyStore()
-            .findByResourceServer(resourceServer, filters, null, null);
+            .find(realm, resourceServer, filters, null, null);
         assertTrue(policies.isEmpty());
     }
 

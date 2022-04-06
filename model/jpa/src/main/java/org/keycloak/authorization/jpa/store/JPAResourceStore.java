@@ -21,8 +21,10 @@ import org.keycloak.authorization.jpa.entities.ResourceEntity;
 import org.keycloak.authorization.model.Resource;
 import org.keycloak.authorization.model.ResourceServer;
 import org.keycloak.authorization.model.Scope;
+import org.keycloak.authorization.store.PermissionTicketStore;
 import org.keycloak.authorization.store.ResourceStore;
 import org.keycloak.authorization.store.StoreFactory;
+import org.keycloak.models.RealmModel;
 import org.keycloak.models.utils.KeycloakModelUtils;
 
 import javax.persistence.EntityManager;
@@ -79,7 +81,7 @@ public class JPAResourceStore implements ResourceStore {
     }
 
     @Override
-    public void delete(String id) {
+    public void delete(RealmModel realm, String id) {
         ResourceEntity resource = entityManager.getReference(ResourceEntity.class, id);
         if (resource == null) return;
 
@@ -88,7 +90,7 @@ public class JPAResourceStore implements ResourceStore {
     }
 
     @Override
-    public Resource findById(ResourceServer resourceServer, String id) {
+    public Resource findById(RealmModel realm, ResourceServer resourceServer, String id) {
         if (id == null) {
             return null;
         }
@@ -99,17 +101,8 @@ public class JPAResourceStore implements ResourceStore {
     }
 
     @Override
-    public void findByOwner(ResourceServer resourceServer, String ownerId, Consumer<Resource> consumer) {
+    public void findByOwner(RealmModel realm, ResourceServer resourceServer, String ownerId, Consumer<Resource> consumer) {
         findByOwnerFilter(ownerId, resourceServer, consumer, -1, -1);
-    }
-
-    @Override
-    public List<Resource> findByOwner(ResourceServer resourceServer, String ownerId, Integer firstResult, Integer maxResults) {
-        List<Resource> list = new LinkedList<>();
-
-        findByOwnerFilter(ownerId, resourceServer, list::add, firstResult, maxResults);
-
-        return list;
     }
 
     private void findByOwnerFilter(String ownerId, ResourceServer resourceServer, Consumer<Resource> consumer, int firstResult, int maxResult) {
@@ -135,7 +128,7 @@ public class JPAResourceStore implements ResourceStore {
         }
 
         ResourceStore resourceStore = provider.getStoreFactory().getResourceStore();
-        closing(query.getResultStream().map(id -> resourceStore.findById(resourceServer, id.getId()))).forEach(consumer);
+        closing(query.getResultStream().map(id -> resourceStore.findById(PermissionTicketStore.NULL_REALM, resourceServer, id.getId()))).forEach(consumer);
     }
 
     @Override
@@ -149,7 +142,7 @@ public class JPAResourceStore implements ResourceStore {
         ResourceStore resourceStore = provider.getStoreFactory().getResourceStore();
 
         for (String id : result) {
-            Resource resource = resourceStore.findById(resourceServer, id);
+            Resource resource = resourceStore.findById(PermissionTicketStore.NULL_REALM, resourceServer, id);
 
             if (resource != null) {
                 list.add(resource);
@@ -160,7 +153,7 @@ public class JPAResourceStore implements ResourceStore {
     }
 
     @Override
-    public List<Resource> findByResourceServer(ResourceServer resourceServer, Map<Resource.FilterOption, String[]> attributes, Integer firstResult, Integer maxResults) {
+    public List<Resource> find(RealmModel realm, ResourceServer resourceServer, Map<Resource.FilterOption, String[]> attributes, Integer firstResult, Integer maxResults) {
         CriteriaBuilder builder = entityManager.getCriteriaBuilder();
         CriteriaQuery<ResourceEntity> querybuilder = builder.createQuery(ResourceEntity.class);
         Root<ResourceEntity> root = querybuilder.from(ResourceEntity.class);
@@ -213,7 +206,7 @@ public class JPAResourceStore implements ResourceStore {
         ResourceStore resourceStore = provider.getStoreFactory().getResourceStore();
 
         for (String id : result) {
-            Resource resource = resourceStore.findById(resourceServer, id);
+            Resource resource = resourceStore.findById(PermissionTicketStore.NULL_REALM, resourceServer, id);
 
             if (resource != null) {
                 list.add(resource);
