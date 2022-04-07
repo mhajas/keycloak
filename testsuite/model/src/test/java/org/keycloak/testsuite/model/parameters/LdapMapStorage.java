@@ -21,6 +21,7 @@ import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 import org.keycloak.authorization.store.StoreFactorySpi;
 import org.keycloak.models.DeploymentStateSpi;
+import org.keycloak.models.LDAPConstants;
 import org.keycloak.models.UserLoginFailureSpi;
 import org.keycloak.models.UserSessionSpi;
 import org.keycloak.models.map.storage.MapStorageSpi;
@@ -79,7 +80,14 @@ public class LdapMapStorage extends KeycloakModelParameters {
                 .config("role.object.classes", "groupOfNames")
                 .config("role.attributes", "ou")
                 .config("mode", "LDAP_ONLY")
-                .config("use.realm.roles.mapping", "true");
+                .config("use.realm.roles.mapping", "true")
+                // ApacheDS has a problem when processing an unbind request just before closing the connection, it will print
+                // "ignoring the message ... received from null session" and drop the message. To work around this:
+                // (1) enable connection pooling, to avoid short-lived connections
+                .config(LDAPConstants.CONNECTION_POOLING, "true")
+                // (2) set pref size to max size so that there are no connections that are opened and then closed immediately again
+                .config(LDAPConstants.CONNECTION_POOLING_PREFSIZE, "1000")
+                .config(LDAPConstants.CONNECTION_POOLING_MAXSIZE, "1000");
 
         cf.spi("client").config("map.storage.provider", ConcurrentHashMapStorageProviderFactory.PROVIDER_ID)
                 .spi("clientScope").config("map.storage.provider", ConcurrentHashMapStorageProviderFactory.PROVIDER_ID)
