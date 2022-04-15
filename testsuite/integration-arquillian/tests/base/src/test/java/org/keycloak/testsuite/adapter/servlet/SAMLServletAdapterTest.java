@@ -938,7 +938,7 @@ public class SAMLServletAdapterTest extends AbstractSAMLServletAdapterTest {
     @Test
     // https://issues.jboss.org/browse/KEYCLOAK-3971
     public void salesPostSigTestUnicodeCharacters() {
-        final String username = "ěščřžýáíRoàåéèíñòøöùüßÅÄÖÜ";
+        final String username = "ěščřžýáíroàåéèíñòøöùüßåäöü";
         UserRepresentation user = UserBuilder
           .edit(createUserRepresentation(username, "xyz@redhat.com", "ěščřžýáí", "RoàåéèíñòøöùüßÅÄÖÜ", true))
           .addPassword(PASSWORD)
@@ -964,7 +964,7 @@ public class SAMLServletAdapterTest extends AbstractSAMLServletAdapterTest {
     @Test
     // https://issues.jboss.org/browse/KEYCLOAK-3971
     public void employeeSigTestUnicodeCharacters() {
-        final String username = "ěščřžýáíRoàåéèíñòøöùüßÅÄÖÜ";
+        final String username = "ěščřžýáíroàåéèíñòøöùüßåäöü";
         UserRepresentation user = UserBuilder
           .edit(createUserRepresentation(username, "xyz@redhat.com", "ěščřžýáí", "RoàåéèíñòøöùüßÅÄÖÜ", true))
           .addPassword(PASSWORD)

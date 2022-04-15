@@ -483,6 +483,9 @@ public class MapRealmAdapter extends AbstractRealmModel<MapRealmEntity> implemen
 
     @Override
     public int getActionTokenGeneratedByUserLifespan(String actionTokenType) {
+        if (actionTokenType == null || getAttribute(ACTION_TOKEN_GENERATED_BY_USER_LIFESPAN + "." + actionTokenType) == null) {
+            return getActionTokenGeneratedByUserLifespan();
+        }
         return getAttribute(ACTION_TOKEN_GENERATED_BY_USER_LIFESPAN + "." + actionTokenType, getAccessCodeLifespanUserAction());
     }
 
@@ -520,6 +523,14 @@ public class MapRealmAdapter extends AbstractRealmModel<MapRealmEntity> implemen
         RequiredCredentialModel model = RequiredCredentialModel.BUILT_IN.get(cred);
         if (model == null) {
             throw new RuntimeException("Unknown credential type " + cred);
+        }
+        if (entity.getRequiredCredentials() != null) {
+            Optional<MapRequiredCredentialEntity> existing = entity.getRequiredCredentials().stream()
+                    .filter(credential -> Objects.equals(model.getType(), credential.getType()))
+                    .findFirst();
+            if (existing.isPresent()) {
+                throw new ModelDuplicateException("A Required Credential with given type already exists.");
+            }
         }
         entity.addRequiredCredential(MapRequiredCredentialEntity.fromModel(model));
     }
@@ -837,6 +848,9 @@ public class MapRealmAdapter extends AbstractRealmModel<MapRealmEntity> implemen
 
     @Override
     public AuthenticatorConfigModel addAuthenticatorConfig(AuthenticatorConfigModel model) {
+        if (entity.getAuthenticatorConfig(model.getId()).isPresent()) {
+            throw new ModelDuplicateException("An Authenticator Config with given id already exists.");
+        }
         MapAuthenticatorConfigEntity authenticatorConfig = MapAuthenticatorConfigEntity.fromModel(model);
         entity.addAuthenticatorConfig(authenticatorConfig);
         model.setId(authenticatorConfig.getId());
@@ -848,7 +862,7 @@ public class MapRealmAdapter extends AbstractRealmModel<MapRealmEntity> implemen
         entity.getAuthenticatorConfig(model.getId())
                         .ifPresent(oldAC -> {
                             oldAC.setAlias(model.getAlias());
-                            oldAC.setConfig(model.getConfig());
+                            oldAC.setConfig(model.getConfig() == null ? null : new HashMap<>(model.getConfig()));
                         });
     }
 
@@ -883,6 +897,12 @@ public class MapRealmAdapter extends AbstractRealmModel<MapRealmEntity> implemen
 
     @Override
     public RequiredActionProviderModel addRequiredActionProvider(RequiredActionProviderModel model) {
+        if (entity.getRequiredActionProvider(model.getId()).isPresent()) {
+            throw new ModelDuplicateException("A Required Action Provider with given id already exists.");
+        }
+        if (getRequiredActionProviderByAlias(model.getAlias()) != null) {
+            throw new ModelDuplicateException("A Required Action Provider with given alias already exists.");
+        }
         MapRequiredActionProviderEntity requiredActionProvider = MapRequiredActionProviderEntity.fromModel(model);
         entity.addRequiredActionProvider(requiredActionProvider);
 
@@ -899,7 +919,7 @@ public class MapRealmAdapter extends AbstractRealmModel<MapRealmEntity> implemen
                             oldRAP.setPriority(model.getPriority());
                             oldRAP.setEnabled(model.isEnabled());
                             oldRAP.setDefaultAction(model.isDefaultAction());
-                            oldRAP.setConfig(model.getConfig());
+                            oldRAP.setConfig(model.getConfig() == null ? null : new HashMap<>(model.getConfig()));
                         });
     }
 
@@ -943,6 +963,9 @@ public class MapRealmAdapter extends AbstractRealmModel<MapRealmEntity> implemen
 
     @Override
     public void addIdentityProvider(IdentityProviderModel model) {
+        if (getIdentityProviderByAlias(model.getAlias()) != null) {
+            throw new ModelDuplicateException("An Identity Provider with given alias already exists.");
+        }
         entity.addIdentityProvider(MapIdentityProviderEntity.fromModel(model));
     }
 
@@ -1055,7 +1078,7 @@ public class MapRealmAdapter extends AbstractRealmModel<MapRealmEntity> implemen
                             oldIPM.setName(model.getName());
                             oldIPM.setIdentityProviderAlias(model.getIdentityProviderAlias());
                             oldIPM.setIdentityProviderMapper(model.getIdentityProviderMapper());
-                            oldIPM.setConfig(model.getConfig());
+                            oldIPM.setConfig(model.getConfig() == null ? null : new HashMap<>(model.getConfig()));
                         });
     }
 
@@ -1132,7 +1155,7 @@ public class MapRealmAdapter extends AbstractRealmModel<MapRealmEntity> implemen
         oldValue.setProviderType(newValue.getProviderType());
         oldValue.setSubType(newValue.getSubType());
         oldValue.setParentId(newValue.getParentId());
-        oldValue.setConfig(newValue.getConfig());
+        oldValue.setConfig(newValue.getConfig() == null ? null : new HashMap<>(newValue.getConfig()));
     }
 
     @Override

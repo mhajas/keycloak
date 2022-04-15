@@ -42,7 +42,9 @@ public class MapProtocolMapperUtils {
         res.setId(model.getId());
         res.setName(model.getName());
         res.setProtocolMapper(model.getProtocolMapper());
-        res.setConfig(model.getConfig());
+        Map<String, String> config = new HashMap<>();
+        if (model.getConfig() != null) config.putAll(model.getConfig());
+        res.setConfig(config);
         return res;
     }
 

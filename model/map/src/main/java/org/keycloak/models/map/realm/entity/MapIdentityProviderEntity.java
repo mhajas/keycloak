@@ -46,7 +46,9 @@ public interface MapIdentityProviderEntity extends UpdatableEntity, AbstractEnti
         entity.setLinkOnly(model.isLinkOnly());
         entity.setAddReadTokenRoleOnCreate(model.isAddReadTokenRoleOnCreate());
         entity.setAuthenticateByDefault(model.isAuthenticateByDefault());
-        entity.setConfig(model.getConfig());
+        Map<String, String> config = new HashMap<>();
+        if (model.getConfig() != null) config.putAll(model.getConfig());
+        entity.setConfig(config);
         return entity;
     }
 

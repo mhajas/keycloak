@@ -36,7 +36,9 @@ public interface MapAuthenticatorConfigEntity extends UpdatableEntity, AbstractE
         String id = model.getId() == null ? KeycloakModelUtils.generateId() : model.getId();
         entity.setId(id);
         entity.setAlias(model.getAlias());
-        entity.setConfig(model.getConfig());
+        Map<String, String> config = new HashMap<>();
+        if (model.getConfig() != null) config.putAll(model.getConfig());
+        entity.setConfig(config);
         return entity;
     }
 
@@ -45,7 +47,9 @@ public interface MapAuthenticatorConfigEntity extends UpdatableEntity, AbstractE
         AuthenticatorConfigModel model = new AuthenticatorConfigModel();
         model.setId(entity.getId());
         model.setAlias(entity.getAlias());
-        model.setConfig(entity.getConfig());
+        Map<String, String> config = new HashMap<>();
+        if (entity.getConfig() != null) config.putAll(entity.getConfig());
+        model.setConfig(config);
         return model;
     }
 

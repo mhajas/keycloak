@@ -17,6 +17,7 @@
 
 package org.keycloak.models.map.realm.entity;
 
+import java.util.HashMap;
 import org.keycloak.common.util.MultivaluedHashMap;
 import org.keycloak.component.ComponentModel;
 import org.keycloak.models.map.annotations.GenerateEntityImplementations;
@@ -40,7 +41,9 @@ public interface MapComponentEntity extends UpdatableEntity, AbstractEntity {
         entity.setProviderType(model.getProviderType());
         entity.setSubType(model.getSubType());
         entity.setParentId(model.getParentId());
-        entity.setConfig(model.getConfig());
+        Map<String, List<String>> config = new HashMap<>();
+        if (model.getConfig() != null) config.putAll(model.getConfig());
+        entity.setConfig(config);
         return entity;
     }
 

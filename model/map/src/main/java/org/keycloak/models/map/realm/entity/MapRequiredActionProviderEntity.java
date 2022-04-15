@@ -41,7 +41,9 @@ public interface MapRequiredActionProviderEntity extends UpdatableEntity, Abstra
         entity.setPriority(model.getPriority());
         entity.setEnabled(model.isEnabled());
         entity.setDefaultAction(model.isDefaultAction());
-        entity.setConfig(model.getConfig());
+        Map<String, String> config = new HashMap<>();
+        if (model.getConfig() != null) config.putAll(model.getConfig());
+        entity.setConfig(config);
         return entity;
     }
 
