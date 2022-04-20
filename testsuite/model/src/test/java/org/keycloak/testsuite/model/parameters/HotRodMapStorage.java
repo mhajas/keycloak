@@ -92,7 +92,7 @@ public class HotRodMapStorage extends KeycloakModelParameters {
 
         cf.spi(HotRodConnectionSpi.NAME).provider(DefaultHotRodConnectionProviderFactory.PROVIDER_ID)
                 .config("enableSecurity", "false")
-                .config("configureRemoteCaches", "false");
+                .config("configureRemoteCaches", "true");
     }
 
     @Override

@@ -21,6 +21,7 @@ import org.infinispan.client.hotrod.RemoteCacheManager;
 import org.infinispan.client.hotrod.RemoteCacheManagerAdmin;
 import org.infinispan.client.hotrod.configuration.ClientIntelligence;
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder;
+import org.infinispan.client.hotrod.configuration.NearCacheMode;
 import org.infinispan.commons.marshall.ProtoStreamMarshaller;
 import org.infinispan.protostream.GeneratedSchema;
 import org.infinispan.query.remote.client.ProtobufMetadataManagerConstants;
@@ -156,6 +157,11 @@ public class DefaultHotRodConnectionProviderFactory implements HotRodConnectionP
 
         HotRodMapStorageProviderFactory.ENTITY_DESCRIPTOR_MAP.values().stream()
                 .map(HotRodEntityDescriptor::getCacheName)
-                .forEach(name -> builder.remoteCache(name).configurationURI(uri));
+                .forEach(name -> builder.remoteCache(name)
+                        .configurationURI(uri)
+                        .nearCacheMode(config.scope(name).getBoolean("nearCacheEnabled", config.getBoolean("nearCacheEnabled", true)) ? NearCacheMode.INVALIDATED : NearCacheMode.DISABLED)
+                        .nearCacheMaxEntries(config.scope(name).getInt("nearCacheMaxEntries", config.getInt("nearCacheMaxEntries", 100)))
+                        .nearCacheUseBloomFilter(config.scope(name).getBoolean("nearCacheBloomFilter", config.getBoolean("nearCacheBloomFilter", false)))
+                );
     }
 }
