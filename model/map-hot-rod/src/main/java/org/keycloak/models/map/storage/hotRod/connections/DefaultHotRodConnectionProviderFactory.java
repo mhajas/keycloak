@@ -67,7 +67,9 @@ public class DefaultHotRodConnectionProviderFactory implements HotRodConnectionP
 
     @Override
     public void close() {
-
+        if (remoteCacheManager != null) {
+            remoteCacheManager.close();
+        }
     }
 
     @Override

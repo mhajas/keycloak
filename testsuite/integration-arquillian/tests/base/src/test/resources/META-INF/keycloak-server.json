@@ -258,6 +258,7 @@
 
     "connectionsHotRod": {
         "default": {
+            "host": "127.0.0.1",
             "embedded": "${keycloak.connectionsHotRod.embedded:false}",
             "port": "${keycloak.connectionsHotRod.port:14232}",
             "configureRemoteCaches": "${keycloak.connectionsHotRod.configureRemoteCaches:true}",

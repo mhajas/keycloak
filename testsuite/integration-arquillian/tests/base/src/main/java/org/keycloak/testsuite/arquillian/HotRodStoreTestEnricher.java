@@ -40,7 +40,7 @@ public class HotRodStoreTestEnricher {
         }
     }
 
-    public void afterSuite(@Observes(precedence = 4) AfterSuite event) {
+    public void afterSuite(@Observes(precedence = -4) AfterSuite event) {
         if (!AuthServerTestEnricher.HOT_ROD_STORE_ENABLED) return;
 
         ContainerInfo hotRodContainer = suiteContext.getHotRodStoreInfo();

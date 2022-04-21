@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
 import org.junit.Test;
+import org.keycloak.common.util.Time;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.ClientProvider;
 import org.keycloak.models.ClientScopeModel;
@@ -40,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  *
@@ -256,5 +258,27 @@ public class ClientModelTest extends KeycloakModelTest {
 
             return null;
         });
+    }
+
+    @Test
+    public void perfTest() {
+        long start = Time.currentTimeMillis();
+
+        System.out.println("Creation starts");
+        IntStream.range(0, 5000).forEach(i -> withRealm(realmId, ((keycloakSession, realmModel) -> {
+            ClientModel clientModel = realmModel.addClient("client-" + i);
+
+            if (i % 10 == 0) {
+                clientModel.setAttribute("a", "a");
+            }
+
+            return null;
+        })));
+        System.out.println("Creation ends --------------------------------------------");
+        long creation = Time.currentTimeMillis() - start;
+        start = Time.currentTimeMillis();
+
+        System.out.println("Creation: " + creation + ", Search: " + (Time.currentTimeMillis() - start));
+
     }
 }
