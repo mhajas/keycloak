@@ -127,49 +127,41 @@ public class IckleQueryMapModelCriteriaBuilder<E extends AbstractHotRodEntity, M
     }
 
     private StringBuilder joinBuilders(IckleQueryMapModelCriteriaBuilder<E, M>[] builders, String delimiter) {
-        return new StringBuilder(INITIAL_BUILDER_CAPACITY).append("(").append(Arrays.stream(builders)
-                .map(IckleQueryMapModelCriteriaBuilder::getWhereClauseBuilder)
-                .filter(IckleQueryMapModelCriteriaBuilder::notEmpty)
-                .collect(Collectors.joining(delimiter))).append(")");
+
+        StringBuilder stringBuilder = new StringBuilder(INITIAL_BUILDER_CAPACITY);
+
+        stringBuilder.append("(");
+
+        boolean first = true;
+        for (IckleQueryMapModelCriteriaBuilder<E, M> builder : builders) {
+            StringBuilder whereClauseBuilder1 = builder.getWhereClauseBuilder();
+            if (notEmpty(whereClauseBuilder1)) {
+                if (!first) {
+                    stringBuilder.append(delimiter);
+                }
+
+                first = false;
+                stringBuilder.append(whereClauseBuilder1);
+            }
+        }
+
+        stringBuilder.append(")");
+
+        return stringBuilder;
     }
 
     private Map<String, Object> joinParameters(IckleQueryMapModelCriteriaBuilder<E, M>[] builders) {
-        return Arrays.stream(builders)
-                .map(IckleQueryMapModelCriteriaBuilder::getParameters)
-                .map(Map::entrySet)
-                .flatMap(Collection::stream)
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-    }
 
-    @SuppressWarnings("unchecked")
-    private IckleQueryMapModelCriteriaBuilder<E, M>[] resolveNamedQueryConflicts(IckleQueryMapModelCriteriaBuilder<E, M>[] builders) {
-        final Set<String> existingKeys = new HashSet<>();
+        Map<String, Object> params = new HashMap<>();
 
-        return Arrays.stream(builders).map(builder -> {
-           Map<String, Object> oldParameters = builder.getParameters();
+        for (IckleQueryMapModelCriteriaBuilder<E, M> builder : builders) {
+            Map<String, Object> map = builder.getParameters();
 
-           if (oldParameters.keySet().stream().noneMatch(existingKeys::contains)) {
-               existingKeys.addAll(oldParameters.keySet());
-               return builder;
-           }
-
-           String newWhereClause = builder.getWhereClauseBuilder().toString();
-           Map<String, Object> newParameters = new HashMap<>();
-           for (String key : oldParameters.keySet()) {
-               if (existingKeys.contains(key)) {
-                   // resolve conflict
-                   String newNamedParameter = findAvailableNamedParam(existingKeys, key + "n");
-                   newParameters.put(newNamedParameter, oldParameters.get(key));
-                   newWhereClause = newWhereClause.replace(key, newNamedParameter);
-                   existingKeys.add(newNamedParameter);
-               } else {
-                   newParameters.put(key, oldParameters.get(key));
-                   existingKeys.add(key);
-               }
-           }
-
-           return new IckleQueryMapModelCriteriaBuilder<>(hotRodEntityClass, new StringBuilder(newWhereClause), newParameters);
-        }).toArray(IckleQueryMapModelCriteriaBuilder[]::new);
+            if (map != null && !map.isEmpty()) {
+                params.putAll(map);
+            }
+        }
+        return params;
     }
 
     @Override
@@ -177,8 +169,6 @@ public class IckleQueryMapModelCriteriaBuilder<E extends AbstractHotRodEntity, M
         if (builders.length == 0) {
             return new IckleQueryMapModelCriteriaBuilder<>(hotRodEntityClass);
         }
-
-        builders = resolveNamedQueryConflicts(builders);
 
         return new IckleQueryMapModelCriteriaBuilder<>(hotRodEntityClass, joinBuilders(builders, " AND "),
                 joinParameters(builders));
@@ -189,8 +179,6 @@ public class IckleQueryMapModelCriteriaBuilder<E extends AbstractHotRodEntity, M
         if (builders.length == 0) {
             return new IckleQueryMapModelCriteriaBuilder<>(hotRodEntityClass);
         }
-
-        builders = resolveNamedQueryConflicts(builders);
 
         return new IckleQueryMapModelCriteriaBuilder<>(hotRodEntityClass, joinBuilders(builders, " OR "),
                 joinParameters(builders));

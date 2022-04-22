@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -51,6 +52,7 @@ public class IckleQueryOperators {
     public static final String C = "c";
     private static final Map<ModelCriteriaBuilder.Operator, String> OPERATOR_TO_STRING = new HashMap<>();
     private static final Map<ModelCriteriaBuilder.Operator, ExpressionCombinator> OPERATOR_TO_EXPRESSION_COMBINATORS = new HashMap<>();
+    private static final AtomicInteger NAMED_PARAM_COUNTER = new AtomicInteger();
 
     static {
         OPERATOR_TO_EXPRESSION_COMBINATORS.put(ModelCriteriaBuilder.Operator.IN, IckleQueryOperators::in);
@@ -157,11 +159,21 @@ public class IckleQueryOperators {
      */
     public static String findAvailableNamedParam(Set<String> existingNames, String namePrefix) {
         String namePrefixCleared = removeForbiddenCharactersFromNamedParameter(namePrefix);
-        return IntStream.iterate(0, i -> i + 1)
-                .boxed()
-                .map(num -> namePrefixCleared + num)
-                .filter(name -> !existingNames.contains(name))
-                .findFirst().orElseThrow(() -> new IllegalArgumentException("Cannot create Parameter name for " + namePrefix));
+
+        return namePrefixCleared + NAMED_PARAM_COUNTER.updateAndGet(i -> i < 0 ? 0 : i + 1); // increment and avoid negative
+
+//        for (int i = 0;; i++ ) {
+//            String possibleName = namePrefixCleared + i;
+//            if (!existingNames.contains(possibleName)) {
+//                return possibleName;
+//            }
+//        }
+
+//        return IntStream.iterate(0, i -> i + 1)
+//                .boxed()
+//                .map(num -> namePrefixCleared + num)
+//                .filter(name -> !existingNames.contains(name))
+//                .findFirst().orElseThrow(() -> new IllegalArgumentException("Cannot create Parameter name for " + namePrefix));
     }
 
     private static ExpressionCombinator singleValueOperator(ModelCriteriaBuilder.Operator op) {

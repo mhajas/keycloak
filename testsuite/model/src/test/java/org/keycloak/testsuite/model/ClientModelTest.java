@@ -36,6 +36,7 @@ import org.keycloak.models.RealmProvider;
 import org.keycloak.models.RoleModel;
 import org.keycloak.models.RoleProvider;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -277,6 +278,11 @@ public class ClientModelTest extends KeycloakModelTest {
         System.out.println("Creation ends --------------------------------------------");
         long creation = Time.currentTimeMillis() - start;
         start = Time.currentTimeMillis();
+        IntStream.range(0, 5000).forEach(i -> withRealm(realmId, ((keycloakSession, realmModel) -> {
+            keycloakSession.clients().searchClientsByAttributes(realmModel, Collections.singletonMap("a", "a"), 5, 5);
+            return null;
+        })));
+
 
         System.out.println("Creation: " + creation + ", Search: " + (Time.currentTimeMillis() - start));
 
