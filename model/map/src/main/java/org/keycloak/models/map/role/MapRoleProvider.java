@@ -162,6 +162,7 @@ public class MapRoleProvider implements RoleProvider {
         RealmModel realm = role.isClientRole() ? ((ClientModel)role.getContainer()).getRealm() : (RealmModel)role.getContainer();
 
         session.users().preRemove(realm, role);
+        getRealmRolesStream(realm, null, null).forEach(r -> r.removeCompositeRole(role));
 
         // TODO: Sending an event should be extracted to store layer
         session.getKeycloakSessionFactory().publish(new RoleContainerModel.RoleRemovedEvent() {
