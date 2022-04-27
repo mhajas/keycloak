@@ -206,7 +206,7 @@ public final class KeycloakModelUtils {
         }
 
         Set<RoleModel> compositeRoles = composite.getCompositesStream().collect(Collectors.toSet());
-        return compositeRoles.contains(role) ||
+        return compositeRoles.stream().map(RoleModel::getId).anyMatch(id -> Objects.equals(id, role.getId())) ||
                         compositeRoles.stream().anyMatch(x -> x.isComposite() && searchFor(role, x, visited));
     }
 

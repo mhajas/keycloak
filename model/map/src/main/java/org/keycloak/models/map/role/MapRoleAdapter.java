@@ -73,9 +73,11 @@ public class MapRoleAdapter extends AbstractRoleModel<MapRoleEntity> implements 
     public Stream<RoleModel> getCompositesStream() {
         Set<String> compositeRoles = entity.getCompositeRoles() == null ? Collections.emptySet() : entity.getCompositeRoles();
         LOG.tracef("%% %s(%s).getCompositesStream():%d - %s", entity.getName(), entity.getId(), compositeRoles.size(), getShortStackTrace());
-        return compositeRoles.stream()
-                .map(uuid -> session.roles().getRoleById(realm, uuid))
-                .filter(Objects::nonNull);
+
+        return session.roles().getRolesStream(realm, compositeRoles.stream(), null, null, null).filter(Objects::nonNull);
+//        return compositeRoles.stream()
+//                .map(uuid -> session.roles().getRoleById(realm, uuid))
+//                .filter(Objects::nonNull);
     }
 
     @Override
