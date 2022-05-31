@@ -18,7 +18,14 @@
 package org.keycloak.models;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.keycloak.util.EnumWithUnchangableIndex;
 
 /**
 * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
@@ -118,11 +125,30 @@ public class AuthenticationExecutionModel implements Serializable {
         this.authenticatorFlow = authenticatorFlow;
     }
 
-    public enum Requirement {
-        REQUIRED,
-        CONDITIONAL,
-        ALTERNATIVE,
-        DISABLED
+    public enum Requirement implements EnumWithUnchangableIndex {
+        REQUIRED(0),
+        CONDITIONAL(1),
+        ALTERNATIVE(2),
+        DISABLED(3);
+
+        private final Integer unchangebleId;
+        private static final Map<Integer, Requirement> BY_ID = Arrays.stream(values()).collect(Collectors.toMap(
+            Requirement::getUnchangebleIndex, 
+            Function.identity()));
+
+        private Requirement(Integer unchangebleIndex) {
+            Objects.requireNonNull(unchangebleIndex);
+            this.unchangebleId = unchangebleIndex;
+        }
+
+        @Override
+        public Integer getUnchangebleIndex() {
+            return unchangebleId;
+        }
+
+        public static Requirement valueOfInteger(Integer id) {
+            return id == null ? null : BY_ID.get(id);
+        }
     }
 
     public boolean isRequired() {

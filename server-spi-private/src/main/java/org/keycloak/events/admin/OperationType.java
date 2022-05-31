@@ -17,14 +17,39 @@
 
 package org.keycloak.events.admin;
 
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.keycloak.util.EnumWithUnchangableIndex;
+
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
  */
-public enum OperationType {
+public enum OperationType implements EnumWithUnchangableIndex {
 
-    CREATE,
-    UPDATE,
-    DELETE,
-    ACTION;
+    CREATE(0),
+    UPDATE(1),
+    DELETE(2),
+    ACTION(3);
 
+    private final Integer unchangebleIndex;
+    private static final Map<Integer, OperationType> BY_ID = Arrays.stream(values()).collect(Collectors.toMap(
+            OperationType::getUnchangebleIndex, 
+            Function.identity()));
+
+    private OperationType(Integer unchangebleIndex) {
+        Objects.requireNonNull(unchangebleIndex);
+        this.unchangebleIndex = unchangebleIndex;
+    }
+
+    @Override
+    public Integer getUnchangebleIndex() {
+        return unchangebleIndex;
+    }
+
+    public static OperationType valueOfInteger(Integer id) {
+        return id == null ? null : BY_ID.get(id);
+    }
 }

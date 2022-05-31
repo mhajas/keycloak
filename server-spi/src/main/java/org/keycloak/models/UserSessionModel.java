@@ -17,10 +17,15 @@
 
 package org.keycloak.models;
 
+import java.util.Arrays;
 import org.keycloak.storage.SearchableModelField;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.keycloak.util.EnumWithUnchangableIndex;
 
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
@@ -110,11 +115,30 @@ public interface UserSessionModel {
     // Will completely restart whole state of user session. It will just keep same ID.
     void restartSession(RealmModel realm, UserModel user, String loginUsername, String ipAddress, String authMethod, boolean rememberMe, String brokerSessionId, String brokerUserId);
 
-    enum State {
-        LOGGED_IN,
-        LOGGING_OUT,
-        LOGGED_OUT,
-        LOGGED_OUT_UNCONFIRMED;
+    enum State implements EnumWithUnchangableIndex {
+        LOGGED_IN(0),
+        LOGGING_OUT(1),
+        LOGGED_OUT(2),
+        LOGGED_OUT_UNCONFIRMED(3);
+
+        private final Integer unchangebleIndex;
+        private static final Map<Integer, State> BY_ID = Arrays.stream(values()).collect(Collectors.toMap(
+            State::getUnchangebleIndex, 
+            Function.identity()));
+
+        private State(Integer unchangebleIndex) {
+            Objects.requireNonNull(unchangebleIndex);
+            this.unchangebleIndex = unchangebleIndex;
+        }
+
+        @Override
+        public Integer getUnchangebleIndex() {
+            return unchangebleIndex;
+        }
+
+        public static State valueOfInteger(Integer id) {
+            return id == null ? null : BY_ID.get(id);
+        }
     }
 
     /**

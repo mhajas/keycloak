@@ -16,25 +16,56 @@
  */
 package org.keycloak.representations.idm.authorization;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.keycloak.util.EnumWithUnchangableIndex;
+
 /**
  * The policy enforcement mode dictates how authorization requests are handled by the server.
  *
  * @author <a href="mailto:psilva@redhat.com">Pedro Igor</a>
  */
-public enum PolicyEnforcementMode {
+public enum PolicyEnforcementMode implements EnumWithUnchangableIndex {
 
     /**
      * Requests are denied by default even when there is no policy associated with a given resource.
      */
-    ENFORCING,
+    ENFORCING(0),
 
     /**
      * Requests are allowed even when there is no policy associated with a given resource.
      */
-    PERMISSIVE,
+    PERMISSIVE(1),
 
     /**
      * Completely disables the evaluation of policies and allow access to any resource.
      */
-    DISABLED
+    DISABLED(2);
+
+    private final Integer unchangebleIndex;
+    private static final Map<Integer, PolicyEnforcementMode> BY_ID = new HashMap<>();
+
+    static {
+        for (PolicyEnforcementMode policyEnforcementMode : values()) {
+            BY_ID.put(policyEnforcementMode.getUnchangebleIndex(), policyEnforcementMode);
+        }
+    }
+
+    private PolicyEnforcementMode(Integer unchangebleIndex) {
+        Objects.requireNonNull(unchangebleIndex);
+        this.unchangebleIndex = unchangebleIndex;
+    }
+
+    @Override
+    public Integer getUnchangebleIndex() {
+        return unchangebleIndex;
+    }
+
+    public static PolicyEnforcementMode valueOfInteger(Integer id) {
+        return id == null ? null : BY_ID.get(id);
+    }
 }

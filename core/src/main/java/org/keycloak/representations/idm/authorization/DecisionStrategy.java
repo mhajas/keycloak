@@ -16,27 +16,55 @@
  */
 package org.keycloak.representations.idm.authorization;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import org.keycloak.util.EnumWithUnchangableIndex;
+
 /**
  * The decision strategy dictates how the policies associated with a given policy are evaluated and how a final decision
  * is obtained.
  *
  * @author <a href="mailto:psilva@redhat.com">Pedro Igor</a>
  */
-public enum DecisionStrategy {
+public enum DecisionStrategy implements EnumWithUnchangableIndex {
 
     /**
      * Defines that at least one policy must evaluate to a positive decision in order to the overall decision be also positive.
      */
-    AFFIRMATIVE,
+    AFFIRMATIVE(0),
 
     /**
      * Defines that all policies must evaluate to a positive decision in order to the overall decision be also positive.
      */
-    UNANIMOUS,
+    UNANIMOUS(1),
 
     /**
      * Defines that the number of positive decisions must be greater than the number of negative decisions. If the number of positive and negative is the same,
      * the final decision will be negative.
      */
-    CONSENSUS
+    CONSENSUS(2);
+
+    private final Integer unchangebleIndex;
+    private static final Map<Integer, DecisionStrategy> BY_ID = new HashMap<>();
+
+    static {
+        for (DecisionStrategy decisionStrategy : values()) {
+            BY_ID.put(decisionStrategy.getUnchangebleIndex(), decisionStrategy);
+        }
+    }
+
+    private DecisionStrategy(Integer unchangebleIndex) {
+        Objects.requireNonNull(unchangebleIndex);
+        this.unchangebleIndex = unchangebleIndex;
+    }
+
+    @Override
+    public Integer getUnchangebleIndex() {
+        return unchangebleIndex;
+    }
+
+    public static DecisionStrategy valueOfInteger(Integer id) {
+        return id == null ? null : BY_ID.get(id);
+    }
 }

@@ -17,8 +17,14 @@
 
 package org.keycloak.sessions;
 
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.RealmModel;
+import org.keycloak.util.EnumWithUnchangableIndex;
 
 /**
  * Predecesor of AuthenticationSessionModel, ClientLoginSessionModel and ClientSessionModel (then action tickets). Maybe we will remove it later...
@@ -48,14 +54,33 @@ public interface CommonClientSessionModel {
         USER_CODE_VERIFICATION
     }
 
-    enum ExecutionStatus {
-        FAILED,
-        SUCCESS,
-        SETUP_REQUIRED,
-        ATTEMPTED,
-        SKIPPED,
-        CHALLENGED,
-        EVALUATED_TRUE,
-        EVALUATED_FALSE
+    enum ExecutionStatus implements EnumWithUnchangableIndex {
+        FAILED(0),
+        SUCCESS(1),
+        SETUP_REQUIRED(2),
+        ATTEMPTED(3),
+        SKIPPED(4),
+        CHALLENGED(5),
+        EVALUATED_TRUE(6),
+        EVALUATED_FALSE(7);
+
+        private final Integer unchangebleIndex;
+        private static final Map<Integer, ExecutionStatus> BY_ID = Arrays.stream(values()).collect(Collectors.toMap(
+                ExecutionStatus::getUnchangebleIndex, 
+                Function.identity()));
+
+        private ExecutionStatus(Integer unchangebleIndex) {
+            Objects.requireNonNull(unchangebleIndex);
+            this.unchangebleIndex = unchangebleIndex;
+        }
+
+        @Override
+        public Integer getUnchangebleIndex() {
+            return unchangebleIndex;
+        }
+
+        public static ExecutionStatus valueOfInteger(Integer id) {
+            return id == null ? null : BY_ID.get(id);
+        }
     }
 }
