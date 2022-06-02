@@ -30,6 +30,7 @@ import org.keycloak.models.map.storage.ModelCriteriaBuilder;
 import org.keycloak.models.map.storage.hotRod.common.HotRodTypesUtils;
 import org.keycloak.storage.SearchableModelField;
 import org.keycloak.storage.StorageId;
+import org.keycloak.util.EnumWithUnchangableIndex;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -66,8 +67,8 @@ public class IckleQueryWhereClauses {
         WHERE_CLAUSE_PRODUCER_OVERRIDES.put(UserModel.SearchableFields.CONSENT_CLIENT_FEDERATION_LINK, IckleQueryWhereClauses::whereClauseForConsentClientFederationLink);
         WHERE_CLAUSE_PRODUCER_OVERRIDES.put(UserSessionModel.SearchableFields.CORRESPONDING_SESSION_ID, IckleQueryWhereClauses::whereClauseForCorrespondingSessionId);
         WHERE_CLAUSE_PRODUCER_OVERRIDES.put(Policy.SearchableFields.CONFIG, IckleQueryWhereClauses::whereClauseForPolicyConfig);
-        WHERE_CLAUSE_PRODUCER_OVERRIDES.put(Event.SearchableFields.EVENT_TYPE, IckleQueryWhereClauses::whereClauseForEventType);
-        WHERE_CLAUSE_PRODUCER_OVERRIDES.put(AdminEvent.SearchableFields.OPERATION_TYPE, IckleQueryWhereClauses::whereClauseForOperationType);
+        WHERE_CLAUSE_PRODUCER_OVERRIDES.put(Event.SearchableFields.EVENT_TYPE, IckleQueryWhereClauses::whereClauseForEnumWithUnchangableIndex);
+        WHERE_CLAUSE_PRODUCER_OVERRIDES.put(AdminEvent.SearchableFields.OPERATION_TYPE, IckleQueryWhereClauses::whereClauseForEnumWithUnchangableIndex);
     }
 
     @FunctionalInterface
@@ -215,30 +216,17 @@ public class IckleQueryWhereClauses {
         return "(" + nameClause + ")" + " AND " + "(" + valueClause + ")";
     }
 
-    private static String whereClauseForEventType(String modelFieldName, ModelCriteriaBuilder.Operator op, Object[] values, Map<String, Object> parameters) {
+    private static String whereClauseForEnumWithUnchangableIndex(String modelFieldName, ModelCriteriaBuilder.Operator op, Object[] values, Map<String, Object> parameters) {
         if (values != null && values.length == 1) {
-            if (values[0] instanceof EventType) {
-                values[0] = HotRodTypesUtils.migrateEventTypeToHotRodEventType((EventType) values[0]);
+            if (values[0] instanceof EnumWithUnchangableIndex) {
+                values[0] = ((EventType) values[0]).getUnchangebleIndex();
             } else if (values[0] instanceof Collection) {
-                values[0] = ((Collection<EventType>) values[0]).stream().map(HotRodTypesUtils::migrateEventTypeToHotRodEventType).collect(Collectors.toSet());
+                values[0] = ((Collection<EnumWithUnchangableIndex>) values[0]).stream().map(EnumWithUnchangableIndex::getUnchangebleIndex).collect(Collectors.toSet());
             } else if (values[0] instanceof Stream) {
-                values[0] = ((Stream<EventType>) values[0]).map(HotRodTypesUtils::migrateEventTypeToHotRodEventType);
+                values[0] = ((Stream<EnumWithUnchangableIndex>) values[0]).map(EnumWithUnchangableIndex::getUnchangebleIndex);
             }
         }
 
-        return produceWhereClause(modelFieldName, op, values, parameters);
-    }
-
-    private static String whereClauseForOperationType(String modelFieldName, ModelCriteriaBuilder.Operator op, Object[] values, Map<String, Object> parameters) {
-        if (values != null && values.length == 1) {
-            if (values[0] instanceof OperationType) {
-                values[0] = HotRodTypesUtils.migrateOperationTypeToHotRodOperationType((OperationType) values[0]);
-            } else if (values[0] instanceof Collection) {
-                values[0] = ((Collection<OperationType>) values[0]).stream().map(HotRodTypesUtils::migrateOperationTypeToHotRodOperationType).collect(Collectors.toSet());
-            } else if (values[0] instanceof Stream) {
-                values[0] = ((Stream<OperationType>) values[0]).map(HotRodTypesUtils::migrateOperationTypeToHotRodOperationType);
-            }
-        }
         return produceWhereClause(modelFieldName, op, values, parameters);
     }
 }

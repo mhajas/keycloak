@@ -42,7 +42,7 @@ public class HotRodAuthEventEntity extends AbstractHotRodEntity {
 
     @ProtoDoc("@Field(index = Index.YES, store = Store.YES)")
     @ProtoField(number = 3)
-    public HotRodEventType type;
+    public Integer type;
 
     @ProtoDoc("@Field(index = Index.YES, store = Store.YES)")
     @ProtoField(number = 4)

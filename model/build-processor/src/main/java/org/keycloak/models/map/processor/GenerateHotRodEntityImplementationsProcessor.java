@@ -70,6 +70,7 @@ public class GenerateHotRodEntityImplementationsProcessor extends AbstractGenera
         private TypeElement generalHotRodDelegate;
         private TypeElement abstractEntity;
         private TypeElement abstractHotRodEntity;
+        private TypeElement enumWithUnchangableId;
         private TypeElement hotRodUtils;
 
         @Override
@@ -102,6 +103,7 @@ public class GenerateHotRodEntityImplementationsProcessor extends AbstractGenera
             generalHotRodDelegate = elements.getTypeElement("org.keycloak.models.map.storage.hotRod.common.HotRodEntityDelegate");
             abstractEntity = elements.getTypeElement("org.keycloak.models.map.common.AbstractEntity");
             abstractHotRodEntity = elements.getTypeElement("org.keycloak.models.map.storage.hotRod.common.AbstractHotRodEntity");
+            enumWithUnchangableId = elements.getTypeElement("org.keycloak.util.EnumWithUnchangableIndex");
             hotRodUtils = elements.getTypeElement("org.keycloak.models.map.storage.hotRod.common.HotRodTypesUtils");
 
             boolean hasDeepClone = allMembers.stream()
@@ -493,6 +495,14 @@ public class GenerateHotRodEntityImplementationsProcessor extends AbstractGenera
                             + ")";
                 }
 
+            }
+
+            if (isAssignable(fromType[0], enumWithUnchangableId.asType())) {
+                return fieldNames[0] + ".getUnchangebleIndex()";
+            }
+
+            if (isAssignable(toType, enumWithUnchangableId.asType())) {
+                return toType.toString() + ".valueOfInteger(" + fieldNames[0] + ")";
             }
 
             // Try to find constructor that can do the migration

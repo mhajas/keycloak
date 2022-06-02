@@ -63,10 +63,10 @@ public class HotRodPolicyEntity extends AbstractHotRodEntity {
     public String type;
 
     @ProtoField(number = 8)
-    public HotRodDecisionStrategy decisionStrategy;
+    public Integer decisionStrategy;
 
     @ProtoField(number = 9)
-    public HotRodLogic logic;
+    public Integer logic;
 
     @ProtoField(number = 10)
     @ProtoDoc("@Field(index = Index.YES, store = Store.YES)")

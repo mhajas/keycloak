@@ -48,7 +48,7 @@ public class HotRodAdminEventEntity extends AbstractHotRodEntity {
 
     @ProtoDoc("@Field(index = Index.YES, store = Store.YES)")
     @ProtoField(number = 5)
-    public HotRodOperationType operationType;
+    public Integer operationType;
 
     @ProtoDoc("@Field(index = Index.YES, store = Store.YES)")
     @ProtoField(number = 6)

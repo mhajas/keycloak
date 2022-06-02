@@ -20,12 +20,8 @@ package org.keycloak.models.map.storage.hotRod.common;
 import org.infinispan.protostream.GeneratedSchema;
 import org.infinispan.protostream.annotations.AutoProtoSchemaBuilder;
 import org.keycloak.models.map.storage.hotRod.authSession.HotRodAuthenticationSessionEntity;
-import org.keycloak.models.map.storage.hotRod.authSession.HotRodExecutionStatus;
 import org.keycloak.models.map.storage.hotRod.authSession.HotRodRootAuthenticationSessionEntity;
-import org.keycloak.models.map.storage.hotRod.authorization.HotRodDecisionStrategy;
-import org.keycloak.models.map.storage.hotRod.authorization.HotRodLogic;
 import org.keycloak.models.map.storage.hotRod.authorization.HotRodPermissionTicketEntity;
-import org.keycloak.models.map.storage.hotRod.authorization.HotRodPolicyEnforcementMode;
 import org.keycloak.models.map.storage.hotRod.authorization.HotRodPolicyEntity;
 import org.keycloak.models.map.storage.hotRod.authorization.HotRodResourceEntity;
 import org.keycloak.models.map.storage.hotRod.authorization.HotRodResourceServerEntity;
@@ -35,8 +31,6 @@ import org.keycloak.models.map.storage.hotRod.client.HotRodProtocolMapperEntity;
 import org.keycloak.models.map.storage.hotRod.clientscope.HotRodClientScopeEntity;
 import org.keycloak.models.map.storage.hotRod.events.HotRodAdminEventEntity;
 import org.keycloak.models.map.storage.hotRod.events.HotRodAuthEventEntity;
-import org.keycloak.models.map.storage.hotRod.events.HotRodEventType;
-import org.keycloak.models.map.storage.hotRod.events.HotRodOperationType;
 import org.keycloak.models.map.storage.hotRod.group.HotRodGroupEntity;
 import org.keycloak.models.map.storage.hotRod.loginFailure.HotRodUserLoginFailureEntity;
 import org.keycloak.models.map.storage.hotRod.realm.HotRodRealmEntity;
@@ -51,7 +45,6 @@ import org.keycloak.models.map.storage.hotRod.realm.entity.HotRodLocalizationTex
 import org.keycloak.models.map.storage.hotRod.realm.entity.HotRodOTPPolicyEntity;
 import org.keycloak.models.map.storage.hotRod.realm.entity.HotRodRequiredActionProviderEntity;
 import org.keycloak.models.map.storage.hotRod.realm.entity.HotRodRequiredCredentialEntity;
-import org.keycloak.models.map.storage.hotRod.realm.entity.HotRodRequirement;
 import org.keycloak.models.map.storage.hotRod.realm.entity.HotRodWebAuthnPolicyEntity;
 import org.keycloak.models.map.storage.hotRod.role.HotRodRoleEntity;
 import org.keycloak.models.map.storage.hotRod.user.HotRodUserConsentEntity;
@@ -59,7 +52,6 @@ import org.keycloak.models.map.storage.hotRod.user.HotRodUserCredentialEntity;
 import org.keycloak.models.map.storage.hotRod.user.HotRodUserEntity;
 import org.keycloak.models.map.storage.hotRod.user.HotRodUserFederatedIdentityEntity;
 import org.keycloak.models.map.storage.hotRod.userSession.HotRodAuthenticatedClientSessionEntity;
-import org.keycloak.models.map.storage.hotRod.userSession.HotRodSessionState;
 import org.keycloak.models.map.storage.hotRod.userSession.HotRodUserSessionEntity;
 
 /**
@@ -70,7 +62,6 @@ import org.keycloak.models.map.storage.hotRod.userSession.HotRodUserSessionEntit
                 // Authentication sessions
                 HotRodRootAuthenticationSessionEntity.class,
                 HotRodAuthenticationSessionEntity.class,
-                HotRodExecutionStatus.class,
 
                 // Clients
                 HotRodClientEntity.class,
@@ -106,13 +97,11 @@ import org.keycloak.models.map.storage.hotRod.userSession.HotRodUserSessionEntit
                 HotRodOTPPolicyEntity.class,
                 HotRodRequiredActionProviderEntity.class,
                 HotRodRequiredCredentialEntity.class,
-                HotRodRequirement.class,
                 HotRodWebAuthnPolicyEntity.class,
                 HotRodRealmEntity.class,
 
                 // User sessions
                 HotRodUserSessionEntity.class,
-                HotRodSessionState.class,
 
                 // Client sessions
                 HotRodAuthenticatedClientSessionEntity.class,
@@ -123,15 +112,10 @@ import org.keycloak.models.map.storage.hotRod.userSession.HotRodUserSessionEntit
                 HotRodScopeEntity.class,
                 HotRodPolicyEntity.class,
                 HotRodPermissionTicketEntity.class,
-                HotRodDecisionStrategy.class,
-                HotRodLogic.class,
-                HotRodPolicyEnforcementMode.class,
 
                 // Events
                 HotRodAuthEventEntity.class,
-                HotRodEventType.class,
                 HotRodAdminEventEntity.class,
-                HotRodOperationType.class,
 
                 // Common
                 HotRodPair.class,
