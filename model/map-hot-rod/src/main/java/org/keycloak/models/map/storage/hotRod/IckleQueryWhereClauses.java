@@ -19,15 +19,12 @@ package org.keycloak.models.map.storage.hotRod;
 
 import org.keycloak.authorization.model.Policy;
 import org.keycloak.events.Event;
-import org.keycloak.events.EventType;
 import org.keycloak.events.admin.AdminEvent;
-import org.keycloak.events.admin.OperationType;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.UserSessionModel;
 import org.keycloak.models.map.storage.CriterionNotSupportedException;
 import org.keycloak.models.map.storage.ModelCriteriaBuilder;
-import org.keycloak.models.map.storage.hotRod.common.HotRodTypesUtils;
 import org.keycloak.storage.SearchableModelField;
 import org.keycloak.storage.StorageId;
 import org.keycloak.util.EnumWithUnchangableIndex;
@@ -219,7 +216,7 @@ public class IckleQueryWhereClauses {
     private static String whereClauseForEnumWithUnchangableIndex(String modelFieldName, ModelCriteriaBuilder.Operator op, Object[] values, Map<String, Object> parameters) {
         if (values != null && values.length == 1) {
             if (values[0] instanceof EnumWithUnchangableIndex) {
-                values[0] = ((EventType) values[0]).getUnchangebleIndex();
+                values[0] = ((EnumWithUnchangableIndex) values[0]).getUnchangebleIndex();
             } else if (values[0] instanceof Collection) {
                 values[0] = ((Collection<EnumWithUnchangableIndex>) values[0]).stream().map(EnumWithUnchangableIndex::getUnchangebleIndex).collect(Collectors.toSet());
             } else if (values[0] instanceof Stream) {
