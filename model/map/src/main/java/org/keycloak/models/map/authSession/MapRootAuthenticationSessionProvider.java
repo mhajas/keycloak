@@ -135,21 +135,12 @@ public class MapRootAuthenticationSessionProvider implements AuthenticationSessi
 
     @Override
     public void removeAllExpired() {
-        session.realms().getRealmsStream().forEach(this::removeExpired);
+        LOG.tracef("removeAllExpired()%s", getShortStackTrace());
     }
 
     @Override
     public void removeExpired(RealmModel realm) {
-        Objects.requireNonNull(realm, "The provided realm can't be null!");
-        LOG.debugf("Removing expired sessions");
-
-        DefaultModelCriteria<RootAuthenticationSessionModel> mcb = criteria();
-        mcb = mcb.compare(SearchableFields.REALM_ID, Operator.EQ, realm.getId())
-          .compare(SearchableFields.EXPIRATION, Operator.LT, Time.currentTimeMillis());
-
-        long deletedCount = tx.delete(withCriteria(mcb));
-
-        LOG.debugf("Removed %d expired authentication sessions for realm '%s'", deletedCount, realm.getName());
+        LOG.tracef("removeExpired(%s)%s", realm, getShortStackTrace());
     }
 
     @Override

@@ -74,7 +74,6 @@ public class SingleUseObjectConcurrentHashMapStorage<K, V extends AbstractEntity
         SingleUseObjectModelCriteriaBuilder mcb = criteria.flashToModelCriteriaBuilder(createSingleUseObjectCriteriaBuilder());
         if (mcb.isValid()) {
             MapSingleUseObjectEntity value = read(mcb.getKey());
-            if (value == null || (mcb.checkExpiration() && isExpired(value, false))) return Stream.empty();
             return Stream.of(value);
         }
 
