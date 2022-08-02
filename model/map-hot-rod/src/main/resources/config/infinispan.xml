@@ -17,7 +17,6 @@
             <indexing>
                 <indexed-entities>
                     <indexed-entity>kc.HotRodClientEntity</indexed-entity>
-                    <indexed-entity>kc.HotRodAttributeEntity</indexed-entity>
                 </indexed-entities>
             </indexing>
             <encoding media-type="application/x-protostream"/>
@@ -50,8 +49,6 @@
             <indexing>
                 <indexed-entities>
                     <indexed-entity>kc.HotRodUserEntity</indexed-entity>
-                    <indexed-entity>kc.HotRodAttributeEntity</indexed-entity>
-                    <indexed-entity>kc.HotRodUserFederatedIdentityEntity</indexed-entity>
                 </indexed-entities>
             </indexing>
             <encoding media-type="application/x-protostream"/>
@@ -68,7 +65,6 @@
             <indexing>
                 <indexed-entities>
                     <indexed-entity>kc.HotRodRealmEntity</indexed-entity>
-                    <indexed-entity>kc.HotRodComponentEntity</indexed-entity>
                 </indexed-entities>
             </indexing>
             <encoding media-type="application/x-protostream"/>
@@ -77,8 +73,6 @@
             <indexing>
                 <indexed-entities>
                     <indexed-entity>kc.HotRodUserSessionEntity</indexed-entity>
-                    <indexed-entity>kc.HotRodAuthenticatedClientSessionEntityReference</indexed-entity>
-                    <indexed-entity>kc.HotRodStringPair</indexed-entity>
                     <indexed-entity>kc.HotRodAuthenticatedClientSessionEntity</indexed-entity>
                 </indexed-entities>
             </indexing>
@@ -93,7 +87,6 @@
                     <indexed-entity>kc.HotRodScopeEntity</indexed-entity>
                     <indexed-entity>kc.HotRodPolicyEntity</indexed-entity>
                     <indexed-entity>kc.HotRodPermissionTicketEntity</indexed-entity>
-                    <indexed-entity>kc.HotRodStringPair</indexed-entity>
                 </indexed-entities>
             </indexing>
         </distributed-cache>
