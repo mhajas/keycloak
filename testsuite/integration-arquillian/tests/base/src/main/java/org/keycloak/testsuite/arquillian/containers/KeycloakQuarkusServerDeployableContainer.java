@@ -48,7 +48,7 @@ import org.keycloak.testsuite.arquillian.SuiteContext;
  */
 public class KeycloakQuarkusServerDeployableContainer implements DeployableContainer<KeycloakQuarkusConfiguration> {
 
-    private static final String AUTH_SERVER_QUARKUS_MAP_STORAGE_PROFILE = "auth.server.quarkus.mapStorage.profile";
+    private static final String AUTH_SERVER_QUARKUS_MAP_STORAGE_PROFILE = "auth.server.quarkus.mapStorage.profile.config";
 
     private static final Logger log = Logger.getLogger(KeycloakQuarkusServerDeployableContainer.class);
 
@@ -183,7 +183,8 @@ public class KeycloakQuarkusServerDeployableContainer implements DeployableConta
         commands.add(getCommand());
         commands.add("-v");
         commands.add("start");
-        commands.add("--optimized");
+        //commands.add("--optimized");
+        commands.add("--http-relative-path=/auth");
         commands.add("--http-enabled=true");
 
         if (Boolean.parseBoolean(System.getProperty("auth.server.debug", "false"))) {
