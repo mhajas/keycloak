@@ -21,6 +21,8 @@ import org.keycloak.connections.infinispan.InfinispanConnectionProviderFactory;
 import org.keycloak.connections.infinispan.InfinispanConnectionSpi;
 import org.keycloak.models.ActionTokenStoreSpi;
 import org.keycloak.models.SingleUseObjectSpi;
+import org.keycloak.models.cache.authorization.CachedStoreFactorySpi;
+import org.keycloak.models.cache.infinispan.authorization.InfinispanCacheStoreFactoryProviderFactory;
 import org.keycloak.models.session.UserSessionPersisterSpi;
 import org.keycloak.models.sessions.infinispan.InfinispanActionTokenStoreProviderFactory;
 import org.keycloak.models.sessions.infinispan.InfinispanAuthenticationSessionProviderFactory;
@@ -57,6 +59,7 @@ public class Infinispan extends KeycloakModelParameters {
     static final Set<Class<? extends Spi>> ALLOWED_SPIS = ImmutableSet.<Class<? extends Spi>>builder()
       .add(AuthenticationSessionSpi.class)
       .add(CacheRealmProviderSpi.class)
+      .add(CachedStoreFactorySpi.class)
       .add(CacheUserProviderSpi.class)
       .add(InfinispanConnectionSpi.class)
       .add(StickySessionEncoderSpi.class)
@@ -71,6 +74,7 @@ public class Infinispan extends KeycloakModelParameters {
     static final Set<Class<? extends ProviderFactory>> ALLOWED_FACTORIES = ImmutableSet.<Class<? extends ProviderFactory>>builder()
       .add(InfinispanAuthenticationSessionProviderFactory.class)
       .add(InfinispanCacheRealmProviderFactory.class)
+      .add(InfinispanCacheStoreFactoryProviderFactory.class)
       .add(InfinispanClusterProviderFactory.class)
       .add(InfinispanConnectionProviderFactory.class)
       .add(InfinispanUserCacheProviderFactory.class)
