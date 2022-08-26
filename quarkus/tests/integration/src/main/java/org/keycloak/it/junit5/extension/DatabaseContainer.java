@@ -97,7 +97,6 @@ public class DatabaseContainer {
         String POSTGRES_IMAGE = System.getProperty("kc.db.postgresql.container.image", "postgres:alpine");
         String MARIADB_IMAGE = System.getProperty("kc.db.mariadb.container.image", "mariadb:10.5.9");
         String MYSQL_IMAGE = System.getProperty("kc.db.mysql.container.image", "mysql:latest");
-        String INFINISPAN_IMAGE = System.getProperty("kc.infinispan.container.image");
 
         DockerImageName POSTGRES = DockerImageName.parse(POSTGRES_IMAGE).asCompatibleSubstituteFor("postgres");
         DockerImageName MARIADB = DockerImageName.parse(MARIADB_IMAGE).asCompatibleSubstituteFor("mariadb");
@@ -111,7 +110,7 @@ public class DatabaseContainer {
             case "mysql":
                 return configureJdbcContainer(new MySQLContainer(MYSQL));
             case "infinispan":
-                return configureInfinispanUser(new GenericContainer(INFINISPAN_IMAGE))
+                return configureInfinispanUser(new GenericContainer("quay.io/infinispan/server:12.1.7.Final"))
                         .withExposedPorts(11222);
             default:
                 throw new RuntimeException("Unsupported database: " + alias);
