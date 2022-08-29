@@ -43,6 +43,7 @@ import org.keycloak.services.managers.UserSessionManager;
 import org.keycloak.testsuite.model.infinispan.InfinispanTestUtil;
 import org.keycloak.timer.TimerProvider;
 
+import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -335,8 +336,10 @@ public class UserSessionProviderOfflineModelTest extends KeycloakModelTest {
         // This test is only unstable after setting "keycloak.userSessions.infinispan.preloadOfflineSessionsFromDatabase" to "true" and
         // CrossDC is enabled.
         // This is tracked in https://github.com/keycloak/keycloak/issues/14020 to be resolved.
-        Assume.assumeFalse(Objects.equals(CONFIG.scope("userSessions.infinispan").get("preloadOfflineSessionsFromDatabase"), "true") &&
-                Objects.equals(CONFIG.scope("connectionsInfinispan.default").get("remoteStoreEnabled"), "true"));
+        // Assume.assumeFalse(Objects.equals(CONFIG.scope("userSessions.infinispan").get("preloadOfflineSessionsFromDatabase"), "true") &&
+        //        Objects.equals(CONFIG.scope("connectionsInfinispan.default").get("remoteStoreEnabled"), "true"));
+
+        // there is an instance for site-1 running for the whole time of the test, this will prevent reloading the contents from the DB
 
         // as one thread fills this list and the others read it, ensure that it is synchronized to avoid side effects
         List<UserSessionModel> offlineUserSessions = Collections.synchronizedList(new LinkedList<>());
@@ -346,12 +349,6 @@ public class UserSessionProviderOfflineModelTest extends KeycloakModelTest {
         CountDownLatch afterFirstNodeLatch = new CountDownLatch(1);
 
         inIndependentFactories(2, 60, () -> {
-            inComittedTransaction(session -> {
-                InfinispanConnectionProvider provider = session.getProvider(InfinispanConnectionProvider.class);
-                TopologyInfo topologyInfo = provider.getTopologyInfo();
-                log.warnf("node %s site %2", topologyInfo.getMyNodeName(), topologyInfo.getMySiteName());
-            });
-
             if (index.incrementAndGet() == 1) {
                 createOfflineSessions("user1", 10, offlineUserSessions, offlineClientSessions);
 
@@ -373,9 +370,13 @@ public class UserSessionProviderOfflineModelTest extends KeycloakModelTest {
             withRealm(realmId, (session, realm) -> {
                 final UserModel user = session.users().getUserByUsername(realm, "user1");
                 // it might take a moment to propagate, therefore loop
+                int retry = 5;
                 while (!assertOfflineSession(offlineUserSessions, session.sessions().getOfflineUserSessionsStream(realm, user).collect(Collectors.toList()))) {
-                    // sleep(1000);
-                    throw new RuntimeException("oops!");
+                    -- retry;
+                    sleep(500);
+                    if (retry == 0) {
+                        throw new RuntimeException("not found!");
+                    }
                 }
                 return null;
             });

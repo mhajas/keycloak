@@ -62,6 +62,7 @@ public abstract class BaseCacheInitializer extends CacheInitializer {
         }
 
         InitializerState state = getStateFromCache();
+        log.debugf("state received: %s, finished: %b", state, state != null && state.isFinished());
         return state != null && state.isFinished();
     }
 

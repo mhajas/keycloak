@@ -138,7 +138,7 @@ public class RemoteCacheSessionListener<K, V extends SessionEntity>  {
             long lifespanMs = lifespanMsLoader.apply(realm, newWrapper.getEntity());
             long maxIdleTimeMs = maxIdleTimeMsLoader.apply(realm, newWrapper.getEntity());
 
-            logger.tracef("Calling putIfAbsent for entity '%s' in the cache '%s' . lifespan: %d ms, maxIdleTime: %d ms", key, remoteCache.getName(), lifespanMs, maxIdleTimeMs);
+            logger.debugf("Calling putIfAbsent for entity '%s' in the cache '%s' . lifespan: %d ms, maxIdleTime: %d ms", key, cache.getName(), lifespanMs, maxIdleTimeMs);
 
             // Using putIfAbsent. Theoretic possibility that entity was already put to cache by someone else
             cache.getAdvancedCache().withFlags(Flag.SKIP_CACHE_STORE, Flag.SKIP_CACHE_LOAD, Flag.IGNORE_RETURN_VALUES)

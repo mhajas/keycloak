@@ -113,6 +113,7 @@ public class InfinispanCacheInitializer extends BaseCacheInitializer {
 
 
     protected void startLoadingImpl(InitializerState state, SessionLoader.LoaderContext loaderCtx) {
+        log.debugf("starting to load %d segments", state.getSegmentsCount());
         // Assume each worker has same processor's count
         int processors = Runtime.getRuntime().availableProcessors();
 
