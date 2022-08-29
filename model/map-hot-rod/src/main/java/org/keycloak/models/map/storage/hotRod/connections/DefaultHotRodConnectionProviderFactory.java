@@ -54,6 +54,7 @@ import static org.keycloak.models.map.storage.hotRod.common.HotRodVersionUtils.i
 public class DefaultHotRodConnectionProviderFactory implements HotRodConnectionProviderFactory {
 
     public static final String PROVIDER_ID = "default";
+    public static final String SCRIPT_CACHE = "___script_cache";
     public static final String HOT_ROD_LOCKS_CACHE_NAME = "locks";
     private static final String HOT_ROD_INIT_LOCK_NAME = "HOT_ROD_INIT_LOCK";
     private static final Logger LOG = Logger.getLogger(DefaultHotRodConnectionProviderFactory.class);

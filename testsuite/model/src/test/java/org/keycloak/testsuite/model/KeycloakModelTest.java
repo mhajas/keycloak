@@ -16,6 +16,7 @@
  */
 package org.keycloak.testsuite.model;
 
+import org.infinispan.client.hotrod.RemoteCache;
 import org.junit.Assert;
 import org.keycloak.Config.Scope;
 import org.keycloak.authorization.AuthorizationSpi;
@@ -45,6 +46,8 @@ import org.keycloak.models.DeploymentStateSpi;
 import org.keycloak.models.UserLoginFailureSpi;
 import org.keycloak.models.UserSessionSpi;
 import org.keycloak.models.UserSpi;
+import org.keycloak.models.map.storage.hotRod.connections.DefaultHotRodConnectionProviderFactory;
+import org.keycloak.models.map.storage.hotRod.connections.HotRodConnectionProvider;
 import org.keycloak.models.locking.GlobalLockProviderSpi;
 import org.keycloak.models.utils.KeycloakModelUtils;
 import org.keycloak.models.utils.PostMigrationEvent;
@@ -63,7 +66,7 @@ import java.lang.management.LockInfo;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -637,4 +640,25 @@ public abstract class KeycloakModelTest {
         return realm;
     }
 
+    /**
+     * Moves time on the Keycloak server as well as on the remote Infinispan server if the Infinispan is used.
+     * The caller of the method is responsible to reset time offset (by calling advance(0)) after a test run.
+     * @param seconds time offset in seconds by which Keycloak (and Infinispan) server time is moved
+     */
+    protected void advanceTime(int seconds) {
+        inComittedTransaction(session -> {
+            // move time on Hot Rod server if present
+            HotRodConnectionProvider hotRodConnectionProvider = session.getProvider(HotRodConnectionProvider.class);
+            if (hotRodConnectionProvider != null) {
+                RemoteCache<Object, Object> scriptCache = hotRodConnectionProvider.getRemoteCache(DefaultHotRodConnectionProviderFactory.SCRIPT_CACHE);
+                if (scriptCache != null) {
+                    Map<String, Object> param = new HashMap<>();
+                    param.put("timeService", seconds);
+                    Object returnFromTask = scriptCache.execute("InfinispanTimeServiceTask", param);
+                    LOG.info(returnFromTask);
+                }
+            }
+            Time.setOffset(seconds);
+        });
+    }
 }

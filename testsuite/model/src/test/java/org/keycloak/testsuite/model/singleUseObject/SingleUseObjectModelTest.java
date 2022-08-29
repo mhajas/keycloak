@@ -60,7 +60,7 @@ public class SingleUseObjectModelTest extends KeycloakModelTest {
 
     @Override
     public void cleanEnvironment(KeycloakSession s) {
-        Time.setOffset(0);
+        advanceTime(0);
         s.realms().removeRealm(realmId);
     }
 
@@ -103,7 +103,7 @@ public class SingleUseObjectModelTest extends KeycloakModelTest {
             Assert.assertNotNull(notes);
             Assert.assertEquals("bar", notes.get("foo"));
 
-            Time.setOffset(70);
+            advanceTime(70);
 
             notes = singleUseObjectProvider.get(key.serializeKey());
             Assert.assertNull(notes);
@@ -154,7 +154,7 @@ public class SingleUseObjectModelTest extends KeycloakModelTest {
             Map<String, String> actualNotes = singleUseStore.get(key);
             assertThat(actualNotes, Matchers.anEmptyMap());
 
-            Time.setOffset(70);
+            advanceTime(70);
 
             Assert.assertNull(singleUseStore.get(key));
         });

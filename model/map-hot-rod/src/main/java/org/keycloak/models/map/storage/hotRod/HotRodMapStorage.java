@@ -45,12 +45,12 @@ import org.keycloak.storage.SearchableModelField;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Spliterators;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import static org.keycloak.models.map.common.ExpirationUtils.isExpired;
 import static org.keycloak.models.map.storage.hotRod.common.HotRodUtils.paginateQuery;
 import static org.keycloak.utils.StreamsUtil.closing;
 
@@ -82,6 +82,13 @@ public class HotRodMapStorage<K, E extends AbstractHotRodEntity, V extends Abstr
             value = cloner.from(keyConverter.keyToString(key), value);
         }
 
+        if (isExpirableEntity) {
+            Long lifespan = getLifespan(value);
+            if (lifespan != null) {
+                remoteCache.putIfAbsent(key, value.getHotRodEntity(), lifespan, TimeUnit.MILLISECONDS);
+                return value;
+            }
+        }
         remoteCache.putIfAbsent(key, value.getHotRodEntity());
 
         return value;
@@ -97,20 +104,22 @@ public class HotRodMapStorage<K, E extends AbstractHotRodEntity, V extends Abstr
         if (hotRodEntity == null) return null;
 
         // Create delegate that implements Map*Entity
-        V delegateEntity = delegateProducer.apply(hotRodEntity);
-
-        // Check expiration if necessary and return value
-        return isExpirableEntity && isExpired((ExpirableEntity) delegateEntity, true) ? null : delegateEntity;
+        return delegateProducer.apply(hotRodEntity);
     }
 
     @Override
     public V update(V value) {
         K key = keyConverter.fromStringSafe(value.getId());
 
+        if (isExpirableEntity) {
+            Long lifespan = getLifespan(value);
+            if (lifespan != null) {
+                E previousValue = remoteCache.replace(key, value.getHotRodEntity(), lifespan, TimeUnit.MILLISECONDS);
+                return previousValue == null ? null : delegateProducer.apply(previousValue);
+            }
+        }
         E previousValue = remoteCache.replace(key, value.getHotRodEntity());
-        if (previousValue == null) return null;
-
-        return delegateProducer.apply(previousValue);
+        return previousValue == null ? null : delegateProducer.apply(previousValue);
     }
 
     @Override
@@ -127,21 +136,11 @@ public class HotRodMapStorage<K, E extends AbstractHotRodEntity, V extends Abstr
         return modelFieldName + " " + orderString;
     }
 
-    private static String isNotExpiredIckleWhereClause() {
-        return "(" + IckleQueryOperators.C + ".expiration > " + Time.currentTimeMillis() + " OR "
-                + IckleQueryOperators.C + ".expiration is null)";
-    }
-
     @Override
     public Stream<V> read(QueryParameters<M> queryParameters) {
         IckleQueryMapModelCriteriaBuilder<E, M> iqmcb = queryParameters.getModelCriteriaBuilder()
                 .flashToModelCriteriaBuilder(createCriteriaBuilder());
         String queryString = iqmcb.getIckleQuery();
-
-        // Temporary solution until https://github.com/keycloak/keycloak/issues/12068 is fixed
-        if (isExpirableEntity) {
-            queryString += (queryString.contains("WHERE") ? " AND " : " WHERE ") + isNotExpiredIckleWhereClause();
-        }
 
         if (!queryParameters.getOrderBy().isEmpty()) {
             queryString += " ORDER BY " + queryParameters.getOrderBy().stream().map(HotRodMapStorage::toOrderString)
@@ -223,5 +222,12 @@ public class HotRodMapStorage<K, E extends AbstractHotRodEntity, V extends Abstr
     protected MapKeycloakTransaction<V, M> createTransactionInternal(KeycloakSession session) {
         Map<SearchableModelField<? super M>, MapModelCriteriaBuilder.UpdatePredicatesFunc<K, V, M>> fieldPredicates = MapFieldPredicates.getPredicates((Class<M>) storedEntityDescriptor.getModelTypeClass());
         return new ConcurrentHashMapKeycloakTransaction<>(this, keyConverter, cloner, fieldPredicates);
+    }
+
+    // V must be an instance of ExpirableEntity
+    // returns null if expiration field is not set
+    private Long getLifespan(V value) {
+        Long expiration = ((ExpirableEntity) value).getExpiration();
+        return expiration != null ? expiration - Time.currentTimeMillis() : null;
     }
 }
