@@ -374,45 +374,28 @@ public abstract class KeycloakModelTest {
             Already fixed in Infinispan 13.
             https://issues.redhat.com/browse/ISPN-13231
         */
-            Semaphore sem = new Semaphore(1);
             CountDownLatch start = new CountDownLatch(numThreads);
             CountDownLatch stop = new CountDownLatch(numThreads);
             Callable<?> independentTask = () -> {
-                AtomicBoolean locked = new AtomicBoolean(false);
-                try {
-                    sem.acquire();
-                    locked.set(true);
-                    Object val = inIndependentFactory(() -> {
-                        sem.release();
-                        locked.set(false);
+                return inIndependentFactory(() -> {
 
-                        // use the latch to ensure that all caches are online while the transaction below runs to avoid a RemoteException
-                        start.countDown();
-                        start.await();
+                    // use the latch to ensure that all caches are online while the transaction below runs to avoid a RemoteException
+                    start.countDown();
+                    // start.await();
 
-                        try {
-                            task.run();
+                    try {
+                        task.run();
 
-                            // use the latch to ensure that all caches are online while the transaction above runs to avoid a RemoteException
-                            // otherwise might fail with "Cannot wire or start components while the registry is not running" during shutdown
-                            // https://issues.redhat.com/browse/ISPN-9761
-                        } finally {
-                            stop.countDown();
-                        }
-                        stop.await();
-
-                        sem.acquire();
-                        locked.set(true);
-                        return null;
-                    });
-                    sem.release();
-                    locked.set(false);
-                    return val;
-                } finally {
-                    if (locked.get()) {
-                        sem.release();
+                        // use the latch to ensure that all caches are online while the transaction above runs to avoid a RemoteException
+                        // otherwise might fail with "Cannot wire or start components while the registry is not running" during shutdown
+                        // https://issues.redhat.com/browse/ISPN-9761
+                    } finally {
+                        stop.countDown();
                     }
-                }
+                    stop.await();
+
+                    return null;
+                });
             };
 
             // submit tasks, and wait for the results without cancelling execution so that we'll be able to analyze the thread dump

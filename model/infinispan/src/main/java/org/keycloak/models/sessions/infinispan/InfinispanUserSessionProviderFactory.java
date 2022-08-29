@@ -190,7 +190,7 @@ public class InfinispanUserSessionProviderFactory implements UserSessionProvider
                     initializer.initCache();
                     initializer.loadSessions();
 
-                    log.debug("Pre-loading userSessions from persistent storage finished");
+                    log.info("Pre-loading userSessions from persistent storage finished");
                 } else {
                     log.debug("Skipping pre-loading of userSessions from persistent storage");
                 }

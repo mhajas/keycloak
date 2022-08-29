@@ -24,6 +24,7 @@ import org.junit.Assume;
 import org.junit.Test;
 import org.keycloak.common.util.Time;
 import org.keycloak.connections.infinispan.InfinispanConnectionProvider;
+import org.keycloak.connections.infinispan.TopologyInfo;
 import org.keycloak.models.AuthenticatedClientSessionModel;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.Constants;
@@ -344,7 +345,13 @@ public class UserSessionProviderOfflineModelTest extends KeycloakModelTest {
         AtomicInteger index = new AtomicInteger();
         CountDownLatch afterFirstNodeLatch = new CountDownLatch(1);
 
-        inIndependentFactories(4, 60, () -> {
+        inIndependentFactories(2, 60, () -> {
+            inComittedTransaction(session -> {
+                InfinispanConnectionProvider provider = session.getProvider(InfinispanConnectionProvider.class);
+                TopologyInfo topologyInfo = provider.getTopologyInfo();
+                log.warnf("node %s site %2", topologyInfo.getMyNodeName(), topologyInfo.getMySiteName());
+            });
+
             if (index.incrementAndGet() == 1) {
                 createOfflineSessions("user1", 10, offlineUserSessions, offlineClientSessions);
 
@@ -367,7 +374,8 @@ public class UserSessionProviderOfflineModelTest extends KeycloakModelTest {
                 final UserModel user = session.users().getUserByUsername(realm, "user1");
                 // it might take a moment to propagate, therefore loop
                 while (!assertOfflineSession(offlineUserSessions, session.sessions().getOfflineUserSessionsStream(realm, user).collect(Collectors.toList()))) {
-                    sleep(1000);
+                    // sleep(1000);
+                    throw new RuntimeException("oops!");
                 }
                 return null;
             });
@@ -400,6 +408,7 @@ public class UserSessionProviderOfflineModelTest extends KeycloakModelTest {
                         AuthenticatedClientSessionModel testAppClientSession = session.sessions().createClientSession(realm, testAppClient, userSession);
                         AuthenticatedClientSessionModel thirdPartyClientSession = session.sessions().createClientSession(realm, thirdPartyClient, userSession);
                         UserSessionModel offlineUserSession = session.sessions().createOfflineUserSession(userSession);
+                        log.warnf("created offline session %s", offlineUserSession.getId());
                         offlineUserSessions.add(offlineUserSession);
                         offlineClientSessions.add(session.sessions().createOfflineClientSession(testAppClientSession, offlineUserSession));
                         offlineClientSessions.add(session.sessions().createOfflineClientSession(thirdPartyClientSession, offlineUserSession));
@@ -414,7 +423,7 @@ public class UserSessionProviderOfflineModelTest extends KeycloakModelTest {
         // User sessions are compared by their ID given the
         for (UserSessionModel userSession: expectedUserSessions) {
             if (!actualUserSessions.contains(userSession)) {
-                log.warnf("missing session %s", userSession);
+                log.warnf("missing session %s", userSession.getId());
                 result = false;
             }
         }

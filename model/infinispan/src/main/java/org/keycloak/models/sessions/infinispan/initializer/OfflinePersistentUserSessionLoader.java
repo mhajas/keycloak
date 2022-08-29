@@ -136,6 +136,7 @@ public class OfflinePersistentUserSessionLoader implements SessionLoader<Offline
 
     @Override
     public void afterAllSessionsLoaded(BaseCacheInitializer initializer) {
+        /*
         Cache<String, Serializable> workCache = initializer.getWorkCache();
 
         // Will retry few times for the case when backup site not available in cross-dc environment.
@@ -164,6 +165,7 @@ public class OfflinePersistentUserSessionLoader implements SessionLoader<Offline
 
 
         log.debugf("Persistent sessions loaded successfully!");
+         */
     }
 
 

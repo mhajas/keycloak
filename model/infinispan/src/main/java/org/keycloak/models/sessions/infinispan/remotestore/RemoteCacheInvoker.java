@@ -92,10 +92,8 @@ public class RemoteCacheInvoker {
             try {
                 runOnRemoteCache(topology, context.remoteCache, maxIdleTimeMs, key, task, sessionWrapper);
             } catch (HotRodClientException re) {
-                if (logger.isDebugEnabled()) {
-                    logger.debugf(re, "Failed running task '%s' on remote cache '%s' . Key: '%s', iteration '%s'. Will try to retry the task",
-                            operation, cacheName, key, iteration);
-                }
+                logger.warnf(re, "Failed running task '%s' on remote cache '%s' . Key: '%s', iteration '%s'. Will try to retry the task",
+                        operation, cacheName, key, iteration);
 
                 // Rethrow the exception. Retry will take care of handle the exception and eventually retry the operation.
                 throw re;

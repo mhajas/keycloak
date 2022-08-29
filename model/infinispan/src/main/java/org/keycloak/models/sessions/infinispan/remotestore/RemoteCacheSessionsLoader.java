@@ -120,7 +120,7 @@ public class RemoteCacheSessionsLoader implements SessionLoader<RemoteCacheSessi
 
         Set<Integer> myIspnSegments = getMyIspnSegments(ctx.getSegment(), loaderContext);
 
-        log.debugf("Will do bulk load of sessions from remote cache '%s' . Segment: %d", cache.getName(), ctx.getSegment());
+        log.infof("Will do bulk load of sessions from remote cache '%s' . Segment: %d", cache.getName(), ctx.getSegment());
 
         Map<Object, Object> remoteEntries = new HashMap<>();
         CloseableIterator<Map.Entry> iterator = null;
@@ -143,7 +143,7 @@ public class RemoteCacheSessionsLoader implements SessionLoader<RemoteCacheSessi
 
         decoratedCache.putAll(remoteEntries);
 
-        log.debugf("Successfully finished loading sessions from cache '%s' . Segment: %d, Count of sessions loaded: %d", cache.getName(), ctx.getSegment(), countLoaded);
+        log.infof("Successfully finished loading sessions from cache '%s' . Segment: %d, Count of sessions loaded: %d", cache.getName(), ctx.getSegment(), countLoaded);
 
         return new WorkerResult(true, ctx.getSegment(), ctx.getWorkerId());
     }
