@@ -347,9 +347,10 @@ public class UserSessionProviderOfflineModelTest extends KeycloakModelTest {
 
         AtomicInteger index = new AtomicInteger();
         CountDownLatch afterFirstNodeLatch = new CountDownLatch(1);
+        int numThreads = 2;
 
-        inIndependentFactories(2, 60, () -> {
-            if (index.incrementAndGet() == 1) {
+        inIndependentFactories(numThreads, 60, () -> {
+            if (index.incrementAndGet() == numThreads) {
                 createOfflineSessions("user1", 10, offlineUserSessions, offlineClientSessions);
 
                 afterFirstNodeLatch.countDown();
