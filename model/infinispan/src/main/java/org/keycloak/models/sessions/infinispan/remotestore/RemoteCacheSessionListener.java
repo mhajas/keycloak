@@ -29,6 +29,7 @@ import org.infinispan.client.hotrod.event.ClientCacheEntryRemovedEvent;
 import org.infinispan.client.hotrod.event.ClientEvent;
 import org.infinispan.context.Flag;
 import org.jboss.logging.Logger;
+import org.keycloak.connections.infinispan.InfinispanConnectionProvider;
 import org.keycloak.connections.infinispan.TopologyInfo;
 import org.keycloak.executors.ExecutorsProvider;
 import org.keycloak.models.KeycloakSession;
@@ -235,7 +236,8 @@ public class RemoteCacheSessionListener<K, V extends SessionEntity>  {
             result = topologyInfo.amIOwner(cache, key);
         }
 
-        logger.debugf("Received event from remote store. Event '%s', key '%s', skip '%b'", type, key, !result);
+        logger.debugf("Received event from remote store. Event '%s', key '%s', skip '%b', site %s, node %s", type, key, !result
+                , topologyInfo.getMySiteName(), topologyInfo.getMyNodeName());
 
         return result;
     }

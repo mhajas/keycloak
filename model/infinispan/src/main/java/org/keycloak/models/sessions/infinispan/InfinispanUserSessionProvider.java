@@ -384,7 +384,7 @@ public class InfinispanUserSessionProvider implements UserSessionProvider {
 
         Cache<String, SessionEntityWrapper<UserSessionEntity>> cache = getCache(offline);
         // Removing the following line
-        // cache = CacheDecorators.skipCacheLoaders(cache);
+        cache = CacheDecorators.skipCacheLoaders(cache);
 
         // return a stream that 'wraps' the infinispan cache stream so that the cache stream's elements are read one by one
         // and then mapped locally to avoid serialization issues when trying to manipulate the cache stream directly.
