@@ -28,10 +28,15 @@ import org.infinispan.query.remote.client.ProtobufMetadataManagerConstants;
 import org.jboss.logging.Logger;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
+import org.keycloak.models.map.storage.hotRod.HotRodLocks;
 import org.keycloak.models.map.storage.hotRod.common.HotRodEntityDescriptor;
 import org.keycloak.models.map.storage.hotRod.common.CommonPrimitivesProtoSchemaInitializer;
 import org.keycloak.models.map.storage.hotRod.common.HotRodVersionUtils;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
@@ -49,17 +54,22 @@ import static org.keycloak.models.map.storage.hotRod.common.HotRodVersionUtils.i
 public class DefaultHotRodConnectionProviderFactory implements HotRodConnectionProviderFactory {
 
     public static final String PROVIDER_ID = "default";
+    private static final String SCRIPT_CACHE = "___script_cache";
 
     private static final Logger LOG = Logger.getLogger(DefaultHotRodConnectionProviderFactory.class);
 
     private org.keycloak.Config.Scope config;
 
-    private RemoteCacheManager remoteCacheManager;
+    private volatile RemoteCacheManager remoteCacheManager;
 
     @Override
     public HotRodConnectionProvider create(KeycloakSession session) {
         if (remoteCacheManager == null) {
-            lazyInit();
+            synchronized (this) {
+                if (remoteCacheManager == null) {
+                    lazyInit();
+                }
+            }
         }
         return new DefaultHotRodConnectionProvider(remoteCacheManager);
     }
@@ -112,6 +122,14 @@ public class DefaultHotRodConnectionProviderFactory implements HotRodConnectionP
         ENTITY_DESCRIPTOR_MAP.values().stream().map(HotRodEntityDescriptor::getProtoSchema).forEach(remoteBuilder::addContextInitializer);
         remoteCacheManager = new RemoteCacheManager(remoteBuilder.build());
 
+        // Upload server tasks
+        uploadServerTasks();
+
+        // Acquire initial phase lock to avoid concurrent schema update
+        RemoteCache<String, ?> realmsCache = remoteCacheManager.getCache("realms");
+
+        HotRodLocks.acquireLock(realmsCache, "INITIAL_BLOCK", 900);
+
         Set<String> remoteCaches = ENTITY_DESCRIPTOR_MAP.values().stream()
                 .map(HotRodEntityDescriptor::getCacheName).collect(Collectors.toSet());
 
@@ -137,6 +155,29 @@ public class DefaultHotRodConnectionProviderFactory implements HotRodConnectionP
         }
 
         LOG.infof("HotRod client configuration was successful.");
+
+        HotRodLocks.releaseLock(realmsCache, "INITIAL_BLOCK");
+    }
+
+    private static String loadFileAsString(InputStream is) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        BufferedReader r = new BufferedReader(new InputStreamReader(is));
+        for (String line = r.readLine(); line != null; line = r.readLine()) {
+            sb.append(line);
+            sb.append("\n");
+        }
+        return sb.toString();
+    }
+
+    private void uploadServerTasks() {
+        final RemoteCache<String, String> serverTasksCache = remoteCacheManager.getCache(SCRIPT_CACHE);
+
+        try (InputStream is = DefaultHotRodConnectionProviderFactory.class.getResourceAsStream("/server-tasks/locking.js")) {
+            String script = loadFileAsString(is);
+            serverTasksCache.putIfAbsent("locking.js", script);
+        } catch (IOException e) {
+            throw new AssertionError(e);
+        }
     }
 
     private void registerSchemata() {
