@@ -7,8 +7,6 @@ on:
     paths-ignore:
       - '.github/workflows/**'
       - '!.github/workflows/operator-ci.yml'
-  schedule:
-    - cron: '0 0 * * *'
 
 env:
   JDK_VERSION: 11

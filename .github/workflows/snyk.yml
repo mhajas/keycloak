@@ -1,9 +1,5 @@
 name: "Snyk"
 
-on:
-  schedule:
-    - cron: "0 0 * * *"
-
 env:
   DEFAULT_JDK_VERSION: 11
 
