@@ -215,7 +215,7 @@
         <profile>
             <id>legacy-jpa+infinispan</id>
             <properties>
-                <keycloak.model.parameters>Infinispan,LegacyJpa</keycloak.model.parameters>
+                <keycloak.model.parameters>Infinispan,LegacyPostgresDatabase,LegacyJpa</keycloak.model.parameters>
             </properties>
         </profile>
         <profile>
