@@ -381,7 +381,7 @@ public class SAMLIdentityProvider extends AbstractIdentityProvider<SAMLIdentityP
                     .filter(Objects::nonNull)
                     .filter(key -> key.getStatus() == KeyStatus.ACTIVE)
                     .filter(key -> key.getCertificate() != null)
-                    .sorted(SamlService::compareKeys);
+                    .sorted(SamlService::compareKeys)
                     .map(key -> {
                         try {
                             return SPMetadataDescriptor.buildKeyInfoElement(key.getKid(), PemUtils.encodeCertificate(key.getCertificate()));
