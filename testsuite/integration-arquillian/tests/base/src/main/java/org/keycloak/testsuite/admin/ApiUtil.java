@@ -282,7 +282,7 @@ public class ApiUtil {
     public static KeysMetadataRepresentation.KeyMetadataRepresentation findActiveSigningKey(RealmResource realm, String alg) {
         KeysMetadataRepresentation keyMetadata = realm.keys().getKeyMetadata();
         for (KeysMetadataRepresentation.KeyMetadataRepresentation rep : keyMetadata.getKeys()) {
-            if (rep.getPublicKey() != null && KeyStatus.valueOf(rep.getStatus()).isActive() && KeyUse.SIG.equals(rep.getUse()) && alg.equals(rep.getAlgorithm())) {
+            if (rep.getPublicKey() != null && KeyStatus.valueOf(rep.getStatus()).isActive() && (rep.getUse() == null || KeyUse.SIG.equals(rep.getUse())) && alg.equals(rep.getAlgorithm())) {
                 return rep;
             }
         }
@@ -292,7 +292,7 @@ public class ApiUtil {
     public static KeysMetadataRepresentation.KeyMetadataRepresentation findActiveEncryptingKey(RealmResource realm) {
         KeysMetadataRepresentation keyMetadata = realm.keys().getKeyMetadata();
         for (KeysMetadataRepresentation.KeyMetadataRepresentation rep : keyMetadata.getKeys()) {
-            if (rep.getPublicKey() != null && KeyStatus.valueOf(rep.getStatus()).isActive() && KeyUse.ENC.equals(rep.getUse())) {
+            if (rep.getPublicKey() != null && KeyStatus.valueOf(rep.getStatus()).isActive() && (rep.getUse() == null || KeyUse.ENC.equals(rep.getUse()))) {
                 return rep;
             }
         }

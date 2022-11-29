@@ -362,34 +362,35 @@ public class SAMLIdentityProvider extends AbstractIdentityProvider<SAMLIdentityP
             String entityId = getEntityId(uriInfo, realm);
             String nameIDPolicyFormat = getConfig().getNameIDPolicyFormat();
 
-
-            List<Element> signingKeys = new LinkedList<>();
-            List<Element> encryptionKeys = new LinkedList<>();
-
-            Stream<KeyWrapper> sigkeys = session.keys().getKeysStream(realm, KeyType.RSA, KeyUse.SIG)
+            List<Element> signingKeys = session.keys().getKeysStream(realm, KeyType.RSA, KeyUse.SIG)
                     .filter(Objects::nonNull)
+                    .filter(key -> key.getStatus() == KeyStatus.ACTIVE)
                     .filter(key -> key.getCertificate() != null)
-                    .sorted(SamlService::compareKeys);
-            Stream<KeyWrapper> enckeys = session.keys().getKeysStream(realm, KeyType.RSA, KeyUse.ENC)
-                    .filter(Objects::nonNull)
-                    .filter(key -> key.getCertificate() != null)
-                    .sorted(SamlService::compareKeys);
-
-            Stream.concat(sigkeys,enckeys)
-                    .forEach(key -> {
+                    .sorted(SamlService::compareKeys)
+                    .map(key -> {
                         try {
-                            if (key.getStatus() == KeyStatus.ACTIVE) {
-                                Element element = SPMetadataDescriptor.buildKeyInfoElement(key.getKid(), PemUtils.encodeCertificate(key.getCertificate()));
-                                if(KeyUse.SIG.equals(key.getUse()))
-                                    signingKeys.add(element);
-                                if(KeyUse.ENC.equals(key.getUse()))
-                                    encryptionKeys.add(element);
-                            }
+                            return SPMetadataDescriptor.buildKeyInfoElement(key.getKid(), PemUtils.encodeCertificate(key.getCertificate()));
                         } catch (ParserConfigurationException e) {
                             logger.warn("Failed to export SAML SP Metadata!", e);
                             throw new RuntimeException(e);
                         }
-                    });
+                    })
+                    .collect(Collectors.toList());
+
+            List<Element> encryptionKeys = session.keys().getKeysStream(realm, KeyType.RSA, KeyUse.ENC)
+                    .filter(Objects::nonNull)
+                    .filter(key -> key.getStatus() == KeyStatus.ACTIVE)
+                    .filter(key -> key.getCertificate() != null)
+                    .sorted(SamlService::compareKeys);
+                    .map(key -> {
+                        try {
+                            return SPMetadataDescriptor.buildKeyInfoElement(key.getKid(), PemUtils.encodeCertificate(key.getCertificate()));
+                        } catch (ParserConfigurationException e) {
+                            logger.warn("Failed to export SAML SP Metadata!", e);
+                            throw new RuntimeException(e);
+                        }
+                    })
+                    .collect(Collectors.toList());
 
             // Prepare the metadata descriptor model
             StringWriter sw = new StringWriter();

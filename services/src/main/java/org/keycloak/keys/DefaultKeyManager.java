@@ -149,7 +149,7 @@ public class DefaultKeyManager implements KeyManager {
     public Stream<KeyWrapper> getKeysStream(RealmModel realm, String type, KeyUse use) {
         return getProviders(realm).stream()
                 .flatMap(p -> p.getKeysStream()
-                        .filter(key -> key.getStatus().isEnabled() && use.equals(key.getUse()) && type.equals(key.getType())));
+                        .filter(key -> key.getStatus().isEnabled() && (key.getUse() == null || use.equals(key.getUse())) && type.equals(key.getType())));
     }
 
     @Override

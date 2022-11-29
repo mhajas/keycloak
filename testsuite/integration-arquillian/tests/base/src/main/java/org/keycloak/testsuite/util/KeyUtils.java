@@ -61,7 +61,7 @@ public class KeyUtils {
 
     public static KeysMetadataRepresentation.KeyMetadataRepresentation getActiveSigningKeyOfType(KeysMetadataRepresentation keys, String type) {
         for (KeysMetadataRepresentation.KeyMetadataRepresentation k : keys.getKeys()) {
-            if (k.getType().equals(type) && KeyStatus.valueOf(k.getStatus()).isActive() && KeyUse.SIG.equals(k.getUse())) {
+            if (k.getType().equals(type) && KeyStatus.valueOf(k.getStatus()).isActive() && (k.getUse() == null || KeyUse.SIG.equals(k.getUse()))) {
                 return k;
             }
         }
@@ -70,7 +70,7 @@ public class KeyUtils {
 
     public static KeysMetadataRepresentation.KeyMetadataRepresentation getActiveEncKeyOfType(KeysMetadataRepresentation keys, String type) {
         for (KeysMetadataRepresentation.KeyMetadataRepresentation k : keys.getKeys()) {
-            if (k.getType().equals(type) && KeyStatus.valueOf(k.getStatus()).isActive() && KeyUse.ENC.equals(k.getUse())) {
+            if (k.getType().equals(type) && KeyStatus.valueOf(k.getStatus()).isActive() && (k.getUse() == null || KeyUse.ENC.equals(k.getUse()))) {
                 return k;
             }
         }

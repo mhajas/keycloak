@@ -245,14 +245,14 @@ public class KcSamlSpDescriptorTest extends AbstractBrokerTest {
             long encMatches = realmKeysMetadata.getKeys().stream()
                     .filter(k -> KeyStatus.valueOf(k.getStatus()).isActive())
                     //.filter(k -> "RSA".equals(k.getType().trim()))
-                    .filter(k -> KeyUse.ENC.equals(k.getUse()))
+                    .filter(k -> k.getUse() == null || KeyUse.ENC.equals(k.getUse()))
                     .filter(k -> encKeyDescNames.contains(k.getKid().trim()))
                     .count();
 
             long sigMatches = realmKeysMetadata.getKeys().stream()
                     .filter(k -> KeyStatus.valueOf(k.getStatus()).isActive())
                     //.filter(k -> "RSA".equals(k.getType().trim()))
-                    .filter(k -> KeyUse.SIG.equals(k.getUse()))
+                    .filter(k -> k.getUse() == null || KeyUse.SIG.equals(k.getUse()))
                     .filter(k -> sigKeyDescNames.contains(k.getKid().trim()))
                     .count();
 

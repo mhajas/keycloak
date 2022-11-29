@@ -319,7 +319,9 @@ public class OIDCPublicKeyRotationAdapterTest extends AbstractServletsAdapterTes
     private String getActiveKeyProvider(KeyUse keyUse) {
         KeysMetadataRepresentation keyMetadata = adminClient.realm(DEMO).keys().getKeyMetadata();
         return keyMetadata.getKeys().stream()
-                .filter(key -> key.getStatus().equals("ACTIVE") && keyUse.equals(key.getUse()) && key.getAlgorithm().equals(Algorithm.RS256))
+                .filter(key -> key.getStatus().equals("ACTIVE") 
+                               && (key.getUse() == null || keyUse.equals(key.getUse()))
+                               && key.getAlgorithm().equals(Algorithm.RS256))
                 .sorted(Comparator.comparingLong(KeysMetadataRepresentation.KeyMetadataRepresentation::getProviderPriority).reversed())
                 .map(key -> key.getProviderId())
                 .findFirst()
