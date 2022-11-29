@@ -67,7 +67,7 @@ public interface KeyManager {
      * @return Stream of all {@code KeyWrapper} in the realm. Never returns {@code null}.
      */
     default Stream<KeyWrapper> getKeysStream(RealmModel realm, String type, KeyUse use) {
-        return getKeysStream()
+        return getKeysStream(realm)
           .filter(key -> key.getStatus().isEnabled() 
                          && (key.getUse() == null || use.equals(key.getUse()))
                          && type.equals(key.getType()));
