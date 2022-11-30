@@ -20,10 +20,7 @@ package org.keycloak.testsuite.adapter.servlet;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
-import java.util.Comparator;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
@@ -46,7 +43,6 @@ import org.keycloak.common.util.StreamUtil;
 import org.keycloak.common.util.Time;
 import org.keycloak.constants.AdapterConstants;
 import org.keycloak.crypto.Algorithm;
-import org.keycloak.crypto.KeyUse;
 import org.keycloak.keys.KeyProvider;
 import org.keycloak.protocol.oidc.OIDCAdvancedConfigWrapper;
 import org.keycloak.protocol.oidc.OIDCLoginProtocolService;
@@ -130,9 +126,8 @@ public class OIDCPublicKeyRotationAdapterTest extends AbstractServletsAdapterTes
         // Logout
         ApiUtil.findUserByUsernameId(adminClient.realm("demo"), "bburke@redhat.com").logout();
 
-        // Generate new realm keys
-        generateNewRealmKey(KeyUse.SIG);
-        generateNewRealmKey(KeyUse.ENC);
+        // Generate new realm key
+        generateNewRealmKey();
 
         // Try to login again. It should fail now because not yet allowed to download new keys
         tokenMinTTLPage.navigateTo();
@@ -194,9 +189,6 @@ public class OIDCPublicKeyRotationAdapterTest extends AbstractServletsAdapterTes
     // KEYCLOAK-3824: Test for public-key-cache-ttl
     @Test
     public void testPublicKeyCacheTtl() {
-        String customerDBUnsecuredUrl = customerDb.getUriBuilder().clone().path("unsecured").path("foo").build().toASCIIString();
-        String tokenMinTTLUnsecuredUrl = tokenMinTTLPage.getUriBuilder().clone().path("unsecured").path("foo").build().toASCIIString();
-
         // increase accessTokenLifespan to 1200
         RealmRepresentation demoRealm = adminClient.realm(DEMO).toRepresentation();
         demoRealm.setAccessTokenLifespan(1200);
@@ -210,12 +202,9 @@ public class OIDCPublicKeyRotationAdapterTest extends AbstractServletsAdapterTes
         int status = invokeRESTEndpoint(accessTokenString);
         Assert.assertEquals(200, status);
 
-        // Re-generate realm public key and remove the old key (for both sig and enc)
-        String oldActiveKeyProviderId = getActiveKeyProvider(KeyUse.SIG);
-        generateNewRealmKey(KeyUse.SIG);
-        adminClient.realm(DEMO).components().component(oldActiveKeyProviderId).remove();
-        oldActiveKeyProviderId = getActiveKeyProvider(KeyUse.ENC);
-        generateNewRealmKey(KeyUse.ENC);
+        // Re-generate realm public key and remove the old key
+        String oldActiveKeyProviderId = getActiveKeyProvider();
+        generateNewRealmKey();
         adminClient.realm(DEMO).components().component(oldActiveKeyProviderId).remove();
 
         // Send REST request to the customer-db app. Should be still succcessfully authenticated as the JWKPublicKeyLocator cache is still valid
@@ -223,15 +212,15 @@ public class OIDCPublicKeyRotationAdapterTest extends AbstractServletsAdapterTes
         Assert.assertEquals(200, status);
 
         // TimeOffset to 900 on the REST app side. Token is still valid (1200) but JWKPublicKeyLocator should try to download new key (public-key-cache-ttl=600)
-        setAdapterAndServerTimeOffset(900, customerDBUnsecuredUrl, tokenMinTTLUnsecuredUrl);
+        setAdapterAndServerTimeOffset(900, customerDb.toString() + "/unsecured/foo");
 
         // Send REST request. New request to the publicKey cache should be sent, and key is no longer returned as token contains the old kid
         status = invokeRESTEndpoint(accessTokenString);
         Assert.assertEquals(401, status);
 
         // Revert public keys change and time offset
-        resetKeycloakDeploymentForAdapter(customerDBUnsecuredUrl);
-        resetKeycloakDeploymentForAdapter(tokenMinTTLUnsecuredUrl);
+        resetKeycloakDeploymentForAdapter(customerDb.toString() + "/unsecured/foo");
+        resetKeycloakDeploymentForAdapter(tokenMinTTLPage.toString() + "/unsecured/foo");
     }
 
 
@@ -254,18 +243,16 @@ public class OIDCPublicKeyRotationAdapterTest extends AbstractServletsAdapterTes
         String accessTokenString = tokenMinTTLPage.getAccessTokenString();
 
         // Generate new realm public key
-        String oldActiveSigKeyProviderId = getActiveKeyProvider(KeyUse.SIG);
-        generateNewRealmKey(KeyUse.SIG);
-        String oldActiveEncKeyProviderId = getActiveKeyProvider(KeyUse.ENC);
-        generateNewRealmKey(KeyUse.ENC);
+        String oldActiveKeyProviderId = getActiveKeyProvider();
+
+        generateNewRealmKey();
 
         // Send REST request to customer-db app. It should be successfully authenticated even that token is signed by the old key
         int status = invokeRESTEndpoint(accessTokenString);
         Assert.assertEquals(200, status);
 
-        // Remove the old realm keys now
-        adminClient.realm(DEMO).components().component(oldActiveSigKeyProviderId).remove();
-        adminClient.realm(DEMO).components().component(oldActiveEncKeyProviderId).remove();
+        // Remove the old realm key now
+        adminClient.realm(DEMO).components().component(oldActiveKeyProviderId).remove();
 
         // Set some offset to ensure pushing notBefore will pass
         setAdapterAndServerTimeOffset(130, customerDBUnsecuredUrl, tokenMinTTLUnsecuredUrl);
@@ -300,7 +287,7 @@ public class OIDCPublicKeyRotationAdapterTest extends AbstractServletsAdapterTes
     }
 
 
-    private void generateNewRealmKey(KeyUse keyUse) {
+    private void generateNewRealmKey() {
         String realmId = adminClient.realm(DEMO).toRepresentation().getId();
 
         ComponentRepresentation keys = new ComponentRepresentation();
@@ -310,22 +297,20 @@ public class OIDCPublicKeyRotationAdapterTest extends AbstractServletsAdapterTes
         keys.setParentId(realmId);
         keys.setConfig(new MultivaluedHashMap<>());
         keys.getConfig().putSingle("priority", "150");
-        keys.getConfig().putSingle("keyUse", keyUse.getSpecName());
         Response response = adminClient.realm(DEMO).components().add(keys);
         assertEquals(201, response.getStatus());
         response.close();
     }
 
-    private String getActiveKeyProvider(KeyUse keyUse) {
+    private String getActiveKeyProvider() {
         KeysMetadataRepresentation keyMetadata = adminClient.realm(DEMO).keys().getKeyMetadata();
-        return keyMetadata.getKeys().stream()
-                .filter(key -> key.getStatus().equals("ACTIVE") 
-                               && (key.getUse() == null || keyUse.equals(key.getUse()))
-                               && key.getAlgorithm().equals(Algorithm.RS256))
-                .sorted(Comparator.comparingLong(KeysMetadataRepresentation.KeyMetadataRepresentation::getProviderPriority).reversed())
-                .map(key -> key.getProviderId())
-                .findFirst()
-                .orElse(null);
+        String activeKid = keyMetadata.getActive().get(Algorithm.RS256);
+        for (KeysMetadataRepresentation.KeyMetadataRepresentation rep : keyMetadata.getKeys()) {
+            if (rep.getKid().equals(activeKid)) {
+                return rep.getProviderId();
+            }
+        }
+        return null;
     }
 
     private int invokeRESTEndpoint(String accessTokenString) {
