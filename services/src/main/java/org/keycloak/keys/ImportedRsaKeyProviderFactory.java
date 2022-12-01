@@ -40,10 +40,6 @@ public class ImportedRsaKeyProviderFactory extends AbstractImportedRsaKeyProvide
 
     @Override
     public KeyProvider create(KeycloakSession session, ComponentModel model) {
-        if (model.getConfig().get(Attributes.KEY_USE) == null) {
-            // for backward compatibility : it allows "enc" key use for "rsa" provider
-            model.put(Attributes.KEY_USE, KeyUse.SIG.name());
-        }
         return new ImportedRsaKeyProvider(session.getContext().getRealm(), model);
     }
 

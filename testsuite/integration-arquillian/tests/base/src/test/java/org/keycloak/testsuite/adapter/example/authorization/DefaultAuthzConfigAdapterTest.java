@@ -41,6 +41,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.keycloak.common.Profile.Feature.AUTHORIZATION;
 import static org.keycloak.testsuite.utils.io.IOUtil.loadRealm;
@@ -87,7 +89,7 @@ public class DefaultAuthzConfigAdapterTest extends AbstractExampleAdapterTest {
 
             login();
 
-            assertTrue(this.driver.getPageSource().contains("Your permissions are"));
+            assertThat(this.driver.getPageSource(), containsString("Your permissions are"));
             assertTrue(this.driver.getPageSource().contains("Default Resource"));
 
             boolean hasDefaultPermission = false;

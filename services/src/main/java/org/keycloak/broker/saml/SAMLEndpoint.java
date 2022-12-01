@@ -442,13 +442,12 @@ public class SAMLEndpoint {
                 Element assertionElement = null;
 
                 if (assertionIsEncrypted) {
-                    if(encRsaKeys == null) {
-                        encRsaKeys = session.keys()
-                                .getKeysStream(realm, KeyType.RSA, KeyUse.ENC)
-                                .filter(key -> key.getStatus().isActive())
-                                .collect(Collectors.toList());
-                    }
-                    for(KeyWrapper encRsaKey : encRsaKeys){
+                    encRsaKeys = session.keys()
+                            .getKeysStream(realm, KeyType.RSA, KeyUse.ENC)
+                            .filter(key -> key.getStatus().isActive())
+                            .collect(Collectors.toList());
+
+                    for (KeyWrapper encRsaKey : encRsaKeys) {
                         try {
                             PrivateKey privateKey = DerUtils.decodePrivateKey(encRsaKey.getPrivateKey().getEncoded());
                             // This methods writes the parsed and decrypted assertion back on the responseType parameter:

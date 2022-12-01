@@ -272,7 +272,7 @@ public class ApiUtil {
     public static KeysMetadataRepresentation.KeyMetadataRepresentation findActiveSigningKey(RealmResource realm) {
         KeysMetadataRepresentation keyMetadata = realm.keys().getKeyMetadata();
         for (KeysMetadataRepresentation.KeyMetadataRepresentation rep : keyMetadata.getKeys()) {
-            if (rep.getPublicKey() != null && KeyStatus.valueOf(rep.getStatus()).isActive() && KeyUse.SIG.equals(rep.getUse())) {
+            if (rep.getPublicKey() != null && KeyStatus.valueOf(rep.getStatus()).isActive() && (rep.getUse() == null || KeyUse.SIG.equals(rep.getUse()))) {
                 return rep;
             }
         }

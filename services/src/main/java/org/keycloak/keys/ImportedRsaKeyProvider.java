@@ -49,7 +49,8 @@ public class ImportedRsaKeyProvider extends AbstractRsaKeyProvider {
         KeyPair keyPair = new KeyPair(publicKey, privateKey);
         X509Certificate certificate = PemUtils.decodeCertificate(certificatePem);
 
-        KeyUse keyUse = KeyUse.valueOf(model.get(Attributes.KEY_USE, KeyUse.SIG.name()).toUpperCase());
+        String keyUseAttribute = model.get(Attributes.KEY_USE);
+        KeyUse keyUse = keyUseAttribute == null ? null : KeyUse.valueOf(keyUseAttribute.toUpperCase());
 
         return createKeyWrapper(keyPair, certificate, keyUse);
     }

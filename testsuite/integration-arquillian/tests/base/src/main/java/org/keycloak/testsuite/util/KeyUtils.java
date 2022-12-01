@@ -43,7 +43,7 @@ public class KeyUtils {
 
     public static KeysMetadataRepresentation.KeyMetadataRepresentation getActiveSigningKey(KeysMetadataRepresentation keys, String algorithm) {
         for (KeysMetadataRepresentation.KeyMetadataRepresentation k : keys.getKeys()) {
-            if (k.getAlgorithm().equals(algorithm) && KeyStatus.valueOf(k.getStatus()).isActive() && KeyUse.SIG.equals(k.getUse())) {
+            if (k.getAlgorithm().equals(algorithm) && KeyStatus.valueOf(k.getStatus()).isActive() && (k.getUse() == null || KeyUse.SIG.equals(k.getUse()))) {
                 return k;
             }
         }
@@ -52,7 +52,7 @@ public class KeyUtils {
 
     public static KeysMetadataRepresentation.KeyMetadataRepresentation getActiveEncKey(KeysMetadataRepresentation keys, String algorithm) {
         for (KeysMetadataRepresentation.KeyMetadataRepresentation k : keys.getKeys()) {
-            if (k.getAlgorithm().equals(algorithm) && KeyStatus.valueOf(k.getStatus()).isActive() && KeyUse.ENC.equals(k.getUse())) {
+            if (k.getAlgorithm().equals(algorithm) && KeyStatus.valueOf(k.getStatus()).isActive() && (k.getUse() == null || KeyUse.ENC.equals(k.getUse()))) {
                 return k;
             }
         }
