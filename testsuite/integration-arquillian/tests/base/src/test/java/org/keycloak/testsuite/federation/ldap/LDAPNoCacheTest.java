@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
+import javax.naming.directory.BasicAttribute;
 
 import org.jboss.arquillian.graphene.page.Page;
 import org.junit.ClassRule;
@@ -31,16 +32,19 @@ import org.junit.FixMethodOrder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
+import org.keycloak.component.ComponentModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.LDAPConstants;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.UserProvider;
+import org.keycloak.representations.idm.ComponentRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.keycloak.storage.UserStoragePrivateUtil;
 import org.keycloak.storage.UserStorageProviderModel;
 import org.keycloak.storage.ldap.LDAPStorageProvider;
 import org.keycloak.storage.ldap.idm.model.LDAPObject;
+import org.keycloak.storage.ldap.idm.store.ldap.LDAPOperationManager;
 import org.keycloak.storage.ldap.mappers.UserAttributeLDAPStorageMapper;
 import org.keycloak.storage.ldap.mappers.UserAttributeLDAPStorageMapperFactory;
 import org.keycloak.testsuite.Assert;
@@ -248,4 +252,47 @@ public class LDAPNoCacheTest extends AbstractLDAPTest {
         });
     }
 
+    @Test
+    public void removedAttributeValueAlwaysReadFromLdapMustBeNull() {
+        testingClient.server().run(session -> {
+            LDAPTestContext ctx = LDAPTestContext.init(session);
+            RealmModel realm = ctx.getRealm();
+
+            UserProvider localStorage = UserStoragePrivateUtil.userLocalStorage(session);
+            LDAPStorageProvider ldapProvider = ctx.getLdapProvider();
+
+            // Create street attribute mapper with "Always read value from LDAP"
+            ComponentModel ldapComponentMapper = LDAPTestUtils.addUserAttributeMapper(realm, ctx.getLdapModel(), "streetMapper", "street", LDAPConstants.STREET);
+            ldapComponentMapper.put(UserAttributeLDAPStorageMapper.ALWAYS_READ_VALUE_FROM_LDAP, true);
+            realm.updateComponent(ldapComponentMapper);
+
+            // assume no user imported
+            UserModel user = localStorage.getUserByUsername(realm, "carloskeycloak");
+            assumeThat(user, is(nullValue()));
+
+            // Create new user in LDAP
+            LDAPObject carlos = LDAPTestUtils.addLDAPUser(ctx.getLdapProvider(), realm, "carloskeycloak", "Carlos", "Doel", "carlos.doel@email.org", "Elm 5", "1234");
+
+            // trigger import and check street is mapped
+            List<UserModel> byEmail = ldapProvider.searchForUserByUserAttributeStream(realm, "email", "carlos.doel@email.org")
+                    .collect(Collectors.toList());
+            assumeThat(byEmail, hasSize(1));
+            assertEquals("Elm 5", byEmail.get(0).getFirstAttribute("street"));
+
+            // remove street in LDAP
+            LDAPOperationManager operationManager = new LDAPOperationManager(session, ldapProvider.getLdapIdentityStore().getConfig());
+            operationManager.removeAttribute(carlos.getDn().toString(), new BasicAttribute(LDAPConstants.STREET));
+        });
+
+        try {
+            // Search for the user and check street is null
+            UserRepresentation john = testRealm().users().search("carloskeycloak").get(0);
+            Assert.assertNull(john.getAttributes().get("street"));
+
+        } finally {
+            // Revert changes
+            ComponentRepresentation streetMapper = findMapperRepByName("streetMapper");
+            testRealm().components().component(streetMapper.getId()).remove();
+        }
+    }
 }
