@@ -1443,7 +1443,7 @@ public class OIDCAdvancedRequestParamsTest extends AbstractTestRealmKeycloakTest
 
             if (keyId == null) {
                 KeysMetadataRepresentation.KeyMetadataRepresentation encKey = KeyUtils
-                        .getActiveEncKey(testRealm().keys().getKeyMetadata(),
+                        .getActiveEncryptionKey(testRealm().keys().getKeyMetadata(),
                                 Algorithm.PS256);
                 keyId = encKey.getKid();
             }
@@ -1472,7 +1472,7 @@ public class OIDCAdvancedRequestParamsTest extends AbstractTestRealmKeycloakTest
 
     @Test
     public void testRealmPublicKeyEncryptedRequestObjectUsingKid() throws Exception {
-        KeysMetadataRepresentation.KeyMetadataRepresentation encKey = KeyUtils.getActiveEncKey(testRealm().keys().getKeyMetadata(),
+        KeysMetadataRepresentation.KeyMetadataRepresentation encKey = KeyUtils.getActiveEncryptionKey(testRealm().keys().getKeyMetadata(),
                 Algorithm.RS256);
         JWEHeader jweHeader = new JWEHeader(RSA_OAEP, JWEConstants.A128CBC_HS256, null, encKey.getKid());
         assertRequestObjectEncryption(jweHeader);
@@ -1529,7 +1529,7 @@ public class OIDCAdvancedRequestParamsTest extends AbstractTestRealmKeycloakTest
             String keyId = jweHeader.getKeyId();
 
             if (keyId == null) {
-                KeysMetadataRepresentation.KeyMetadataRepresentation encKey = KeyUtils.getActiveEncKey(testRealm().keys().getKeyMetadata(),
+                KeysMetadataRepresentation.KeyMetadataRepresentation encKey = KeyUtils.getActiveEncryptionKey(testRealm().keys().getKeyMetadata(),
                         Algorithm.PS256);
                 keyId = encKey.getKid();
             }

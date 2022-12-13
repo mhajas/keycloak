@@ -69,6 +69,7 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -335,7 +336,7 @@ public class ClientTokenExchangeSAML2Test extends AbstractKeycloakTest {
 
             // Decrypt assertion
             Document assertionDoc = DocumentUtil.getDocument(assertionXML);
-            Element assertionElement = XMLEncryptionUtil.decryptElementInDocument(assertionDoc, privateKeyFromString(ENCRYPTION_PRIVATE_KEY));
+            Element assertionElement = XMLEncryptionUtil.decryptElementInDocument(assertionDoc, data -> Collections.singletonList(privateKeyFromString(ENCRYPTION_PRIVATE_KEY)));
             Assert.assertFalse(AssertionUtil.isSignedElement(assertionElement));
             AssertionType assertion = (AssertionType) SAMLParser.getInstance().parse(assertionElement);
 
@@ -383,7 +384,7 @@ public class ClientTokenExchangeSAML2Test extends AbstractKeycloakTest {
 
             // Verify assertion
             Document assertionDoc = DocumentUtil.getDocument(assertionXML);
-            Element assertionElement = XMLEncryptionUtil.decryptElementInDocument(assertionDoc, privateKeyFromString(ENCRYPTION_PRIVATE_KEY));
+            Element assertionElement = XMLEncryptionUtil.decryptElementInDocument(assertionDoc, data -> Collections.singletonList(privateKeyFromString(ENCRYPTION_PRIVATE_KEY)));
             Assert.assertTrue(AssertionUtil.isSignedElement(assertionElement));
             AssertionType assertion = (AssertionType) SAMLParser.getInstance().parse(assertionElement);
             Assert.assertTrue(AssertionUtil.isSignatureValid(assertionElement, publicKeyFromString(REALM_PUBLIC_KEY)));

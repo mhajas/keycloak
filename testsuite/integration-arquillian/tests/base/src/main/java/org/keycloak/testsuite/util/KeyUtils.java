@@ -50,7 +50,7 @@ public class KeyUtils {
         throw new RuntimeException("Active key not found");
     }
 
-    public static KeysMetadataRepresentation.KeyMetadataRepresentation getActiveEncKey(KeysMetadataRepresentation keys, String algorithm) {
+    public static KeysMetadataRepresentation.KeyMetadataRepresentation getActiveEncryptionKey(KeysMetadataRepresentation keys, String algorithm) {
         for (KeysMetadataRepresentation.KeyMetadataRepresentation k : keys.getKeys()) {
             if (k.getAlgorithm().equals(algorithm) && KeyStatus.valueOf(k.getStatus()).isActive() && KeyUse.ENC.equals(k.getUse())) {
                 return k;

@@ -1063,6 +1063,10 @@ module.controller('RealmIdentityProviderCtrl', function($scope, $filter, $upload
             "KEY_ID",
             "CERT_SUBJECT"
         ];
+        $scope.encryptionAlgorithms = [
+            "RSA-OAEP",
+            "RSA1_5"
+        ]
         $scope.principalTypes = [
             {
                 type: "SUBJECT",

@@ -23,10 +23,13 @@ import org.keycloak.admin.client.resource.ClientScopeResource;
 import org.keycloak.admin.client.resource.RealmResource;
 import org.keycloak.admin.client.resource.RoleResource;
 import org.keycloak.admin.client.resource.UserResource;
+import org.keycloak.common.util.MultivaluedHashMap;
 import org.keycloak.crypto.KeyStatus;
 import org.keycloak.crypto.KeyUse;
+import org.keycloak.keys.KeyProvider;
 import org.keycloak.representations.idm.ClientRepresentation;
 import org.keycloak.representations.idm.ClientScopeRepresentation;
+import org.keycloak.representations.idm.ComponentRepresentation;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.GroupRepresentation;
 import org.keycloak.representations.idm.KeysMetadataRepresentation;
@@ -42,7 +45,10 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
+import static org.junit.Assert.assertEquals;
 import static org.keycloak.representations.idm.CredentialRepresentation.PASSWORD;
 
 /**
@@ -270,22 +276,49 @@ public class ApiUtil {
     }
 
     public static KeysMetadataRepresentation.KeyMetadataRepresentation findActiveSigningKey(RealmResource realm) {
-        KeysMetadataRepresentation keyMetadata = realm.keys().getKeyMetadata();
-        for (KeysMetadataRepresentation.KeyMetadataRepresentation rep : keyMetadata.getKeys()) {
-            if (rep.getPublicKey() != null && KeyStatus.valueOf(rep.getStatus()).isActive() && KeyUse.SIG.equals(rep.getUse())) {
-                return rep;
-            }
-        }
-        return null;
+        return findRealmKeys(realm, rep -> rep.getPublicKey() != null && KeyStatus.valueOf(rep.getStatus()).isActive() && KeyUse.SIG.equals(rep.getUse()))
+                .findFirst()
+                .orElse(null);
     }
 
     public static KeysMetadataRepresentation.KeyMetadataRepresentation findActiveSigningKey(RealmResource realm, String alg) {
-        KeysMetadataRepresentation keyMetadata = realm.keys().getKeyMetadata();
-        for (KeysMetadataRepresentation.KeyMetadataRepresentation rep : keyMetadata.getKeys()) {
-            if (rep.getPublicKey() != null && KeyStatus.valueOf(rep.getStatus()).isActive() && KeyUse.SIG.equals(rep.getUse()) && alg.equals(rep.getAlgorithm())) {
-                return rep;
-            }
-        }
-        return null;
+        return findRealmKeys(realm, rep -> rep.getPublicKey() != null && KeyStatus.valueOf(rep.getStatus()).isActive() && KeyUse.SIG.equals(rep.getUse()) && alg.equals(rep.getAlgorithm()))
+                .findFirst()
+                .orElse(null);
     }
+
+    public static KeysMetadataRepresentation.KeyMetadataRepresentation findActiveEncryptingKey(RealmResource realm) {
+        return findRealmKeys(realm, rep -> rep.getPublicKey() != null && KeyStatus.valueOf(rep.getStatus()).isActive() && KeyUse.ENC.equals(rep.getUse()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    public static Stream<KeysMetadataRepresentation.KeyMetadataRepresentation> findRealmKeys(RealmResource realm, Predicate<KeysMetadataRepresentation.KeyMetadataRepresentation> filter) {
+        return realm.keys().getKeyMetadata().getKeys().stream().filter(filter);
+    }
+
+    public static AutoCloseable generateNewRealmKey(RealmResource realm, KeyUse keyUse, String algorithm, String priority) {
+        String realmId = realm.toRepresentation().getId();
+
+        ComponentRepresentation keys = new ComponentRepresentation();
+        keys.setName("generated");
+        keys.setProviderType(KeyProvider.class.getName());
+        keys.setProviderId(keyUse == KeyUse.ENC ? "rsa-enc-generated" : "rsa-generated");
+        keys.setParentId(realmId);
+        keys.setConfig(new MultivaluedHashMap<>());
+        keys.getConfig().putSingle("priority", priority);
+        keys.getConfig().putSingle("keyUse", KeyUse.ENC.getSpecName());
+        keys.getConfig().putSingle("algorithm", algorithm);
+        Response response = realm.components().add(keys);
+        assertEquals(201, response.getStatus());
+        String id = ApiUtil.getCreatedId(response);
+        response.close();
+
+        return () -> realm.components().removeComponent(id);
+    }
+
+    public static AutoCloseable generateNewRealmKey(RealmResource realm, KeyUse keyUse, String algorithm) {
+        return generateNewRealmKey(realm, keyUse, algorithm, "100");
+    }
+
 }

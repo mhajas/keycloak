@@ -132,22 +132,6 @@ public class SamlProtocolUtils {
         return getPublicKey(client, SamlConfigAttributes.SAML_ENCRYPTION_CERTIFICATE_ATTRIBUTE);
     }
 
-    /**
-     * Returns private key used to decrypt SAML assertions encrypted by 3rd party SAML IDP
-     */
-    public static KeyManager.ActiveRsaKey getDecryptionKey(KeycloakSession session, RealmModel realm, SAMLIdentityProviderConfig idpConfig) {
-        String encryptionAlgorithm = idpConfig.getEncryptionAlgorithm();
-        if (encryptionAlgorithm != null && !encryptionAlgorithm.trim().isEmpty()) {
-            KeyWrapper kw = session.keys().getActiveKey(realm, KeyUse.ENC, encryptionAlgorithm);
-            return new KeyManager.ActiveRsaKey(kw);
-        } else {
-            // Backwards compatibility. Fallback to return default realm key (which is signature key, even if we're not signing anything, but decrypting stuff)
-            logger.debugf("Fallback to use default realm RSA key as a key for decrypt SAML documents. It is recommended to configure 'Encryption algorithm' on SAML IDP '%s' and configure encryption key of this algorithm in realm '%s'",
-                    idpConfig.getAlias(), realm.getName());
-            return session.keys().getActiveRsaKey(realm);
-        }
-    }
-
     public static PublicKey getPublicKey(ClientModel client, String attribute) throws VerificationException {
         String certPem = client.getAttribute(attribute);
         return getPublicKey(certPem);

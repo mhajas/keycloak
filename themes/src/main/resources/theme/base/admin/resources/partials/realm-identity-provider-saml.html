@@ -261,7 +261,7 @@
                     <div>
                         <select id="encryptionAlgorithm"
                                 ng-model="identityProvider.config.encryptionAlgorithm"
-                                ng-options="alg for alg in serverInfo.listProviderIds('cekmanagement')">
+                                ng-options="alg for alg in encryptionAlgorithms">
                         </select>
                     </div>
                 </div>
