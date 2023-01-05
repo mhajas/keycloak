@@ -171,7 +171,7 @@ public class OfflineSessionPersistenceTest extends KeycloakModelTest {
         assertOfflineSessionsExist(realmId, offlineSessionIds);
     }
 
-    @Test(timeout = 90 * 1000)
+    @Test()
     @RequireProvider(UserSessionPersisterProvider.class)
     @RequireProvider(value = UserSessionProvider.class, only = InfinispanUserSessionProviderFactory.PROVIDER_ID)
     public void testPersistenceMultipleNodesClientSessionAtSameNode() throws InterruptedException {
@@ -190,7 +190,7 @@ public class OfflineSessionPersistenceTest extends KeycloakModelTest {
         inIndependentFactories(NUM_FACTORIES, 60, () -> {
             withRealm(realmId, (session, realm) -> {
                 // Create offline sessions
-                userIds.stream().limit(userIds.size() / 10).forEach(userId -> createOfflineSessions(session, realm, userId, offlineUserSession -> {
+                userIds.stream().forEach(userId -> createOfflineSessions(session, realm, userId, offlineUserSession -> {
                   IntStream.range(0, numClients)
                     .mapToObj(cid -> session.clients().getClientById(realm, clientIds.get(cid)))
                     // TODO in the future: The following two lines are weird. Why an online client session needs to exist in order to create an offline one?
@@ -224,6 +224,12 @@ public class OfflineSessionPersistenceTest extends KeycloakModelTest {
             }
         });
 
+        reinitializeKeycloakSessionFactory();
+        inIndependentFactories(NUM_FACTORIES + 1, 30, () -> assertOfflineSessionsExist(realmId, clientSessionIds));
+        reinitializeKeycloakSessionFactory();
+        inIndependentFactories(NUM_FACTORIES + 1, 30, () -> assertOfflineSessionsExist(realmId, clientSessionIds));
+        reinitializeKeycloakSessionFactory();
+        inIndependentFactories(NUM_FACTORIES + 1, 30, () -> assertOfflineSessionsExist(realmId, clientSessionIds));
         reinitializeKeycloakSessionFactory();
         inIndependentFactories(NUM_FACTORIES + 1, 30, () -> assertOfflineSessionsExist(realmId, clientSessionIds));
     }
@@ -376,7 +382,12 @@ public class OfflineSessionPersistenceTest extends KeycloakModelTest {
         // Shutdown factory -> enforce session persistence
         closeKeycloakSessionFactory();
 
-        inIndependentFactories(4, 30, () -> assertOfflineSessionsExist(realmId, offlineSessionIds));
+        inIndependentFactories(12, 30, () -> assertOfflineSessionsExist(realmId, offlineSessionIds));
+    }
+
+    @Test
+    public void testIndependentFactories() throws InterruptedException {
+        inIndependentFactories(4, 30, () -> withRealm(realmId, (session, realmModel) -> realmModel.getId()));
     }
 
     /**
