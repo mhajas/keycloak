@@ -290,6 +290,24 @@
                             </resources>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>copy-infinispan-time-task-to-base-testsuite</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>target/lib/</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>../../../infinispan-time-task/target</directory>
+                                    <include>*.jar</include>
+                                    <exclude>*sources.jar</exclude>
+                                    <filtering>false</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
 
