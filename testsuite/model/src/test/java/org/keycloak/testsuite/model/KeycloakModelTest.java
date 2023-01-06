@@ -476,6 +476,12 @@ public abstract class KeycloakModelTest {
         } catch (Exception ex) {
             throw new RuntimeException(ex);
         } finally {
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            }
             closeKeycloakSessionFactory();
             setFactory(original);
         }
