@@ -67,12 +67,12 @@ public class MapRootAuthenticationSessionProvider implements AuthenticationSessi
 
     private Function<MapRootAuthenticationSessionEntity, RootAuthenticationSessionModel> entityToAdapterFunc(RealmModel realm) {
         return origEntity -> {
-            if (isExpired(origEntity, true)) {
+            /*if (isExpired(origEntity, true)) {
                 tx.delete(origEntity.getId());
                 return null;
-            } else {
+            } else {*/
                 return new MapRootAuthenticationSessionAdapter(session, realm, origEntity, authSessionsLimit);
-            }
+            //}
         };
     }
 

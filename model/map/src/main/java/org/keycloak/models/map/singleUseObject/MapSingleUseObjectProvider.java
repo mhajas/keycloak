@@ -152,11 +152,11 @@ public class MapSingleUseObjectProvider implements SingleUseObjectProvider {
 
         MapSingleUseObjectEntity singleUseEntity = singleUseObjectTx.read(withCriteria(mcb)).findFirst().orElse(null);
         if (singleUseEntity != null) {
-            if (isExpired(singleUseEntity, false)) {
-               singleUseObjectTx.delete(singleUseEntity.getId());
-            } else {
+            //if (isExpired(singleUseEntity, false)) {
+            //   singleUseObjectTx.delete(singleUseEntity.getId());
+            //} else {
                 return singleUseEntity;
-           }
+          // }
         }
         return null;
     }

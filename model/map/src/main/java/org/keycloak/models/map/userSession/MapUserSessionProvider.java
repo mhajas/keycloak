@@ -81,16 +81,16 @@ public class MapUserSessionProvider implements UserSessionProvider {
         // Clone entity before returning back, to avoid giving away a reference to the live object to the caller
         return (origEntity) -> {
             if (origEntity == null) return null;
-            if (isExpired(origEntity, false)) {
+            /*if (isExpired(origEntity, false)) {
                 if (TRANSIENT == origEntity.getPersistenceState()) {
                     transientUserSessions.remove(origEntity.getId());
                 } else {
                     userSessionTx.delete(origEntity.getId());
                 }
                 return null;
-            } else {
+            } else {*/
                 return new MapUserSessionAdapter(session, realm, origEntity);
-            }
+            //}
         };
     }
 
