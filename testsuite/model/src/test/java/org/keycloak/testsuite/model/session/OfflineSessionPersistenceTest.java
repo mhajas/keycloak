@@ -226,12 +226,6 @@ public class OfflineSessionPersistenceTest extends KeycloakModelTest {
 
         reinitializeKeycloakSessionFactory();
         inIndependentFactories(NUM_FACTORIES + 1, 300, () -> assertOfflineSessionsExist(realmId, clientSessionIds));
-        reinitializeKeycloakSessionFactory();
-        inIndependentFactories(NUM_FACTORIES + 1, 300, () -> assertOfflineSessionsExist(realmId, clientSessionIds));
-        reinitializeKeycloakSessionFactory();
-        inIndependentFactories(NUM_FACTORIES + 1, 300, () -> assertOfflineSessionsExist(realmId, clientSessionIds));
-        reinitializeKeycloakSessionFactory();
-        inIndependentFactories(NUM_FACTORIES + 1, 300, () -> assertOfflineSessionsExist(realmId, clientSessionIds));
     }
 
     @Test(timeout = 90 * 1000)

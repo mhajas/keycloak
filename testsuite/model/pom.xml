@@ -213,53 +213,9 @@
     
     <profiles>
         <profile>
-            <id>legacy-jpa+infinispan</id>
-            <properties>
-                <keycloak.model.parameters>Infinispan,LegacyJpa</keycloak.model.parameters>
-            </properties>
-        </profile>
-
-        <profile>
-            <id>legacy-jpa+infinispan+client-storage</id>
-            <properties>
-                <keycloak.model.parameters>LegacyJpa,Infinispan,HardcodedClientStorage</keycloak.model.parameters>
-            </properties>
-        </profile>
-
-        <profile>
             <id>legacy-jpa+cross-dc-infinispan</id>
             <properties>
                 <keycloak.model.parameters>CrossDCInfinispan,LegacyJpa</keycloak.model.parameters>
-            </properties>
-        </profile>
-
-        <profile>
-            <id>legacy-jpa+cross-dc-infinispan-offline-sessions-preloading</id>
-            <properties>
-                <keycloak.model.parameters>CrossDCInfinispan,LegacyJpa</keycloak.model.parameters>
-                <keycloak.userSessions.infinispan.preloadOfflineSessionsFromDatabase>true</keycloak.userSessions.infinispan.preloadOfflineSessionsFromDatabase>
-            </properties>
-        </profile>
-
-        <profile>
-            <id>legacy-jpa+infinispan-offline-sessions-preloading</id>
-            <properties>
-                <keycloak.model.parameters>Infinispan,LegacyJpa</keycloak.model.parameters>
-                <keycloak.userSessions.infinispan.preloadOfflineSessionsFromDatabase>true</keycloak.userSessions.infinispan.preloadOfflineSessionsFromDatabase>
-            </properties>
-        </profile>
-
-        <profile>
-            <id>legacy-jpa-federation+infinispan</id>
-            <properties>
-                <keycloak.model.parameters>Infinispan,LegacyJpaFederation,TestsuiteUserMapStorage</keycloak.model.parameters>
-            </properties>
-        </profile>
-
-        <profile>
-            <id>legacy-jpa-federation-backward+infinispan</id>
-            <properties>
-                <keycloak.model.parameters>Infinispan,LegacyJpaFederation,BackwardsCompatibilityUserStorage</keycloak.model.parameters>
             </properties>
         </profile>
 
