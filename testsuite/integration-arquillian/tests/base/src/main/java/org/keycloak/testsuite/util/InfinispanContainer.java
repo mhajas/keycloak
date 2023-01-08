@@ -54,7 +54,7 @@ public class InfinispanContainer extends GenericContainer<InfinispanContainer> {
         withEnv("USER", USERNAME);
         withEnv("PASS", PASSWORD);
         withNetworkMode("host");
-
+        
         Path dir = Path.of(Path.of("").toAbsolutePath() + "/target/lib");
         Path timeTaskPath;
         try {
