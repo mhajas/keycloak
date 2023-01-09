@@ -193,7 +193,7 @@ public class UserSessionProviderModelTest extends KeycloakModelTest {
                         clientSession.setTimestamp(1);
                     });
                 } else {
-                    Time.setOffset(1000);
+                    advanceTime(1000);
                 }
             });
 
@@ -211,7 +211,7 @@ public class UserSessionProviderModelTest extends KeycloakModelTest {
                 });
             });
         } finally {
-            Time.setOffset(0);
+            advanceTime(0);
             kcSession.getKeycloakSessionFactory().publish(new ResetTimeOffsetEvent());
             if (timer != null && timerTaskCtx != null) {
                 timer.schedule(timerTaskCtx.getRunnable(), timerTaskCtx.getIntervalMillis(), PersisterLastSessionRefreshStoreFactory.DB_LSR_PERIODIC_TASK_NAME);
