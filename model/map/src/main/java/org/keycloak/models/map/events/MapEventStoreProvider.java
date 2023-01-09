@@ -81,12 +81,12 @@ public class MapEventStoreProvider implements EventStoreProvider {
 
     private boolean filterExpired(ExpirableEntity event) {
         // Check if entity is expired
-        if (isExpired(event, true)) {
+        /*if (isExpired(event, true)) {
             // Remove entity
             authEventsTX.delete(event.getId());
 
             return false; // Do not include entity in the resulting stream
-        }
+        }*/
 
         return true; // Entity is not expired
     }

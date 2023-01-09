@@ -145,7 +145,7 @@ public class MapUserSessionAdapter extends AbstractUserSessionModel {
     }
 
     public boolean filterAndRemoveExpiredClientSessions(MapAuthenticatedClientSessionEntity clientSession) {
-        try {
+        /*try {
             if (isExpired(clientSession, false)) {
                 entity.removeAuthenticatedClientSession(clientSession.getClientId());
                 return false;
@@ -153,7 +153,7 @@ public class MapUserSessionAdapter extends AbstractUserSessionModel {
         } catch (ModelIllegalStateException ex) {
             entity.removeAuthenticatedClientSession(clientSession.getClientId());
             return false;
-        }
+        }*/
 
         return true;
     }
