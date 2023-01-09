@@ -214,6 +214,11 @@ public interface TestingResource {
     @Produces(MediaType.APPLICATION_JSON)
     void revertTestingInfinispanTimeService();
 
+    @POST
+    @Path("/set-infinispan-time-task")
+    @Produces(MediaType.APPLICATION_JSON)
+    void setInfinispanTimeTask(@QueryParam("seconds") int seconds);
+
     @GET
     @Path("/get-client-sessions-count")
     @Produces(MediaType.APPLICATION_JSON)

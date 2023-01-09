@@ -464,6 +464,8 @@ public class UserSessionPersisterProviderTest extends KeycloakModelTest {
             }
             return null;
         });
+
+        advanceTime(0);
     }
 
     @Test

@@ -17,6 +17,7 @@
 
 package org.keycloak.testsuite.rest;
 
+import org.infinispan.client.hotrod.RemoteCache;
 import org.jboss.resteasy.annotations.cache.NoCache;
 import org.keycloak.http.HttpRequest;
 import org.keycloak.Config;
@@ -45,6 +46,9 @@ import org.keycloak.models.UserCredentialModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.UserProvider;
 import org.keycloak.models.UserSessionModel;
+import org.keycloak.models.map.storage.hotRod.connections.DefaultHotRodConnectionProviderFactory;
+import org.keycloak.models.map.storage.hotRod.connections.HotRodConnectionProvider;
+import org.keycloak.models.map.storage.hotRod.connections.HotRodConnectionSpi;
 import org.keycloak.models.sessions.infinispan.changes.sessions.CrossDCLastSessionRefreshStoreFactory;
 import org.keycloak.models.utils.ModelToRepresentation;
 import org.keycloak.models.utils.ResetTimeOffsetEvent;
@@ -203,6 +207,22 @@ public class TestingResourceProvider implements RealmResourceProvider {
     public Response revertTestingInfinispanTimeService() {
         InfinispanTestUtil.revertTimeService(session);
         return Response.noContent().build();
+    }
+
+    @POST
+    @Path("/set-infinispan-time-task")
+    @Produces(MediaType.APPLICATION_JSON)
+    public void setInfinispanTimeTask(@QueryParam("seconds") int seconds) {
+        // move time on Hot Rod server if present
+        String provider = Config.getProvider(HotRodConnectionSpi.NAME);
+        if (provider != null) {
+            RemoteCache<Object, Object> scriptCache = session.getProvider(HotRodConnectionProvider.class).getRemoteCache(DefaultHotRodConnectionProviderFactory.SCRIPT_CACHE);
+            if (scriptCache != null) {
+                Map<String, Object> param = new HashMap<>();
+                param.put("timeService", seconds);
+                scriptCache.execute("InfinispanTimeServiceTask", param);
+            }
+        }
     }
 
     @GET

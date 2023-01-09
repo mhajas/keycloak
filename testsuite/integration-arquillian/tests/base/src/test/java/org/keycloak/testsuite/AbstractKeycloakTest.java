@@ -685,6 +685,16 @@ public abstract class AbstractKeycloakTest {
         return String.valueOf(result);
     }
 
+    /**
+     * Moves time on the Keycloak server as well as on the remote Infinispan server if the Infinispan is used.
+     * The caller of the method is responsible to reset time offset (by calling advance(0)) after a test run.
+     * @param seconds time offset in seconds by which Keycloak (and Infinispan) server time is moved
+     */
+    protected void advanceTime(int seconds) {
+        testingClient.testing().setInfinispanTimeTask(seconds);
+        setTimeOffset(seconds);
+    }
+
     private void loadConstantsProperties() throws ConfigurationException {
         constantsProperties = new PropertiesConfiguration(System.getProperty("testsuite.constants"));
         constantsProperties.setThrowExceptionOnMissing(true);

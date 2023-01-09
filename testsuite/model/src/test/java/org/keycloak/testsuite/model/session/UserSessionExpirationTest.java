@@ -17,12 +17,15 @@
 
 package org.keycloak.testsuite.model.session;
 
+import org.infinispan.client.hotrod.RemoteCache;
 import org.junit.Test;
 import org.keycloak.models.Constants;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.RealmProvider;
+import org.keycloak.models.UserSessionModel;
 import org.keycloak.models.UserSessionProvider;
+import org.keycloak.models.map.storage.hotRod.connections.HotRodConnectionProvider;
 import org.keycloak.models.map.userSession.MapUserSessionProviderFactory;
 import org.keycloak.testsuite.model.KeycloakModelTest;
 import org.keycloak.testsuite.model.RequireProvider;
@@ -70,5 +73,6 @@ public class UserSessionExpirationTest extends KeycloakModelTest {
 
         assertThat(withRealm(realmId, (session, realm) -> session.sessions().getUserSession(realm, uSId)), nullValue());
 
+        advanceTime(0);
     }
 }

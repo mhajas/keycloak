@@ -59,6 +59,7 @@ public class AuthenticationSessionTest extends KeycloakModelTest {
 
     @Override
     public void cleanEnvironment(KeycloakSession s) {
+        advanceTime(0);
         s.realms().removeRealm(realmId);
     }
 

@@ -525,7 +525,7 @@ public class LoginTest extends AbstractTestRealmKeycloakTest {
         try {
             // Setting offset to more than one day to force password update
             // elapsedTime > timeToExpire
-            setTimeOffset(86405);
+            advanceTime(86405);
 
             loginPage.open();
 
@@ -535,7 +535,7 @@ public class LoginTest extends AbstractTestRealmKeycloakTest {
 
             updatePasswordPage.changePassword("updatedPassword", "updatedPassword");
 
-            setTimeOffset(0);
+            advanceTime(0);
 
             events.expectRequiredAction(EventType.UPDATE_PASSWORD).user(userId).detail(Details.USERNAME, "login-test").assertEvent();
 
@@ -559,7 +559,7 @@ public class LoginTest extends AbstractTestRealmKeycloakTest {
         try {
             // Setting offset to less than one day to avoid forced password update
             // elapsedTime < timeToExpire
-            setTimeOffset(86205);
+            advanceTime(86205);
 
             loginPage.open();
 
@@ -568,7 +568,7 @@ public class LoginTest extends AbstractTestRealmKeycloakTest {
             Assert.assertEquals(RequestType.AUTH_RESPONSE, appPage.getRequestType());
             Assert.assertNotNull(oauth.getCurrentQuery().get(OAuth2Constants.CODE));
 
-            setTimeOffset(0);
+            advanceTime(0);
 
             events.expectLogin().user(userId).detail(Details.USERNAME, "login-test").assertEvent();
         } finally {
@@ -580,11 +580,11 @@ public class LoginTest extends AbstractTestRealmKeycloakTest {
     public void loginNoTimeoutWithLongWait() {
         loginPage.open();
 
-        setTimeOffset(1700);
+        advanceTime(1700);
 
         loginPage.login("login-test", "password");
 
-        setTimeOffset(0);
+        advanceTime(0);
 
         events.expectLogin().user(userId).detail(Details.USERNAME, "login-test").assertEvent().getSessionId();
     }
@@ -752,13 +752,13 @@ public class LoginTest extends AbstractTestRealmKeycloakTest {
     public void loginExpiredCode() {
         loginPage.open();
         // authSession expired and removed from the storage
-        setTimeOffset(5000);
+        advanceTime(5000);
 
         loginPage.login("login@test.com", "password");
         loginPage.assertCurrent();
 
         Assert.assertEquals("Your login attempt timed out. Login will start from the beginning.", loginPage.getError());
-        setTimeOffset(0);
+        advanceTime(0);
 
         events.expectLogin().client((String) null).user((String) null).session((String) null).error(Errors.EXPIRED_CODE).clearDetails()
                 .assertEvent();
@@ -768,7 +768,7 @@ public class LoginTest extends AbstractTestRealmKeycloakTest {
     @Test
     public void loginExpiredCodeWithExplicitRemoveExpired() {
         loginPage.open();
-        setTimeOffset(5000);
+        advanceTime(5000);
 
         loginPage.login("login@test.com", "password");
 
@@ -776,7 +776,7 @@ public class LoginTest extends AbstractTestRealmKeycloakTest {
 
         Assert.assertEquals("Your login attempt timed out. Login will start from the beginning.", loginPage.getError());
 
-        setTimeOffset(0);
+        advanceTime(0);
 
         events.expectLogin().user((String) null).session((String) null).error(Errors.EXPIRED_CODE).clearDetails()
                 .detail(Details.RESTART_AFTER_TIMEOUT, "true")
@@ -798,7 +798,7 @@ public class LoginTest extends AbstractTestRealmKeycloakTest {
             events.expectLogin().user(userId).assertEvent();
 
             // wait for a timeout
-            setTimeOffset(6);
+            advanceTime(6);
 
             loginPage.open();
             loginPage.login("login@test.com", "password");
@@ -866,7 +866,7 @@ public class LoginTest extends AbstractTestRealmKeycloakTest {
     public void openLoginFormAfterExpiredCode() throws Exception {
         oauth.openLoginForm();
 
-        setTimeOffset(5000);
+        advanceTime(5000);
 
         oauth.openLoginForm();
 
@@ -900,7 +900,7 @@ public class LoginTest extends AbstractTestRealmKeycloakTest {
             appPage.assertCurrent();
 
             // expire idle timeout using the timeout window.
-            setTimeOffset(2 + SessionTimeoutHelper.IDLE_TIMEOUT_WINDOW_SECONDS);
+            advanceTime(2 + SessionTimeoutHelper.IDLE_TIMEOUT_WINDOW_SECONDS);
 
             // trying to open the account page with an expired idle timeout should redirect back to the login page.
             appPage.openAccount();
@@ -929,7 +929,7 @@ public class LoginTest extends AbstractTestRealmKeycloakTest {
             appPage.assertCurrent();
 
             // expire the max lifespan.
-            setTimeOffset(2);
+            advanceTime(2);
 
             // trying to open the account page with an expired lifespan should redirect back to the login page.
             appPage.openAccount();
