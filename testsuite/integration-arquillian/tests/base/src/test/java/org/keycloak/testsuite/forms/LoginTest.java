@@ -805,6 +805,9 @@ public class LoginTest extends AbstractTestRealmKeycloakTest {
 
             events.expectLogin().user(userId).assertEvent();
         }
+        finally {
+            advanceTime(0);
+        }
     }
 
 
@@ -877,6 +880,8 @@ public class LoginTest extends AbstractTestRealmKeycloakTest {
         appPage.assertCurrent();
 
         events.expectLogin().detail(Details.USERNAME, "test-user@localhost").assertEvent();
+
+        advanceTime(0);
     }
 
     @Test
@@ -906,6 +911,9 @@ public class LoginTest extends AbstractTestRealmKeycloakTest {
             appPage.openAccount();
             loginPage.assertCurrent();
         }
+        finally {
+            advanceTime(0);
+        }
     }
 
     @Test
@@ -934,6 +942,9 @@ public class LoginTest extends AbstractTestRealmKeycloakTest {
             // trying to open the account page with an expired lifespan should redirect back to the login page.
             appPage.openAccount();
             loginPage.assertCurrent();
+        }
+        finally {
+            advanceTime(0);
         }
     }
 
