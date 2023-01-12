@@ -85,7 +85,11 @@ public class HotRodMapStorage<K, E extends AbstractHotRodEntity, V extends Abstr
         if (isExpirableEntity) {
             Long lifespan = getLifespan(value);
             if (lifespan != null) {
-                remoteCache.putIfAbsent(key, value.getHotRodEntity(), lifespan, TimeUnit.MILLISECONDS);
+                if (lifespan > 0) {
+                    remoteCache.putIfAbsent(key, value.getHotRodEntity(), lifespan, TimeUnit.MILLISECONDS);
+                } else {
+                    LOG.warnf("Skipped creation of entity %s in storage due to negative/zero lifespan.", key);
+                }
                 return value;
             }
         }
@@ -114,7 +118,13 @@ public class HotRodMapStorage<K, E extends AbstractHotRodEntity, V extends Abstr
         if (isExpirableEntity) {
             Long lifespan = getLifespan(value);
             if (lifespan != null) {
-                E previousValue = remoteCache.replace(key, value.getHotRodEntity(), lifespan, TimeUnit.MILLISECONDS);
+                E previousValue;
+                if (lifespan > 0) {
+                    previousValue = remoteCache.replace(key, value.getHotRodEntity(), lifespan, TimeUnit.MILLISECONDS);
+                } else {
+                    LOG.warnf("Removing entity %s from storage due to negative/zero lifespan.", key);
+                    previousValue = remoteCache.remove(key);
+                }
                 return previousValue == null ? null : delegateProducer.apply(previousValue);
             }
         }
@@ -226,6 +236,7 @@ public class HotRodMapStorage<K, E extends AbstractHotRodEntity, V extends Abstr
 
     // V must be an instance of ExpirableEntity
     // returns null if expiration field is not set
+    // in certain cases can return 0 or negative number, which needs to be handled carefully when using as ISPN lifespan
     private Long getLifespan(V value) {
         Long expiration = ((ExpirableEntity) value).getExpiration();
         return expiration != null ? expiration - Time.currentTimeMillis() : null;
