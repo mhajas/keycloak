@@ -128,7 +128,7 @@ public class MapUserSessionAdapter extends AbstractUserSessionModel {
 
         return authenticatedClientSessions
                     .stream()
-                    .filter(this::filterAndRemoveExpiredClientSessions)
+                    //.filter(this::filterAndRemoveExpiredClientSessions)
                     .filter(this::matchingOfflineFlag)
                     .filter(this::filterAndRemoveClientSessionWithoutClient)
                     .collect(Collectors.toMap(MapAuthenticatedClientSessionEntity::getClientId, this::clientSessionEntityToModel));
@@ -184,7 +184,7 @@ public class MapUserSessionAdapter extends AbstractUserSessionModel {
     @Override
     public AuthenticatedClientSessionModel getAuthenticatedClientSessionByClient(String clientUUID) {
         return entity.getAuthenticatedClientSession(clientUUID)
-                .filter(this::filterAndRemoveExpiredClientSessions)
+                //.filter(this::filterAndRemoveExpiredClientSessions)
                 .filter(this::matchingOfflineFlag)
                 .filter(this::filterAndRemoveClientSessionWithoutClient)
                 .map(this::clientSessionEntityToModel)
