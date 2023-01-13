@@ -644,16 +644,19 @@ public abstract class AbstractKeycloakTest {
 
     /**
      * Sets time offset in seconds that will be added to Time.currentTime() and Time.currentTimeMillis() both for client and server.
+     * Moves time on the remote Infinispan server as well if the Infinispan is used.
      *
      * @param offset
      */
     public void setTimeOffset(int offset) {
+        testingClient.testing().setInfinispanTimeTask(offset);
         String response = invokeTimeOffset(offset);
         resetTimeOffset = offset != 0;
         log.debugv("Set time offset, response {0}", response);
     }
 
     public void resetTimeOffset() {
+        testingClient.testing().setInfinispanTimeTask(0);
         String response = invokeTimeOffset(0);
         resetTimeOffset = false;
         log.debugv("Reset time offset, response {0}", response);
@@ -683,16 +686,6 @@ public abstract class AbstractKeycloakTest {
         }
 
         return String.valueOf(result);
-    }
-
-    /**
-     * Moves time on the Keycloak server as well as on the remote Infinispan server if the Infinispan is used.
-     * The caller of the method is responsible to reset time offset (by calling advance(0)) after a test run.
-     * @param seconds time offset in seconds by which Keycloak (and Infinispan) server time is moved
-     */
-    protected void advanceTime(int seconds) {
-        testingClient.testing().setInfinispanTimeTask(seconds);
-        setTimeOffset(seconds);
     }
 
     private void loadConstantsProperties() throws ConfigurationException {
