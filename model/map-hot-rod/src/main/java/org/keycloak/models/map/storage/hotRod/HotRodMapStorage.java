@@ -17,6 +17,7 @@
 
 package org.keycloak.models.map.storage.hotRod;
 
+import org.infinispan.client.hotrod.MetadataValue;
 import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.Search;
 import org.infinispan.commons.util.CloseableIterator;
@@ -51,6 +52,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import static org.keycloak.models.map.common.ExpirationUtils.isExpired;
 import static org.keycloak.models.map.storage.hotRod.common.HotRodUtils.paginateQuery;
 import static org.keycloak.utils.StreamsUtil.closing;
 
@@ -106,6 +108,14 @@ public class HotRodMapStorage<K, E extends AbstractHotRodEntity, V extends Abstr
         // Obtain value from Infinispan
         E hotRodEntity = remoteCache.get(k);
         if (hotRodEntity == null) return null;
+
+        V v = delegateProducer.apply(hotRodEntity);
+        if (isExpirableEntity && isExpired((ExpirableEntity) v, true)) {
+            System.out.println(Time.currentTimeMillis());
+            MetadataValue<E> withMetadata = remoteCache.getWithMetadata(k);
+            throw new RuntimeException("Infinispan returned expired entity");
+        }
+
 
         // Create delegate that implements Map*Entity
         return delegateProducer.apply(hotRodEntity);

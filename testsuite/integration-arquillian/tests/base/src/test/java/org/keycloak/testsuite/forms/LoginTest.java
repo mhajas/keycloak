@@ -29,6 +29,8 @@ import org.keycloak.common.util.Retry;
 import org.keycloak.crypto.Algorithm;
 import org.keycloak.events.Details;
 import org.keycloak.events.Errors;
+import org.keycloak.events.Event;
+import org.keycloak.events.EventStoreProvider;
 import org.keycloak.events.EventType;
 import org.keycloak.jose.jws.JWSInput;
 import org.keycloak.jose.jws.JWSInputException;
@@ -78,6 +80,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.RandomStringUtils;
 
 import static org.hamcrest.Matchers.containsString;
@@ -99,8 +104,10 @@ import static org.keycloak.testsuite.util.ServerURLs.getAuthServerContextRoot;
  */
 public class LoginTest extends AbstractTestRealmKeycloakTest {
 
+    String realmName;
     @Override
     public void configureTestRealm(RealmRepresentation testRealm) {
+        realmName = testRealm.getRealm();
         UserRepresentation user = UserBuilder.create()
                                              .id(UUID.randomUUID().toString())
                                              .username("login-test")

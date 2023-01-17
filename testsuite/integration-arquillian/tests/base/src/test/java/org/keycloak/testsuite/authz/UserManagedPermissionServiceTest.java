@@ -30,6 +30,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import javax.ws.rs.NotFoundException;
 
@@ -46,6 +48,8 @@ import org.keycloak.authorization.model.Resource;
 import org.keycloak.authorization.model.ResourceServer;
 import org.keycloak.authorization.store.PolicyStore;
 import org.keycloak.common.Profile;
+import org.keycloak.events.Event;
+import org.keycloak.events.EventStoreProvider;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
@@ -1044,6 +1048,33 @@ public class UserManagedPermissionServiceTest extends AbstractResourceServerTest
 
         getTestingClient().server().run((RunOnServer) UserManagedPermissionServiceTest::testRemovePoliciesOnGroupDelete);
     }
+
+    @Test
+    public void testOffset() {
+        String realmId = adminClient.realm(REALM_NAME).toRepresentation().getId();
+        testingClient.server().run(session -> {
+            RealmModel realm = session.realms().getRealmByName(REALM_NAME);
+            realm.setEventsExpiration(5);
+            EventStoreProvider provider = session.getProvider(EventStoreProvider.class);
+
+            Event e = new Event();
+            e.setRealmId(realmId);
+            provider.onEvent(e);
+        });
+
+        testingClient.server().run(session -> {
+            EventStoreProvider provider = session.getProvider(EventStoreProvider.class);
+            System.out.println(provider.createQuery().realm(realmId).getResultStream().collect(Collectors.toList()));
+        });
+
+        setTimeOffset(5);
+
+        testingClient.server().run(session -> {
+            EventStoreProvider provider = session.getProvider(EventStoreProvider.class);
+            System.out.println(provider.createQuery().realm(realmId).getResultStream().collect(Collectors.toList()));
+        });
+    }
+
 
     private static void testRemovePoliciesOnGroupDelete(KeycloakSession session) {
         RealmModel realm = session.realms().getRealmByName("authz-test");

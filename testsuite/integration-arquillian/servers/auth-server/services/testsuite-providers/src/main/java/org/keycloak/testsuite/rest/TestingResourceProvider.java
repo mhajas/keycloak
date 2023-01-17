@@ -214,9 +214,9 @@ public class TestingResourceProvider implements RealmResourceProvider {
     @Produces(MediaType.APPLICATION_JSON)
     public void setInfinispanTimeTask(@QueryParam("seconds") int seconds) {
         // move time on Hot Rod server if present
-        String provider = Config.getProvider(HotRodConnectionSpi.NAME);
+        HotRodConnectionProvider provider = session.getProvider(HotRodConnectionProvider.class);
         if (provider != null) {
-            RemoteCache<Object, Object> scriptCache = session.getProvider(HotRodConnectionProvider.class).getRemoteCache(DefaultHotRodConnectionProviderFactory.SCRIPT_CACHE);
+            RemoteCache<Object, Object> scriptCache = provider.getRemoteCache(DefaultHotRodConnectionProviderFactory.SCRIPT_CACHE);
             if (scriptCache != null) {
                 Map<String, Object> param = new HashMap<>();
                 param.put("timeService", seconds);
