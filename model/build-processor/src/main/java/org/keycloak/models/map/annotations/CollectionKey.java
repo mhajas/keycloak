@@ -28,7 +28,7 @@ import java.lang.annotation.Target;
  * 
  * @author hmlnarik
  */
-@Retention(RetentionPolicy.SOURCE)
+@Retention(RetentionPolicy.CLASS)
 @Target(ElementType.METHOD)
 public @interface CollectionKey {
 
