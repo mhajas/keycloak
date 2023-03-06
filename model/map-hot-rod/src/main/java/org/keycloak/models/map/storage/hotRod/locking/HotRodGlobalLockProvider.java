@@ -55,7 +55,7 @@ public class HotRodGlobalLockProvider implements GlobalLockProvider {
 
         try {
             LOG.debugf("Acquiring lock [%s].%s", lockName, getShortStackTrace());
-            HotRodLocksUtils.repeatPutIfAbsent(locksCache, lockName, timeToWaitForLock, 50, false);
+            HotRodLocksUtils.repeatPutIfAbsent(locksCache, lockName, timeToWaitForLock, 50);
             LOG.debugf("Lock acquired [%s]. Continuing with task execution.", lockName);
 
             return KeycloakModelUtils.runJobInTransactionWithResult(session.getKeycloakSessionFactory(), task);

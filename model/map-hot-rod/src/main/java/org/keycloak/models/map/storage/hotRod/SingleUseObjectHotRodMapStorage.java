@@ -49,10 +49,10 @@ public class SingleUseObjectHotRodMapStorage
     private final HotRodEntityDescriptor<HotRodSingleUseObjectEntity, HotRodSingleUseObjectEntityDelegate> storedEntityDescriptor;
     private final DeepCloner cloner;
 
-    public SingleUseObjectHotRodMapStorage(KeycloakSession session, RemoteCache<String, HotRodSingleUseObjectEntity> remoteCache, StringKeyConverter<String> keyConverter,
+    public SingleUseObjectHotRodMapStorage(RemoteCache<String, HotRodSingleUseObjectEntity> remoteCache, StringKeyConverter<String> keyConverter,
                                            HotRodEntityDescriptor<HotRodSingleUseObjectEntity, HotRodSingleUseObjectEntityDelegate> storedEntityDescriptor,
-                                           DeepCloner cloner, AllAreasHotRodTransactionsWrapper txWrapper, Long lockTimeout) {
-        super(session, remoteCache, keyConverter, storedEntityDescriptor, cloner, txWrapper, lockTimeout);
+                                           DeepCloner cloner, AllAreasHotRodTransactionsWrapper txWrapper) {
+        super(remoteCache, keyConverter, storedEntityDescriptor, cloner, txWrapper);
         this.keyConverter = keyConverter;
         this.storedEntityDescriptor = storedEntityDescriptor;
         this.cloner = cloner;
