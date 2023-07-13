@@ -195,7 +195,7 @@ public class HotRodMapStorageProviderFactory implements AmphibianProviderFactory
 
     @Override
     public boolean isSupported() {
-        return Profile.isFeatureEnabled(Profile.Feature.MAP_STORAGE);
+        return true;
     }
 
     @Override

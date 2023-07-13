@@ -49,8 +49,8 @@ final class ClassLoaderPropertyMappers {
 
             if (storage.isEmpty()) {
                 ignoredArtifacts.add("org.keycloak:keycloak-model-map-jpa");
-                ignoredArtifacts.add("org.keycloak:keycloak-model-map-hot-rod");
-                ignoredArtifacts.add("org.keycloak:keycloak-model-map");
+                //ignoredArtifacts.add("org.keycloak:keycloak-model-map-hot-rod");
+                //ignoredArtifacts.add("org.keycloak:keycloak-model-map");
                 ignoredArtifacts.add("org.keycloak:keycloak-model-map-file");
             }
 

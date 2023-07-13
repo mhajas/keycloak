@@ -282,6 +282,6 @@ public class DefaultHotRodConnectionProviderFactory implements HotRodConnectionP
 
     @Override
     public boolean isSupported() {
-        return Profile.isFeatureEnabled(Profile.Feature.MAP_STORAGE);
+        return true;
     }
 }

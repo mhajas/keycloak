@@ -145,6 +145,6 @@ public abstract class AbstractMapProviderFactory<T extends Provider, V extends A
 
     @Override
     public boolean isSupported() {
-        return Profile.isFeatureEnabled(Profile.Feature.MAP_STORAGE);
+        return true;
     }
 }
