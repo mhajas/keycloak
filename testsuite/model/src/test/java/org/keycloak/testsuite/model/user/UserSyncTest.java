@@ -17,6 +17,7 @@
 
 package org.keycloak.testsuite.model.user;
 
+import org.apache.commons.lang.StringEscapeUtils;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.keycloak.cluster.ClusterProvider;
@@ -106,6 +107,34 @@ public class UserSyncTest extends KeycloakModelTest {
     @Override
     protected boolean isUseSameKeycloakSessionFactoryForAllThreads() {
         return true;
+    }
+
+
+    @Test
+    public void testUsernameContainsBackslash() {
+        final String username = "user\\\\";
+        withRealm(realmId, (session, realm) -> {
+            ComponentModel ldapModel = LDAPTestUtils.getLdapProviderModel(realm);
+            LDAPStorageProvider ldapFedProvider = LDAPTestUtils.getLdapProvider(session, ldapModel);
+            LDAPTestUtils.addLDAPUser(ldapFedProvider, realm, username, "UserFN", "UserLN", "user@email.org", null, "12");
+            return null;
+        });
+
+        withRealm(realmId, (session, realm) -> {
+            UserModel user = session.users().getUserByUsername(realm, username);
+            assertThat(user, notNullValue());
+            assertThat(user.getUsername(), equalTo(username));
+            assertThat(user.getFirstAttribute(LDAPConstants.LDAP_ENTRY_DN), equalTo("uid=" + StringEscapeUtils.escapeJava(username) + ",ou=People,dc=keycloak,dc=org"));
+            return null;
+        });
+
+        withRealm(realmId, (session, realm) -> {
+            UserModel user = UserStoragePrivateUtil.userLocalStorage(session).getUserByUsername(realm, username);
+            assertThat(user, notNullValue());
+            assertThat(user.getUsername(), equalTo(username));
+            assertThat(user.getFirstAttribute(LDAPConstants.LDAP_ENTRY_DN), equalTo("uid=" + StringEscapeUtils.escapeJava(username) + ",ou=People,dc=keycloak,dc=org"));
+            return null;
+        });
     }
 
     @Test
