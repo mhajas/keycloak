@@ -29,6 +29,8 @@ import org.keycloak.representations.IDToken;
 
 import java.io.IOException;
 
+import static org.keycloak.common.util.StackUtil.getShortStackTrace;
+
 /**
  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
  * @version $Revision: 1 $
@@ -109,6 +111,7 @@ public class RefreshableKeycloakSecurityContext extends KeycloakSecurityContext 
      * @return true if accessToken is active or was successfully refreshed
      */
     public boolean refreshExpiredToken(boolean checkActive) {
+        log.tracef("Calling refreshExpiredToken(%s) from %s", checkActive, getShortStackTrace());
         if (checkActive) {
             if (log.isTraceEnabled()) {
                 log.trace("checking whether to refresh.");

@@ -31,6 +31,9 @@ import org.keycloak.representations.AccessToken;
 
 import java.util.List;
 import javax.security.cert.X509Certificate;
+
+import static org.keycloak.common.util.StackUtil.getShortStackTrace;
+
 /**
  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
  * @version $Revision: 1 $
@@ -64,6 +67,7 @@ public class BearerTokenRequestAuthenticator {
     }
 
     public AuthOutcome authenticate(HttpFacade exchange)  {
+        log.tracef("Calling authenticate from %s", getShortStackTrace());
         List<String> authHeaders = exchange.getRequest().getHeaders("Authorization");
         if (authHeaders == null || authHeaders.isEmpty()) {
             log.debug("Authorization header not present");

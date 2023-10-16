@@ -95,6 +95,7 @@ public class JettySessionTokenStore implements AdapterTokenStore {
 
     @Override
     public void saveAccountInfo(OidcKeycloakAccount account) {
+        log.debugf("Storing account info %s in session %s", account.getPrincipal().getName(), request.getSession().getId());
         RefreshableKeycloakSecurityContext securityContext = (RefreshableKeycloakSecurityContext) account.getKeycloakSecurityContext();
         request.getSession().setAttribute(KeycloakSecurityContext.class.getName(), securityContext);
     }
