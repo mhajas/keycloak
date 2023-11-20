@@ -31,7 +31,6 @@ import org.keycloak.models.UserSessionModel;
 import org.keycloak.models.sessions.infinispan.CacheDecorators;
 import org.keycloak.models.sessions.infinispan.SessionFunction;
 import org.keycloak.models.sessions.infinispan.entities.SessionEntity;
-import org.keycloak.models.sessions.infinispan.remotestore.RemoteCacheInvoker;
 import org.keycloak.connections.infinispan.InfinispanUtil;
 
 /**
@@ -41,22 +40,20 @@ public class InfinispanChangelogBasedTransaction<K, V extends SessionEntity> ext
 
     public static final Logger logger = Logger.getLogger(InfinispanChangelogBasedTransaction.class);
 
-    private final KeycloakSession kcSession;
-    private final String cacheName;
+    protected final KeycloakSession kcSession;
+    protected final String cacheName;
     private final Cache<K, SessionEntityWrapper<V>> cache;
-    private final RemoteCacheInvoker remoteCacheInvoker;
 
-    private final Map<K, SessionUpdatesList<V>> updates = new HashMap<>();
+    protected final Map<K, SessionUpdatesList<V>> updates = new HashMap<>();
 
-    private final SessionFunction<V> lifespanMsLoader;
-    private final SessionFunction<V> maxIdleTimeMsLoader;
+    protected final SessionFunction<V> lifespanMsLoader;
+    protected final SessionFunction<V> maxIdleTimeMsLoader;
 
-    public InfinispanChangelogBasedTransaction(KeycloakSession kcSession, Cache<K, SessionEntityWrapper<V>> cache, RemoteCacheInvoker remoteCacheInvoker,
+    public InfinispanChangelogBasedTransaction(KeycloakSession kcSession, Cache<K, SessionEntityWrapper<V>> cache,
                                                SessionFunction<V> lifespanMsLoader, SessionFunction<V> maxIdleTimeMsLoader) {
         this.kcSession = kcSession;
         this.cacheName = cache.getName();
         this.cache = cache;
-        this.remoteCacheInvoker = remoteCacheInvoker;
         this.lifespanMsLoader = lifespanMsLoader;
         this.maxIdleTimeMsLoader = maxIdleTimeMsLoader;
     }
@@ -170,15 +167,12 @@ public class InfinispanChangelogBasedTransaction<K, V extends SessionEntity> ext
             if (merged != null) {
                 // Now run the operation in our cluster
                 runOperationInCluster(entry.getKey(), merged, sessionWrapper);
-
-                // Check if we need to send message to second DC
-                remoteCacheInvoker.runTask(kcSession, realm, cacheName, entry.getKey(), merged, sessionWrapper);
             }
         }
     }
 
 
-    private void runOperationInCluster(K key, MergedUpdate<V> task,  SessionEntityWrapper<V> sessionWrapper) {
+    protected void runOperationInCluster(K key, MergedUpdate<V> task,  SessionEntityWrapper<V> sessionWrapper) {
         V session = sessionWrapper.getEntity();
         SessionUpdateTask.CacheOperation operation = task.getOperation(session);
 
