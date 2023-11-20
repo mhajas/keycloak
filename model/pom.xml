@@ -36,5 +36,6 @@
         <module>legacy-services</module>
         <module>jpa</module>
         <module>infinispan</module>
+        <module>infinispan-cross-dc</module>
     </modules>
 </project>
