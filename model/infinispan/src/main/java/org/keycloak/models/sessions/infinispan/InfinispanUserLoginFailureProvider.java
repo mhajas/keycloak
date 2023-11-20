@@ -32,11 +32,9 @@ import org.keycloak.models.sessions.infinispan.entities.LoginFailureEntity;
 import org.keycloak.models.sessions.infinispan.entities.LoginFailureKey;
 import org.keycloak.models.sessions.infinispan.events.RemoveAllUserLoginFailuresEvent;
 import org.keycloak.models.sessions.infinispan.events.SessionEventsSenderTransaction;
-import org.keycloak.models.sessions.infinispan.remotestore.RemoteCacheInvoker;
 import org.keycloak.models.sessions.infinispan.stream.Mappers;
 import org.keycloak.models.sessions.infinispan.stream.UserLoginFailurePredicate;
 import org.keycloak.models.sessions.infinispan.util.FuturesHelper;
-import org.keycloak.models.sessions.infinispan.util.SessionTimeouts;
 
 import java.util.concurrent.Future;
 
@@ -58,11 +56,11 @@ public class InfinispanUserLoginFailureProvider implements UserLoginFailureProvi
     protected final SessionEventsSenderTransaction clusterEventsSenderTx;
 
     public InfinispanUserLoginFailureProvider(KeycloakSession session,
-                                              RemoteCacheInvoker remoteCacheInvoker,
-                                              Cache<LoginFailureKey, SessionEntityWrapper<LoginFailureEntity>> loginFailureCache) {
+                                              Cache<LoginFailureKey, SessionEntityWrapper<LoginFailureEntity>> loginFailureCache,
+                                              InfinispanChangelogBasedTransaction<LoginFailureKey, LoginFailureEntity> loginFailuresTx) {
         this.session = session;
         this.loginFailureCache = loginFailureCache;
-        this.loginFailuresTx = new InfinispanChangelogBasedTransaction<>(session, loginFailureCache, remoteCacheInvoker, SessionTimeouts::getLoginFailuresLifespanMs, SessionTimeouts::getLoginFailuresMaxIdleMs);
+        this.loginFailuresTx = loginFailuresTx;
         this.clusterEventsSenderTx = new SessionEventsSenderTransaction(session);
 
         session.getTransactionManager().enlistAfterCompletion(clusterEventsSenderTx);
@@ -137,7 +135,7 @@ public class InfinispanUserLoginFailureProvider implements UserLoginFailureProvi
     }
 
     UserLoginFailureModel wrap(LoginFailureKey key, LoginFailureEntity entity) {
-        return entity != null ? new UserLoginFailureAdapter(this, key, entity) : null;
+        return entity != null ? new UserLoginFailureAdapter(loginFailuresTx, key, entity) : null;
     }
 
     private LoginFailureEntity getLoginFailureEntity(LoginFailureKey key) {

@@ -18,6 +18,7 @@
 package org.keycloak.models.sessions.infinispan;
 
 import org.keycloak.models.UserLoginFailureModel;
+import org.keycloak.models.sessions.infinispan.changes.InfinispanChangelogBasedTransaction;
 import org.keycloak.models.sessions.infinispan.changes.LoginFailuresUpdateTask;
 import org.keycloak.models.sessions.infinispan.entities.LoginFailureEntity;
 import org.keycloak.models.sessions.infinispan.entities.LoginFailureKey;
@@ -27,12 +28,12 @@ import org.keycloak.models.sessions.infinispan.entities.LoginFailureKey;
  */
 public class UserLoginFailureAdapter implements UserLoginFailureModel {
 
-    private InfinispanUserLoginFailureProvider provider;
+    private InfinispanChangelogBasedTransaction<LoginFailureKey, LoginFailureEntity> tx;
     private LoginFailureKey key;
     private LoginFailureEntity entity;
 
-    public UserLoginFailureAdapter(InfinispanUserLoginFailureProvider provider, LoginFailureKey key, LoginFailureEntity entity) {
-        this.provider = provider;
+    public UserLoginFailureAdapter(InfinispanChangelogBasedTransaction<LoginFailureKey, LoginFailureEntity> tx, LoginFailureKey key, LoginFailureEntity entity) {
+        this.tx = tx;
         this.key = key;
         this.entity = entity;
     }
@@ -133,7 +134,7 @@ public class UserLoginFailureAdapter implements UserLoginFailureModel {
     }
 
     void update(LoginFailuresUpdateTask task) {
-        provider.getLoginFailuresTx().addTask(key, task);
+        tx.addTask(key, task);
     }
 
     @Override
