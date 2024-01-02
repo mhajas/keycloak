@@ -24,11 +24,9 @@ import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.UserSessionModel;
 import org.keycloak.models.sessions.infinispan.changes.InfinispanChangelogBasedTransaction;
-import org.keycloak.models.sessions.infinispan.changes.sessions.CrossDCLastSessionRefreshChecker;
 import org.keycloak.models.sessions.infinispan.changes.SessionEntityWrapper;
 import org.keycloak.models.sessions.infinispan.changes.Tasks;
 import org.keycloak.models.sessions.infinispan.changes.UserSessionUpdateTask;
-import org.keycloak.models.sessions.infinispan.changes.sessions.CrossDCLastSessionRefreshListener;
 import org.keycloak.models.sessions.infinispan.entities.AuthenticatedClientSessionEntity;
 import org.keycloak.models.sessions.infinispan.entities.AuthenticatedClientSessionStore;
 import org.keycloak.models.sessions.infinispan.entities.UserSessionEntity;
@@ -43,14 +41,12 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static org.keycloak.models.sessions.infinispan.changes.sessions.CrossDCLastSessionRefreshListener.IGNORE_REMOTE_CACHE_UPDATE;
-
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
  */
 public class UserSessionAdapter implements UserSessionModel {
 
-    private final KeycloakSession session;
+    protected final KeycloakSession session;
 
     private final InfinispanUserSessionProvider provider;
 
@@ -58,13 +54,13 @@ public class UserSessionAdapter implements UserSessionModel {
 
     private final InfinispanChangelogBasedTransaction<UUID, AuthenticatedClientSessionEntity> clientSessionUpdateTx;
 
-    private final RealmModel realm;
+    protected final RealmModel realm;
 
     private final UserModel user;
 
-    private final UserSessionEntity entity;
+    protected final UserSessionEntity entity;
 
-    private final boolean offline;
+    protected final boolean offline;
 
     private SessionPersistenceState persistenceState;
 
@@ -215,14 +211,12 @@ public class UserSessionAdapter implements UserSessionModel {
         return entity.getLastSessionRefresh();
     }
 
+    @Override
     public void setLastSessionRefresh(int lastSessionRefresh) {
         if (offline) {
             // Received the message from the other DC that we should update the lastSessionRefresh in local cluster. Don't update DB in that case.
             // The other DC already did.
-            Boolean ignoreRemoteCacheUpdate = (Boolean) session.getAttribute(CrossDCLastSessionRefreshListener.IGNORE_REMOTE_CACHE_UPDATE);
-            if (ignoreRemoteCacheUpdate == null || !ignoreRemoteCacheUpdate) {
-                provider.getPersisterLastSessionRefreshStore().putLastSessionRefresh(session, entity.getId(), realm.getId(), lastSessionRefresh);
-            }
+            provider.getPersisterLastSessionRefreshStore().putLastSessionRefresh(session, entity.getId(), realm.getId(), lastSessionRefresh);
         }
 
         UserSessionUpdateTask task = new UserSessionUpdateTask() {
@@ -234,8 +228,7 @@ public class UserSessionAdapter implements UserSessionModel {
 
             @Override
             public CrossDCMessageStatus getCrossDCMessageStatus(SessionEntityWrapper<UserSessionEntity> sessionWrapper) {
-                return new CrossDCLastSessionRefreshChecker(provider.getLastSessionRefreshStore(), provider.getOfflineLastSessionRefreshStore())
-                        .shouldSaveUserSessionToRemoteCache(UserSessionAdapter.this.session, UserSessionAdapter.this.realm, sessionWrapper, offline, lastSessionRefresh);
+                return CrossDCMessageStatus.NOT_NEEDED;
             }
 
             @Override

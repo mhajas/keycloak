@@ -17,25 +17,22 @@
 
 package org.keycloak.models.sessions.infinispan;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.keycloak.models.AuthenticatedClientSessionModel;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserSessionModel;
 import org.keycloak.models.session.UserSessionPersisterProvider;
+import org.keycloak.models.sessions.infinispan.changes.ClientSessionUpdateTask;
 import org.keycloak.models.sessions.infinispan.changes.InfinispanChangelogBasedTransaction;
 import org.keycloak.models.sessions.infinispan.changes.SessionEntityWrapper;
-import org.keycloak.models.sessions.infinispan.changes.ClientSessionUpdateTask;
 import org.keycloak.models.sessions.infinispan.changes.SessionUpdateTask;
 import org.keycloak.models.sessions.infinispan.changes.Tasks;
-import org.keycloak.models.sessions.infinispan.changes.UserSessionUpdateTask;
-import org.keycloak.models.sessions.infinispan.changes.sessions.CrossDCLastSessionRefreshChecker;
 import org.keycloak.models.sessions.infinispan.entities.AuthenticatedClientSessionEntity;
-import org.keycloak.models.sessions.infinispan.entities.UserSessionEntity;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -43,13 +40,13 @@ import java.util.UUID;
  */
 public class AuthenticatedClientSessionAdapter implements AuthenticatedClientSessionModel {
 
-    private final KeycloakSession kcSession;
+    protected final KeycloakSession kcSession;
     private final InfinispanUserSessionProvider provider;
     private AuthenticatedClientSessionEntity entity;
-    private final ClientModel client;
+    protected final ClientModel client;
     private final InfinispanChangelogBasedTransaction<UUID, AuthenticatedClientSessionEntity> clientSessionUpdateTx;
-    private UserSessionModel userSession;
-    private boolean offline;
+    protected UserSessionModel userSession;
+    protected boolean offline;
 
     public AuthenticatedClientSessionAdapter(KeycloakSession kcSession, InfinispanUserSessionProvider provider,
                                              AuthenticatedClientSessionEntity entity, ClientModel client, UserSessionModel userSession,
@@ -67,7 +64,7 @@ public class AuthenticatedClientSessionAdapter implements AuthenticatedClientSes
         this.offline = offline;
     }
 
-    private void update(ClientSessionUpdateTask task) {
+    protected void update(ClientSessionUpdateTask task) {
         clientSessionUpdateTx.addTask(entity.getId(), task);
     }
 
@@ -145,9 +142,9 @@ public class AuthenticatedClientSessionAdapter implements AuthenticatedClientSes
             }
 
             @Override
+            // TODO: Move this method to cross-dc module
             public CrossDCMessageStatus getCrossDCMessageStatus(SessionEntityWrapper<AuthenticatedClientSessionEntity> sessionWrapper) {
-                return new CrossDCLastSessionRefreshChecker(provider.getLastSessionRefreshStore(), provider.getOfflineLastSessionRefreshStore())
-                        .shouldSaveClientSessionToRemoteCache(kcSession, client.getRealm(), sessionWrapper, userSession, offline, timestamp);
+                return CrossDCMessageStatus.NOT_NEEDED;
             }
 
             @Override
