@@ -90,7 +90,7 @@
         </dependency>
         <dependency>
             <groupId>org.keycloak</groupId>
-            <artifactId>keycloak-model-infinispan</artifactId>
+            <artifactId>keycloak-model-infinispan-cross-dc</artifactId>
         </dependency>
         <dependency>
             <groupId>org.keycloak.testsuite</groupId>

@@ -19,7 +19,6 @@ package org.keycloak.models.sessions.infinispan.initializer;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.keycloak.models.sessions.infinispan.remotestore.RemoteCacheSessionsLoaderContext;
 import org.keycloak.storage.CacheableStorageProviderModel;
 
 import java.text.DateFormat;
