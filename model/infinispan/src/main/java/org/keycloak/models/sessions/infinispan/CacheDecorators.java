@@ -20,6 +20,7 @@ package org.keycloak.models.sessions.infinispan;
 import org.infinispan.AdvancedCache;
 import org.infinispan.Cache;
 import org.infinispan.context.Flag;
+import org.keycloak.common.Profile;
 
 import static org.keycloak.connections.infinispan.InfinispanUtil.getRemoteStores;
 
@@ -43,7 +44,7 @@ public class CacheDecorators {
      * @return Cache with the flags applied.
      */
     public static <K, V> AdvancedCache<K, V> skipCacheLoadersIfRemoteStoreIsEnabled(Cache<K, V> cache) {
-        if (!getRemoteStores(cache).isEmpty()) {
+        if (!Profile.isFeatureEnabled(Profile.Feature.MULTI_SITE)) {
             // Disabling of the cache load and cache store is only needed when a remote store is used and handled separately.
             return cache.getAdvancedCache().withFlags(Flag.SKIP_CACHE_LOAD, Flag.SKIP_CACHE_STORE);
         } else {
@@ -59,7 +60,7 @@ public class CacheDecorators {
      * @return Cache with the flags applied.
      */
     public static <K, V> AdvancedCache<K, V> skipCacheStoreIfRemoteCacheIsEnabled(Cache<K, V> cache) {
-        if (!getRemoteStores(cache).isEmpty()) {
+        if (!Profile.isFeatureEnabled(Profile.Feature.MULTI_SITE)) {
             // Disabling of the cache load and cache store is only needed when a remote store is used and handled separately.
             return cache.getAdvancedCache().withFlags(Flag.SKIP_CACHE_STORE);
         } else {

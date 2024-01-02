@@ -39,7 +39,7 @@ import org.keycloak.models.sessions.infinispan.initializer.DistributedCacheConcu
 public class ConcurrencyDistributedRemoveSessionTest {
 
 
-    protected static final Logger logger = Logger.getLogger(ConcurrencyJDGRemoveSessionTest.class);
+    protected static final Logger logger = Logger.getLogger(ConcurrencyDistributedRemoveSessionTest.class);
 
     private static final int ITERATIONS = 10000;
 
