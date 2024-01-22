@@ -99,6 +99,12 @@ public class RealmsResource {
         return builder.path(RealmsResource.class).path(RealmsResource.class, "getWellKnown");
     }
 
+    @GET
+    @Path("test-endpoint")
+    public String testEndpoint() {
+        return "This is test endpoint";
+    }
+
     @Path("{realm}/protocol/{protocol}")
     public Object getProtocol(final @PathParam("realm") String name,
                               final @PathParam("protocol") String protocol) {
