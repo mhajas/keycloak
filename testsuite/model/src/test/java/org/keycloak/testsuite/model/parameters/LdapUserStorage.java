@@ -85,8 +85,10 @@ public class LdapUserStorage extends KeycloakModelParameters {
             federatedStorage.setPriority(0);
             federatedStorage.setConfig(config);
             return Stream.of((T) federatedStorage);
+        } else if (LDAPEmbeddedServer.class.isAssignableFrom(clazz)) {
+            return Stream.of((T) ldapRule.getLdapEmbeddedServer());
         } else {
-            return super.getParameters(clazz);
+            return Stream.empty();
         }
     }
 

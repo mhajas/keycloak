@@ -26,6 +26,7 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.LDAPConstants;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.RealmProvider;
+import org.keycloak.models.RoleModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.UserProvider;
 import org.keycloak.models.utils.KeycloakModelUtils;
@@ -47,6 +48,7 @@ import org.keycloak.storage.user.SynchronizationResult;
 import org.keycloak.testsuite.model.KeycloakModelTest;
 import org.keycloak.testsuite.model.RequireProvider;
 import org.keycloak.testsuite.util.LDAPTestUtils;
+import org.keycloak.util.ldap.LDAPEmbeddedServer;
 
 import javax.naming.directory.BasicAttribute;
 import java.util.Collections;
@@ -242,6 +244,70 @@ public class UserSyncTest extends KeycloakModelTest {
             assertThat(user1.getAttributes().get(LDAPConstants.STREET), is(nullValue()));
             assertThat(user1.getFirstAttribute(LDAPConstants.STREET), is(nullValue()));
             assertThat(user1.getAttributeStream(LDAPConstants.STREET).findFirst().isPresent(), is(false));
+            return null;
+        });
+    }
+
+    private LDAPEmbeddedServer getLdapServer() {
+        return getParameters(LDAPEmbeddedServer.class)
+                .findAny()
+                .orElseThrow();
+    }
+
+    @Test
+    public void testSyncUsersWhenLDAPGoesDown() {
+        withRealm(realmId, (keycloakSession, realm) -> {
+            UserStorageProviderModel providerModel = new UserStorageProviderModel(realm.getComponent(userFederationId));
+            // disable cache
+            providerModel.setCachePolicy(CacheableStorageProviderModel.CachePolicy.NO_CACHE);
+            realm.updateComponent(providerModel);
+            return null;
+        });
+
+        IntStream.range(0, 20).parallel().forEach(index -> inComittedTransaction(index, (session, i) -> {
+            final RealmModel realm = session.realms().getRealm(realmId);
+
+            ComponentModel ldapModel = LDAPTestUtils.getLdapProviderModel(realm);
+            LDAPStorageProvider ldapFedProvider = LDAPTestUtils.getLdapProvider(session, ldapModel);
+            LDAPTestUtils.addLDAPUser(ldapFedProvider, realm, "user" + i, "User" + i + "FN", "User" + i + "LN", "user" + i + "@email.org", null, "12" + i);
+            return null;
+        }));
+
+        String userId = withRealm(realmId, (session, realm) -> {
+            UserModel us = session.users().getUserByUsername(realm, "user1");
+            RoleModel role1 = session.roles().addRealmRole(realm, "role1");
+            us.grantRole(role1);
+            return us.getId();
+        });
+
+        SynchronizationResult res = withRealm(realmId, (session, realm) -> {
+            UserStorageProviderModel providerModel = new UserStorageProviderModel(realm.getComponent(userFederationId));
+            return UserStorageSyncManager.syncAllUsers(session.getKeycloakSessionFactory(), realm.getId(), providerModel);
+        });
+        assertThat(res.getAdded(), is(19));
+
+        withRealm(realmId, (session, realm) -> {
+            UserModel user1 = session.users().getUserById(realm, userId);
+            assertThat(user1, is(notNullValue()));
+            assertThat(user1.hasRole(session.roles().getRealmRole(realm, "role1")), is(true));
+            return null;
+        });
+
+
+        try (AutoCloseable x = getLdapServer().makeUnreachable()) {
+            withRealm(realmId, (session, realm) -> {
+                UserStorageProviderModel providerModel = new UserStorageProviderModel(realm.getComponent(userFederationId));
+                return UserStorageSyncManager.syncAllUsers(session.getKeycloakSessionFactory(), realm.getId(), providerModel);
+            });
+
+        } catch (Exception e) {
+            // Ignore
+        }
+
+        withRealm(realmId, (session, realm) -> {
+            UserModel user1 = session.users().getUserById(realm, userId);
+            assertThat(user1, is(notNullValue()));
+            assertThat(user1.hasRole(session.roles().getRealmRole(realm, "role1")), is(true));
             return null;
         });
     }

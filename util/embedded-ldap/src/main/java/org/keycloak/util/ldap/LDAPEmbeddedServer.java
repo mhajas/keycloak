@@ -390,6 +390,13 @@ public class LDAPEmbeddedServer {
         }
     }
 
+    public AutoCloseable makeUnreachable() {
+        log.info("Pausing LDAP server.");
+        ldapServer.stop();
+
+
+        return () -> ldapServer.start();
+    }
 
     public void stop() throws Exception {
         stopLdapServer();
