@@ -21,6 +21,8 @@ import static org.keycloak.quarkus.runtime.configuration.Configuration.getBuildT
 
 import java.io.File;
 import java.io.FilenameFilter;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -29,6 +31,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import io.quarkus.runtime.LaunchMode;
 import io.quarkus.runtime.configuration.ProfileManager;
@@ -174,12 +177,20 @@ public final class Environment {
             throw new RuntimeException("The 'providers' directory does not exist or is not a valid directory.");
         }
 
-        return Arrays.stream(providersDir.listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.endsWith(".jar");
-            }
-        })).collect(Collectors.toMap(File::getName, Function.identity()));
+        try (Stream<Path> jars = Files.find(providersPath,
+                1,
+                (filePath, fileAttr) -> filePath.toString().endsWith(".jar"))) {
+            return jars.collect(Collectors.toMap(filePath -> filePath.getFileName().toString(), Path::toFile));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+//        return Arrays.stream(providersDir.listFiles(new FilenameFilter() {
+//            @Override
+//            public boolean accept(File dir, String name) {
+//                return name.endsWith(".jar");
+//            }
+//        })).collect(Collectors.toMap(File::getName, Function.identity()));
     }
 
     public static boolean isTestLaunchMode() {

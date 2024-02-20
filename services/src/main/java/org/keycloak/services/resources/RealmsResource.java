@@ -100,6 +100,11 @@ public class RealmsResource {
         return builder.path(RealmsResource.class).path(RealmsResource.class, "getWellKnown");
     }
 
+    @Path("sayHello")
+    public String sayHello() {
+        return "Hello";
+    }
+
     @Path("{realm}/protocol/{protocol}")
     public Object getProtocol(final @PathParam("realm") String name,
                               final @PathParam("protocol") String protocol) {
