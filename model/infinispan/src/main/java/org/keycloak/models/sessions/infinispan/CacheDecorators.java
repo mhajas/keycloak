@@ -45,7 +45,7 @@ public class CacheDecorators {
     public static <K, V> AdvancedCache<K, V> skipCacheLoadersIfRemoteStoreIsEnabled(Cache<K, V> cache) {
         if (!getRemoteStores(cache).isEmpty()) {
             // Disabling of the cache load and cache store is only needed when a remote store is used and handled separately.
-            return cache.getAdvancedCache().withFlags(Flag.SKIP_CACHE_LOAD, Flag.SKIP_CACHE_STORE);
+            return cache.getAdvancedCache().withFlags(Flag.SKIP_CACHE_STORE);
         } else {
             // If there is no remote store, use write through for all stores of the cache.
             // Mixing remote and non-remote caches is not supported.
