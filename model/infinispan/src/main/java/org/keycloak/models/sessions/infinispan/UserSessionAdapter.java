@@ -228,6 +228,9 @@ public class UserSessionAdapter<T extends SessionRefreshStore & UserSessionProvi
 
             @Override
             public void runUpdate(UserSessionEntity entity) {
+                if (entity.getLastSessionRefresh() >= lastSessionRefresh) {
+                    return;
+                }
                 entity.setLastSessionRefresh(lastSessionRefresh);
             }
 
@@ -235,6 +238,11 @@ public class UserSessionAdapter<T extends SessionRefreshStore & UserSessionProvi
             public CrossDCMessageStatus getCrossDCMessageStatus(SessionEntityWrapper<UserSessionEntity> sessionWrapper) {
                 return new CrossDCLastSessionRefreshChecker(provider.getLastSessionRefreshStore(), provider.getOfflineLastSessionRefreshStore())
                         .shouldSaveUserSessionToRemoteCache(UserSessionAdapter.this.session, UserSessionAdapter.this.realm, sessionWrapper, offline, lastSessionRefresh);
+            }
+
+            @Override
+            public boolean isDeferrable() {
+                return true;
             }
 
             @Override

@@ -140,6 +140,9 @@ public class AuthenticatedClientSessionAdapter implements AuthenticatedClientSes
 
             @Override
             public void runUpdate(AuthenticatedClientSessionEntity entity) {
+                if (entity.getTimestamp() >= timestamp) {
+                    return;
+                }
                 entity.setTimestamp(timestamp);
             }
 
@@ -147,6 +150,11 @@ public class AuthenticatedClientSessionAdapter implements AuthenticatedClientSes
             public CrossDCMessageStatus getCrossDCMessageStatus(SessionEntityWrapper<AuthenticatedClientSessionEntity> sessionWrapper) {
                 return new CrossDCLastSessionRefreshChecker(provider.getLastSessionRefreshStore(), provider.getOfflineLastSessionRefreshStore())
                         .shouldSaveClientSessionToRemoteCache(kcSession, client.getRealm(), sessionWrapper, userSession, offline, timestamp);
+            }
+
+            @Override
+            public boolean isDeferrable() {
+                return true;
             }
 
             @Override
