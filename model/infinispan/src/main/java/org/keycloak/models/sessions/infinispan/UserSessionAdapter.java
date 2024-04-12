@@ -17,6 +17,7 @@
 
 package org.keycloak.models.sessions.infinispan;
 
+import org.keycloak.common.Profile;
 import org.keycloak.models.AuthenticatedClientSessionModel;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.KeycloakSession;
@@ -47,11 +48,11 @@ import java.util.stream.Collectors;
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
  */
-public class UserSessionAdapter<T extends SessionRefreshStore & UserSessionProvider> implements UserSessionModel {
+public class UserSessionAdapter implements UserSessionModel {
 
     private final KeycloakSession session;
 
-    private final T provider;
+    private final UserSessionProvider provider;
 
     private final InfinispanChangelogBasedTransaction<String, UserSessionEntity> userSessionUpdateTx;
 
@@ -67,7 +68,7 @@ public class UserSessionAdapter<T extends SessionRefreshStore & UserSessionProvi
 
     private SessionPersistenceState persistenceState;
 
-    public UserSessionAdapter(KeycloakSession session, UserModel user, T provider,
+    public UserSessionAdapter(KeycloakSession session, UserModel user, UserSessionProvider provider,
                               InfinispanChangelogBasedTransaction<String, UserSessionEntity> userSessionUpdateTx,
                               InfinispanChangelogBasedTransaction<UUID, AuthenticatedClientSessionEntity> clientSessionUpdateTx,
                               RealmModel realm, UserSessionEntity entity, boolean offline) {
@@ -215,12 +216,12 @@ public class UserSessionAdapter<T extends SessionRefreshStore & UserSessionProvi
     }
 
     public void setLastSessionRefresh(int lastSessionRefresh) {
-        if (offline) {
+        if (offline && !Profile.isFeatureEnabled(Profile.Feature.PERSISTENT_USER_SESSIONS)) {
             // Received the message from the other DC that we should update the lastSessionRefresh in local cluster. Don't update DB in that case.
             // The other DC already did.
             Boolean ignoreRemoteCacheUpdate = (Boolean) session.getAttribute(CrossDCLastSessionRefreshListener.IGNORE_REMOTE_CACHE_UPDATE);
             if (ignoreRemoteCacheUpdate == null || !ignoreRemoteCacheUpdate) {
-                provider.getPersisterLastSessionRefreshStore().putLastSessionRefresh(session, entity.getId(), realm.getId(), lastSessionRefresh);
+                ((InfinispanUserSessionProvider)provider).getPersisterLastSessionRefreshStore().putLastSessionRefresh(session, entity.getId(), realm.getId(), lastSessionRefresh);
             }
         }
 
@@ -236,7 +237,13 @@ public class UserSessionAdapter<T extends SessionRefreshStore & UserSessionProvi
 
             @Override
             public CrossDCMessageStatus getCrossDCMessageStatus(SessionEntityWrapper<UserSessionEntity> sessionWrapper) {
-                return new CrossDCLastSessionRefreshChecker(provider.getLastSessionRefreshStore(), provider.getOfflineLastSessionRefreshStore())
+                // Persistent sessions use different logic for deferring the session refresh writes therefore we always set this to SYNC
+                if (Profile.isFeatureEnabled(Profile.Feature.PERSISTENT_USER_SESSIONS)) {
+                    return CrossDCMessageStatus.SYNC;
+                }
+
+                InfinispanUserSessionProvider iProvider = (InfinispanUserSessionProvider) provider;
+                return new CrossDCLastSessionRefreshChecker(iProvider.getLastSessionRefreshStore(), iProvider.getOfflineLastSessionRefreshStore())
                         .shouldSaveUserSessionToRemoteCache(UserSessionAdapter.this.session, UserSessionAdapter.this.realm, sessionWrapper, offline, lastSessionRefresh);
             }
 

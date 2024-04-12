@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.keycloak.common.Profile;
 import org.keycloak.models.AuthenticatedClientSessionModel;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.KeycloakSession;
@@ -43,14 +44,14 @@ import java.util.UUID;
 public class AuthenticatedClientSessionAdapter implements AuthenticatedClientSessionModel {
 
     private final KeycloakSession kcSession;
-    private final SessionRefreshStore provider;
+    private final InfinispanUserSessionProvider provider;
     private AuthenticatedClientSessionEntity entity;
     private final ClientModel client;
     private final InfinispanChangelogBasedTransaction<UUID, AuthenticatedClientSessionEntity> clientSessionUpdateTx;
     private UserSessionModel userSession;
     private boolean offline;
 
-    public AuthenticatedClientSessionAdapter(KeycloakSession kcSession, SessionRefreshStore provider,
+    public AuthenticatedClientSessionAdapter(KeycloakSession kcSession, InfinispanUserSessionProvider provider,
                                              AuthenticatedClientSessionEntity entity, ClientModel client, UserSessionModel userSession,
                                              InfinispanChangelogBasedTransaction<UUID, AuthenticatedClientSessionEntity> clientSessionUpdateTx, boolean offline) {
         if (userSession == null) {
@@ -148,6 +149,11 @@ public class AuthenticatedClientSessionAdapter implements AuthenticatedClientSes
 
             @Override
             public CrossDCMessageStatus getCrossDCMessageStatus(SessionEntityWrapper<AuthenticatedClientSessionEntity> sessionWrapper) {
+                // Persistent sessions use different logic for deferring the session refresh writes therefore we always set this to SYNC
+                if (Profile.isFeatureEnabled(Profile.Feature.PERSISTENT_USER_SESSIONS)) {
+                    return CrossDCMessageStatus.SYNC;
+                }
+
                 return new CrossDCLastSessionRefreshChecker(provider.getLastSessionRefreshStore(), provider.getOfflineLastSessionRefreshStore())
                         .shouldSaveClientSessionToRemoteCache(kcSession, client.getRealm(), sessionWrapper, userSession, offline, timestamp);
             }

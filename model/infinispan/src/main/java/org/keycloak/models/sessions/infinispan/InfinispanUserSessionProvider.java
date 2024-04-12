@@ -90,7 +90,7 @@ import static org.keycloak.utils.StreamsUtil.paginatedStream;
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
  */
-public class InfinispanUserSessionProvider implements UserSessionProvider, SessionRefreshStore {
+public class InfinispanUserSessionProvider implements UserSessionProvider {
 
     private static final Logger log = Logger.getLogger(InfinispanUserSessionProvider.class);
 
@@ -176,17 +176,14 @@ public class InfinispanUserSessionProvider implements UserSessionProvider, Sessi
         return offline ? offlineClientSessionTx : clientSessionTx;
     }
 
-    @Override
     public CrossDCLastSessionRefreshStore getLastSessionRefreshStore() {
         return lastSessionRefreshStore;
     }
 
-    @Override
     public CrossDCLastSessionRefreshStore getOfflineLastSessionRefreshStore() {
         return offlineLastSessionRefreshStore;
     }
 
-    @Override
     public PersisterLastSessionRefreshStore getPersisterLastSessionRefreshStore() {
         return persisterLastSessionRefreshStore;
     }

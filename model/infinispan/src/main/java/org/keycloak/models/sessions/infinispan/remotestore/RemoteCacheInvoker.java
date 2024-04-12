@@ -18,6 +18,7 @@
 package org.keycloak.models.sessions.infinispan.remotestore;
 
 import org.infinispan.client.hotrod.exceptions.HotRodClientException;
+import org.keycloak.common.Profile;
 import org.keycloak.common.util.Retry;
 import java.util.Collections;
 import java.util.HashMap;
@@ -69,7 +70,7 @@ public class RemoteCacheInvoker {
         SessionUpdateTask.CacheOperation operation = task.getOperation(session);
         SessionUpdateTask.CrossDCMessageStatus status = task.getCrossDCMessageStatus(sessionWrapper);
 
-        if (status == SessionUpdateTask.CrossDCMessageStatus.NOT_NEEDED) {
+        if (status == SessionUpdateTask.CrossDCMessageStatus.NOT_NEEDED && !Profile.isFeatureEnabled(Profile.Feature.PERSISTENT_USER_SESSIONS)) {
             if (logger.isTraceEnabled()) {
                 logger.tracef("Skip writing to remoteCache for entity '%s' of cache '%s' and operation '%s'", key, cacheName, operation);
             }

@@ -90,7 +90,7 @@ import static org.keycloak.utils.StreamsUtil.paginatedStream;
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
  */
-public class PersistentUserSessionProvider implements UserSessionProvider, SessionRefreshStore {
+public class PersistentUserSessionProvider implements UserSessionProvider {
 
     private static final Logger log = Logger.getLogger(PersistentUserSessionProvider.class);
 
@@ -108,10 +108,6 @@ public class PersistentUserSessionProvider implements UserSessionProvider, Sessi
 
     protected final SessionEventsSenderTransaction clusterEventsSenderTx;
 
-    protected final CrossDCLastSessionRefreshStore lastSessionRefreshStore;
-    protected final CrossDCLastSessionRefreshStore offlineLastSessionRefreshStore;
-    protected final PersisterLastSessionRefreshStore persisterLastSessionRefreshStore;
-
     protected final RemoteCacheInvoker remoteCacheInvoker;
     protected final InfinispanKeyGenerator keyGenerator;
 
@@ -121,9 +117,6 @@ public class PersistentUserSessionProvider implements UserSessionProvider, Sessi
 
     public PersistentUserSessionProvider(KeycloakSession session,
                                          RemoteCacheInvoker remoteCacheInvoker,
-                                         CrossDCLastSessionRefreshStore lastSessionRefreshStore,
-                                         CrossDCLastSessionRefreshStore offlineLastSessionRefreshStore,
-                                         PersisterLastSessionRefreshStore persisterLastSessionRefreshStore,
                                          InfinispanKeyGenerator keyGenerator,
                                          Cache<String, SessionEntityWrapper<UserSessionEntity>> sessionCache,
                                          Cache<String, SessionEntityWrapper<UserSessionEntity>> offlineSessionCache,
@@ -154,9 +147,6 @@ public class PersistentUserSessionProvider implements UserSessionProvider, Sessi
 
         this.clusterEventsSenderTx = new SessionEventsSenderTransaction(session);
 
-        this.lastSessionRefreshStore = lastSessionRefreshStore;
-        this.offlineLastSessionRefreshStore = offlineLastSessionRefreshStore;
-        this.persisterLastSessionRefreshStore = persisterLastSessionRefreshStore;
         this.remoteCacheInvoker = remoteCacheInvoker;
         this.keyGenerator = keyGenerator;
         this.offlineSessionCacheEntryLifespanAdjuster = offlineSessionCacheEntryLifespanAdjuster;
@@ -186,21 +176,6 @@ public class PersistentUserSessionProvider implements UserSessionProvider, Sessi
     }
 
     @Override
-    public CrossDCLastSessionRefreshStore getLastSessionRefreshStore() {
-        return lastSessionRefreshStore;
-    }
-
-    @Override
-    public CrossDCLastSessionRefreshStore getOfflineLastSessionRefreshStore() {
-        return offlineLastSessionRefreshStore;
-    }
-
-    @Override
-    public PersisterLastSessionRefreshStore getPersisterLastSessionRefreshStore() {
-        return persisterLastSessionRefreshStore;
-    }
-
-    @Override
     public KeycloakSession getKeycloakSession() {
         return session;
     }
@@ -221,7 +196,7 @@ public class PersistentUserSessionProvider implements UserSessionProvider, Sessi
 
         UserSessionPersistentChangelogBasedTransaction userSessionUpdateTx = getTransaction(false);
         InfinispanChangelogBasedTransaction<UUID, AuthenticatedClientSessionEntity> clientSessionUpdateTx = getClientSessionTransaction(false);
-        AuthenticatedClientSessionAdapter adapter = new AuthenticatedClientSessionAdapter(session, this, entity, client, userSession, clientSessionUpdateTx, false);
+        AuthenticatedClientSessionAdapter adapter = new AuthenticatedClientSessionAdapter(session, null, entity, client, userSession, clientSessionUpdateTx, false);
 
         if (Profile.isFeatureEnabled(Feature.PERSISTENT_USER_SESSIONS_NO_CACHE)) {
             if (userSession.isOffline()) {
@@ -405,7 +380,7 @@ public class PersistentUserSessionProvider implements UserSessionProvider, Sessi
 
         SessionEntityWrapper<AuthenticatedClientSessionEntity> clientSessionEntity = clientTx.get(client.getRealm(), client, userSession, clientSessionUUID);
         if (clientSessionEntity != null) {
-            return new AuthenticatedClientSessionAdapter(session, this, clientSessionEntity.getEntity(), client, userSession, clientTx, offline);
+            return new AuthenticatedClientSessionAdapter(session, null, clientSessionEntity.getEntity(), client, userSession, clientTx, offline);
         }
 
         return null;
@@ -979,7 +954,7 @@ public class PersistentUserSessionProvider implements UserSessionProvider, Sessi
         SessionUpdateTask<UserSessionEntity> registerClientSessionTask = new RegisterClientSessionTask(clientSession.getClient().getId(), clientSessionId);
         userSessionUpdateTx.addTask(sessionToImportInto.getId(), registerClientSessionTask);
 
-        return new AuthenticatedClientSessionAdapter(session, this, entity, clientSession.getClient(), sessionToImportInto, clientSessionUpdateTx, offline);
+        return new AuthenticatedClientSessionAdapter(session, null, entity, clientSession.getClient(), sessionToImportInto, clientSessionUpdateTx, offline);
     }
 
 

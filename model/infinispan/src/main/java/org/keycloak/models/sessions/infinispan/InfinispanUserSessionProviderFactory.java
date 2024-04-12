@@ -114,9 +114,6 @@ public class InfinispanUserSessionProviderFactory implements UserSessionProvider
             return new PersistentUserSessionProvider(
                     session,
                     remoteCacheInvoker,
-                    lastSessionRefreshStore,
-                    offlineLastSessionRefreshStore,
-                    persisterLastSessionRefreshStore,
                     keyGenerator,
                     cache,
                     offlineSessionsCache,
@@ -303,7 +300,7 @@ public class InfinispanUserSessionProviderFactory implements UserSessionProvider
             return Time.toMillis(realm.getSsoSessionMaxLifespan());
         }, SessionTimeouts::getUserSessionLifespanMs, SessionTimeouts::getUserSessionMaxIdleMs);
 
-        if (sessionsRemoteCache != null) {
+        if (sessionsRemoteCache != null && !Profile.isFeatureEnabled(Profile.Feature.PERSISTENT_USER_SESSIONS)) {
             lastSessionRefreshStore = new CrossDCLastSessionRefreshStoreFactory().createAndInit(session, sessionsCache, false);
         }
 
@@ -318,7 +315,7 @@ public class InfinispanUserSessionProviderFactory implements UserSessionProvider
             return Time.toMillis(realm.getOfflineSessionIdleTimeout());
         }, this::deriveOfflineSessionCacheEntryLifespanMs, SessionTimeouts::getOfflineSessionMaxIdleMs);
 
-        if (offlineSessionsRemoteCache != null) {
+        if (offlineSessionsRemoteCache != null && !Profile.isFeatureEnabled(Profile.Feature.PERSISTENT_USER_SESSIONS)) {
             offlineLastSessionRefreshStore = new CrossDCLastSessionRefreshStoreFactory().createAndInit(session, offlineSessionsCache, true);
         }
 
