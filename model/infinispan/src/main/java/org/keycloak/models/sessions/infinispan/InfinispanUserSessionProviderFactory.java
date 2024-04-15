@@ -127,8 +127,6 @@ public class InfinispanUserSessionProviderFactory implements UserSessionProvider
                     offlineSessionsCache,
                     clientSessionCache,
                     offlineClientSessionsCache,
-                    this::deriveOfflineSessionCacheEntryLifespanMs,
-                    this::deriveOfflineClientSessionCacheEntryLifespanOverrideMs,
                     serializerSession,
                     serializerOfflineSession,
                     serializerClientSession,
