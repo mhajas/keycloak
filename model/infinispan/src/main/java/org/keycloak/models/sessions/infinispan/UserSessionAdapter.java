@@ -24,7 +24,7 @@ import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.UserSessionModel;
 import org.keycloak.models.UserSessionProvider;
-import org.keycloak.models.sessions.infinispan.changes.InfinispanChangelogBasedTransaction;
+import org.keycloak.models.sessions.infinispan.changes.SessionsChangelogBasedTransaction;
 import org.keycloak.models.sessions.infinispan.changes.sessions.CrossDCLastSessionRefreshChecker;
 import org.keycloak.models.sessions.infinispan.changes.SessionEntityWrapper;
 import org.keycloak.models.sessions.infinispan.changes.Tasks;
@@ -53,9 +53,9 @@ public class UserSessionAdapter<T extends SessionRefreshStore & UserSessionProvi
 
     private final T provider;
 
-    private final InfinispanChangelogBasedTransaction<String, UserSessionEntity> userSessionUpdateTx;
+    private final SessionsChangelogBasedTransaction<String, UserSessionEntity> userSessionUpdateTx;
 
-    private final InfinispanChangelogBasedTransaction<UUID, AuthenticatedClientSessionEntity> clientSessionUpdateTx;
+    private final SessionsChangelogBasedTransaction<UUID, AuthenticatedClientSessionEntity> clientSessionUpdateTx;
 
     private final RealmModel realm;
 
@@ -68,8 +68,8 @@ public class UserSessionAdapter<T extends SessionRefreshStore & UserSessionProvi
     private SessionPersistenceState persistenceState;
 
     public UserSessionAdapter(KeycloakSession session, UserModel user, T provider,
-                              InfinispanChangelogBasedTransaction<String, UserSessionEntity> userSessionUpdateTx,
-                              InfinispanChangelogBasedTransaction<UUID, AuthenticatedClientSessionEntity> clientSessionUpdateTx,
+                              SessionsChangelogBasedTransaction<String, UserSessionEntity> userSessionUpdateTx,
+                              SessionsChangelogBasedTransaction<UUID, AuthenticatedClientSessionEntity> clientSessionUpdateTx,
                               RealmModel realm, UserSessionEntity entity, boolean offline) {
         this.session = session;
         this.user = user;
@@ -144,6 +144,11 @@ public class UserSessionAdapter<T extends SessionRefreshStore & UserSessionProvi
                 public void runUpdate(UserSessionEntity entity) {
                     removedClientUUIDS.forEach(entity.getAuthenticatedClientSessions()::remove);
                 }
+
+                @Override
+                public boolean isOffline() {
+                    return offline;
+                }
             };
             update(task);
         }
@@ -155,7 +160,7 @@ public class UserSessionAdapter<T extends SessionRefreshStore & UserSessionProvi
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
-        clientSessionUuids.forEach(clientSessionId -> this.clientSessionUpdateTx.addTask(clientSessionId, Tasks.removeSync()));
+        clientSessionUuids.forEach(clientSessionId -> this.clientSessionUpdateTx.addTask(clientSessionId, Tasks.removeSync(offline)));
     }
 
     @Override
@@ -256,6 +261,11 @@ public class UserSessionAdapter<T extends SessionRefreshStore & UserSessionProvi
             }
 
             @Override
+            public boolean isOffline() {
+                return offline;
+            }
+
+            @Override
             public String toString() {
                 return "setLastSessionRefresh(" + lastSessionRefresh + ')';
             }
@@ -289,6 +299,10 @@ public class UserSessionAdapter<T extends SessionRefreshStore & UserSessionProvi
                 entity.getNotes().put(name, value);
             }
 
+            @Override
+            public boolean isOffline() {
+                return offline;
+            }
         };
 
         update(task);
@@ -303,6 +317,10 @@ public class UserSessionAdapter<T extends SessionRefreshStore & UserSessionProvi
                 entity.getNotes().remove(name);
             }
 
+            @Override
+            public boolean isOffline() {
+                return offline;
+            }
         };
 
         update(task);
@@ -321,6 +339,11 @@ public class UserSessionAdapter<T extends SessionRefreshStore & UserSessionProvi
     @Override
     public void setState(State state) {
         UserSessionUpdateTask task = new UserSessionUpdateTask() {
+
+            @Override
+            public boolean isOffline() {
+                return offline;
+            }
 
             @Override
             public void runUpdate(UserSessionEntity entity) {
@@ -344,6 +367,11 @@ public class UserSessionAdapter<T extends SessionRefreshStore & UserSessionProvi
     @Override
     public void restartSession(RealmModel realm, UserModel user, String loginUsername, String ipAddress, String authMethod, boolean rememberMe, String brokerSessionId, String brokerUserId) {
         UserSessionUpdateTask task = new UserSessionUpdateTask() {
+
+            @Override
+            public boolean isOffline() {
+                return offline;
+            }
 
             @Override
             public void runUpdate(UserSessionEntity entity) {

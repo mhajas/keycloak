@@ -102,9 +102,7 @@ public class InfinispanUserSessionProviderFactory implements UserSessionProvider
     SerializeExecutionsByKey<UUID> serializerClientSession = new SerializeExecutionsByKey<>();
     SerializeExecutionsByKey<UUID> serializerOfflineClientSession = new SerializeExecutionsByKey<>();
     ArrayBlockingQueue<PersistentDeferredElement<String, UserSessionEntity>> asyncQueueUserSessions = new ArrayBlockingQueue<>(1000);
-    ArrayBlockingQueue<PersistentDeferredElement<String, UserSessionEntity>> asyncQueueUserOfflineSessions = new ArrayBlockingQueue<>(1000);
     ArrayBlockingQueue<PersistentDeferredElement<UUID, AuthenticatedClientSessionEntity>> asyncQueueClientSessions = new ArrayBlockingQueue<>(1000);
-    ArrayBlockingQueue<PersistentDeferredElement<UUID, AuthenticatedClientSessionEntity>> asyncQueueClientOfflineSessions = new ArrayBlockingQueue<>(1000);
     private PersistentSessionsWorker persistentSessionsWorker;
 
     @Override
@@ -132,9 +130,7 @@ public class InfinispanUserSessionProviderFactory implements UserSessionProvider
                     serializerClientSession,
                     serializerOfflineClientSession,
                     asyncQueueUserSessions,
-                    asyncQueueUserOfflineSessions,
-                    asyncQueueClientSessions,
-                    asyncQueueClientOfflineSessions
+                    asyncQueueClientSessions
             );
         }
         return new InfinispanUserSessionProvider(
@@ -210,10 +206,7 @@ public class InfinispanUserSessionProviderFactory implements UserSessionProvider
                 }
             }
         });
-        persistentSessionsWorker = new PersistentSessionsWorker(factory, asyncQueueUserSessions,
-                asyncQueueUserOfflineSessions,
-                asyncQueueClientSessions,
-                asyncQueueClientOfflineSessions);
+        persistentSessionsWorker = new PersistentSessionsWorker(factory, asyncQueueUserSessions, asyncQueueClientSessions);
         persistentSessionsWorker.start();
     }
 
