@@ -1,7 +1,7 @@
 package org.keycloak.crypto.hash;
 
 import org.bouncycastle.crypto.generators.Argon2BytesGenerator;
-import org.jboss.logging.Logger;
+//import org.jboss.logging.Logger;
 import org.keycloak.common.util.Base64;
 import org.keycloak.common.util.MultivaluedHashMap;
 import org.keycloak.credential.hash.PasswordHashProvider;
@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
+import java.util.stream.IntStream;
 
 import static org.keycloak.crypto.hash.Argon2PasswordHashProviderFactory.MEMORY_KEY;
 import static org.keycloak.crypto.hash.Argon2PasswordHashProviderFactory.PARALLELISM_KEY;
@@ -24,7 +25,7 @@ import static org.keycloak.crypto.hash.Argon2PasswordHashProviderFactory.VERSION
 
 public class Argon2PasswordHashProvider implements PasswordHashProvider {
 
-    private static final Logger logger = Logger.getLogger(Argon2PasswordHashProvider.class);
+//    private static final Logger logger = Logger.getLogger(Argon2PasswordHashProvider.class);
     private final String version;
     private final String type;
     private final int hashLength;
@@ -55,6 +56,37 @@ public class Argon2PasswordHashProvider implements PasswordHashProvider {
                 checkCredData(PARALLELISM_KEY, parallelism, data);
     }
 
+    public static void main(String[] args) throws InterruptedException {
+        String version  = Argon2Parameters.DEFAULT_VERSION;
+        String type     = Argon2Parameters.DEFAULT_TYPE;
+        int hashLength  = Argon2Parameters.DEFAULT_HASH_LENGTH;
+        int memory      = Argon2Parameters.DEFAULT_MEMORY;
+        int iterations  = Argon2Parameters.DEFAULT_ITERATIONS;
+        int parallelism = Argon2Parameters.DEFAULT_PARALLELISM;
+        //int threads = Runtime.getRuntime().availableProcessors();
+        int threads = 8;
+        Semaphore cpuCoreSempahore = new Semaphore(threads);
+
+        Argon2PasswordHashProvider provider = new Argon2PasswordHashProvider(version, type, hashLength, memory, iterations, parallelism, cpuCoreSempahore);
+
+        System.out.println("Starting");
+
+        long startGlobal = System.currentTimeMillis();
+        IntStream.range(0, 60000)
+                .parallel()
+                .forEach(i -> {
+                    long start = System.currentTimeMillis();
+                    provider.encodedCredential("password", -1);
+                    long end = System.currentTimeMillis();
+                    System.out.println(i + " Time: " + (end - start));
+                });
+        long endGlobal = System.currentTimeMillis();
+        System.out.println("Done " + (endGlobal - startGlobal));
+
+
+        Thread.sleep(999999999);
+    }
+
     /**
      * Password hashing iterations from password policy is intentionally ignored for now for two reasons. 1) default
      * iterations are 210K, which is way too large for Argon2, and 2) it makes little sense to configure iterations only
@@ -66,7 +98,7 @@ public class Argon2PasswordHashProvider implements PasswordHashProvider {
         if (iterations == -1) {
             iterations = this.iterations;
         } else if (iterations > 100) {
-            logger.warn("Iterations for Argon should be less than 100, using default");
+            //logger.warn("Iterations for Argon should be less than 100, using default");
             iterations = this.iterations;
         }
 
