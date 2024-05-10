@@ -286,8 +286,7 @@ public class PersistentUserSessionProvider implements UserSessionProvider, Sessi
     private Stream<UserSessionModel> getUserSessionsFromPersistenceProviderStream(RealmModel realm, UserModel user) {
         UserSessionPersisterProvider persister = session.getProvider(UserSessionPersisterProvider.class);
         return persister.loadUserSessionsStream(realm, user, true, 0, null)
-                .map(persistentUserSession -> (UserSessionModel) getUserSession(realm, persistentUserSession.getId(), true))
-                .filter(Objects::nonNull);
+                .map(persistentUserSession -> new LazilyCachedPersistentUserSessionAdapter(persistentUserSession, () -> getUserSession(realm, persistentUserSession.getId(), true)));
     }
 
 
@@ -309,8 +308,7 @@ public class PersistentUserSessionProvider implements UserSessionProvider, Sessi
             if (user != null) {
                 return persister.loadUserSessionsStream(realm, user, offline, 0, null)
                         .filter(predicate.toModelPredicate())
-                        .map(s -> (UserSessionModel) getUserSession(realm, s.getId(), offline))
-                        .filter(Objects::nonNull);
+                        .map(s -> new LazilyCachedPersistentUserSessionAdapter(s, () -> getUserSession(realm, s.getId(), offline)));
             } else {
                 return Stream.empty();
             }
@@ -325,28 +323,25 @@ public class PersistentUserSessionProvider implements UserSessionProvider, Sessi
 
             UserProvider userProvider = session.getProvider(UserProvider.class);
             UserModel userModel = userProvider.searchForUserStream(realm, attributes, 0, null).findFirst().orElse(null);
-            return userModel != null ?
-                    persister.loadUserSessionsStream(realm, userModel, offline, 0, null)
+            return userModel != null
+                    ? persister.loadUserSessionsStream(realm, userModel, offline, 0, null)
                             .filter(predicate.toModelPredicate())
-                            .map(s -> (UserSessionModel) getUserSession(realm, s.getId(), offline))
-                            .filter(Objects::nonNull) :
-                    Stream.empty();
+                            .map(s -> new LazilyCachedPersistentUserSessionAdapter(s, () -> getUserSession(realm, s.getId(), offline)))
+                    : Stream.empty();
         }
 
         if (predicate.getClient() != null) {
             ClientModel client = session.clients().getClientById(realm, predicate.getClient());
             return persister.loadUserSessionsStream(realm, client, offline, 0, null)
                     .filter(predicate.toModelPredicate())
-                    .map(s -> (UserSessionModel) getUserSession(realm, s.getId(), offline))
-                    .filter(Objects::nonNull);
+                    .map(s -> new LazilyCachedPersistentUserSessionAdapter(s, () -> getUserSession(realm, s.getId(), offline)));
         }
 
         if (predicate.getBrokerSessionId() != null && !offline) {
             // we haven't yet migrated the old offline entries, so they don't have a brokerSessionId yet
             return Stream.of(persister.loadUserSessionsStreamByBrokerSessionId(realm, predicate.getBrokerSessionId(), false))
                     .filter(predicate.toModelPredicate())
-                    .map(s -> (UserSessionModel) getUserSession(realm, s.getId(), false))
-                    .filter(Objects::nonNull);
+                    .map(s -> new LazilyCachedPersistentUserSessionAdapter(s, () -> getUserSession(realm, s.getId(), offline)));
         }
 
         throw new ModelException("For offline sessions, only lookup by userId, brokerUserId and client is supported");
