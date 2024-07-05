@@ -10,4 +10,4 @@ instance_type: t3.large
 instance_volume_size: 20
 instance_device: /dev/sda1
 
-no_log_sensitive: true
+no_log_sensitive: false
