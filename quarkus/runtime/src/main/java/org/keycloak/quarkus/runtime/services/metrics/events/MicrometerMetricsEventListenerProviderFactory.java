@@ -19,17 +19,23 @@ package org.keycloak.quarkus.runtime.services.metrics.events;
 
 import org.bouncycastle.util.Strings;
 import org.keycloak.Config;
+import org.keycloak.common.Profile;
+import org.keycloak.config.EventOptions;
+import org.keycloak.config.MetricsOptions;
 import org.keycloak.events.EventListenerProvider;
 import org.keycloak.events.EventListenerProviderFactory;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
 import org.keycloak.provider.EnvironmentDependentProviderFactory;
+import org.keycloak.quarkus.runtime.configuration.Configuration;
 
 import java.util.HashSet;
 
 public class MicrometerMetricsEventListenerProviderFactory implements EventListenerProviderFactory, EnvironmentDependentProviderFactory {
 
     private static final String ID = "micrometer-metrics";
+    private static final String TAGS_OPTION = "tags";
+    private static final String EVENTS_OPTION = "events";
 
     private boolean withIdp, withRealm, withClientId;
 
@@ -42,7 +48,7 @@ public class MicrometerMetricsEventListenerProviderFactory implements EventListe
 
     @Override
     public void init(Config.Scope config) {
-        String tagsConfig = config.get("tags");
+        String tagsConfig = config.get(TAGS_OPTION);
         if (tagsConfig != null) {
             for (String s : Strings.split(tagsConfig, ',')) {
                 switch (s.trim()) {
@@ -52,8 +58,12 @@ public class MicrometerMetricsEventListenerProviderFactory implements EventListe
                     default -> throw new IllegalArgumentException("Unknown tag for collecting user event metrics: '" + s + "'");
                 }
             }
+        } else {
+            withIdp =true;
+            withRealm = true;
+            withClientId = true;
         }
-        String eventsConfig = config.get("events");
+        String eventsConfig = config.get(EVENTS_OPTION);
         if (eventsConfig != null && !eventsConfig.trim().isEmpty()) {
             events = new HashSet<>();
             for (String s : Strings.split(eventsConfig, ',')) {
@@ -77,14 +87,14 @@ public class MicrometerMetricsEventListenerProviderFactory implements EventListe
     }
 
     @Override
-    public boolean isEnabled(KeycloakSession session) {
-        return true;
+    public boolean isGlobal() {
+        return Configuration.isTrue(EventOptions.USER_EVENT_METRICS_ENABLED);
     }
 
     @Override
     public boolean isSupported(Config.Scope config) {
-        Boolean enabled = config.getBoolean("enabled");
-        return enabled != null && enabled;
+        return Configuration.isTrue(MetricsOptions.METRICS_ENABLED)
+                && Profile.isFeatureEnabled(Profile.Feature.USER_EVENT_METRICS);
     }
 
 }
