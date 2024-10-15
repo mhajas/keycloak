@@ -19,15 +19,11 @@ package org.keycloak.quarkus.runtime.services.metrics.events;
 
 import org.bouncycastle.util.Strings;
 import org.keycloak.Config;
-import org.keycloak.common.Profile;
-import org.keycloak.config.EventOptions;
-import org.keycloak.config.MetricsOptions;
 import org.keycloak.events.EventListenerProvider;
 import org.keycloak.events.EventListenerProviderFactory;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
 import org.keycloak.provider.EnvironmentDependentProviderFactory;
-import org.keycloak.quarkus.runtime.configuration.Configuration;
 
 import java.util.HashSet;
 
@@ -58,10 +54,6 @@ public class MicrometerMetricsEventListenerProviderFactory implements EventListe
                     default -> throw new IllegalArgumentException("Unknown tag for collecting user event metrics: '" + s + "'");
                 }
             }
-        } else {
-            withIdp =true;
-            withRealm = true;
-            withClientId = true;
         }
         String eventsConfig = config.get(EVENTS_OPTION);
         if (eventsConfig != null && !eventsConfig.trim().isEmpty()) {
@@ -70,6 +62,7 @@ public class MicrometerMetricsEventListenerProviderFactory implements EventListe
                 events.add(s.trim());
             }
         }
+
     }
 
     @Override
@@ -87,14 +80,19 @@ public class MicrometerMetricsEventListenerProviderFactory implements EventListe
     }
 
     @Override
+    public boolean isEnabled(KeycloakSession session) {
+        return true;
+    }
+
+    @Override
     public boolean isGlobal() {
-        return Configuration.isTrue(EventOptions.USER_EVENT_METRICS_ENABLED);
+        return true;
     }
 
     @Override
     public boolean isSupported(Config.Scope config) {
-        return Configuration.isTrue(MetricsOptions.METRICS_ENABLED)
-                && Profile.isFeatureEnabled(Profile.Feature.USER_EVENT_METRICS);
+        Boolean enabled = config.getBoolean("enabled");
+        return enabled != null && enabled;
     }
 
 }

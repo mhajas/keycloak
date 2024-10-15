@@ -79,7 +79,6 @@ The table below summarizes the available metrics groups:
 |Keycloak
 |A set of metrics from Keycloak events. See <@links.server id="event-metrics"/> for more details.
 
-
 |===
 
 </@tmpl.guide>

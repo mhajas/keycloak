@@ -457,10 +457,10 @@ Events (Preview):
                        Reduce the number of metrics. If empty or not set, all events create a
                        metric. Available only when user event metrics are enabled.
 --user-event-metrics-tags <tags>
-                     Preview: Comma-separated list of tags to be collected for event metrics.
-                       Reduce the tags to avoid a high metrics cardinality if you use a lot of
-                       client, realms or IDPs. Default: realm,clientId,idp. Available only when
-                       user event metrics are enabled.
+                     Preview: Comma-separated list of tags to be collected for event metrics. By
+                       default only 'realm' is enabled to avoid a high metrics cardinality.
+                       Additionally 'clientId' and 'idp' can be specified. Default: realm.
+                       Available only when user event metrics are enabled.
 
 Truststore:
 
