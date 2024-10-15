@@ -85,7 +85,7 @@ public class EventBuilder {
                 .filter(providerFactory -> ((EventListenerProviderFactory) providerFactory).isEnabled(session))
                 .map(providerFactory -> {
                     realmListeners.remove(providerFactory.getId());
-                    return (EventListenerProvider) providerFactory.create(session);
+                    return session.getProvider(EventListenerProvider.class, providerFactory.getId());
                 })
                 .toList();
         if (!realmListeners.isEmpty()) {
