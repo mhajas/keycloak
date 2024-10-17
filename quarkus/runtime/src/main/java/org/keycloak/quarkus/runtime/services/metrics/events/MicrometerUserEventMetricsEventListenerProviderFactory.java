@@ -27,9 +27,9 @@ import org.keycloak.provider.EnvironmentDependentProviderFactory;
 
 import java.util.HashSet;
 
-public class MicrometerMetricsEventListenerProviderFactory implements EventListenerProviderFactory, EnvironmentDependentProviderFactory {
+public class MicrometerUserEventMetricsEventListenerProviderFactory implements EventListenerProviderFactory, EnvironmentDependentProviderFactory {
 
-    private static final String ID = "micrometer-metrics";
+    private static final String ID = "micrometer-user-event-metrics";
     private static final String TAGS_OPTION = "tags";
     private static final String EVENTS_OPTION = "events";
 
@@ -39,7 +39,7 @@ public class MicrometerMetricsEventListenerProviderFactory implements EventListe
 
     @Override
     public EventListenerProvider create(KeycloakSession session) {
-        return new MicrometerMetricsEventListenerProvider(session, withIdp, withRealm, withClientId, events);
+        return new MicrometerUserEventMetricsEventListenerProvider(session, withIdp, withRealm, withClientId, events);
     }
 
     @Override

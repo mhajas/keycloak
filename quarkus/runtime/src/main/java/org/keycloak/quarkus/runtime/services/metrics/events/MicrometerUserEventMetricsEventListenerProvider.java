@@ -35,9 +35,9 @@ import org.keycloak.models.KeycloakSession;
 import java.util.HashSet;
 import java.util.Locale;
 
-public class MicrometerMetricsEventListenerProvider implements EventListenerProvider {
+public class MicrometerUserEventMetricsEventListenerProvider implements EventListenerProvider {
 
-    private static final Logger logger = Logger.getLogger(MicrometerMetricsEventListenerProvider.class);
+    private static final Logger logger = Logger.getLogger(MicrometerUserEventMetricsEventListenerProvider.class);
 
     private static final String REALM_TAG = "realm";
     private static final String IDP_TAG = "idp";
@@ -57,7 +57,7 @@ public class MicrometerMetricsEventListenerProvider implements EventListenerProv
     private final EventListenerTransaction tx =
             new EventListenerTransaction(null, this::countEvent);
 
-    public MicrometerMetricsEventListenerProvider(KeycloakSession session, boolean withIdp, boolean withRealm, boolean withClientId, HashSet<String> events) {
+    public MicrometerUserEventMetricsEventListenerProvider(KeycloakSession session, boolean withIdp, boolean withRealm, boolean withClientId, HashSet<String> events) {
         this.withIdp = withIdp;
         this.withRealm = withRealm;
         this.withClientId = withClientId;
