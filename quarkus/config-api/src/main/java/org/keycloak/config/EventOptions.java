@@ -9,11 +9,12 @@ public class EventOptions {
             .defaultValue(Boolean.FALSE)
             .build();
 
-    public static final Option<String> USER_EVENT_METRICS_TAGS = new OptionBuilder<>("user-event-metrics-tags", String.class)
+    public static final Option<List<String>> USER_EVENT_METRICS_TAGS = OptionBuilder.listOptionBuilder("user-event-metrics-tags", String.class)
             .category(OptionCategory.EVENTS)
-            .description("Comma-separated list of tags to be collected for event metrics. By default only 'realm' is enabled to avoid a high metrics cardinality. Additionally 'clientId' and 'idp' can be specified.")
+            .description("Comma-separated list of tags to be collected for event metrics. By default only 'realm' is enabled to avoid a high metrics cardinality.")
             .buildTime(false)
-            .defaultValue("realm")
+            .expectedValues(List.of("realm", "idp", "clientId"))
+            .defaultValue(List.of("realm"))
             .build();
 
     public static final Option<String> USER_EVENT_METRICS_EVENTS = new OptionBuilder<>("user-event-metrics-events", String.class)
