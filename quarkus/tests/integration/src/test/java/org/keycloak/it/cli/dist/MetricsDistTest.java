@@ -84,19 +84,35 @@ public class MetricsDistTest {
     @Test
     @Launch({ "start-dev", "--metrics-enabled=true", "--features=user-event-metrics", "--user-event-metrics-enabled=true" })
     void testMetricsEndpointWithUserEventMetrics(KeycloakDistribution distribution) {
-        distribution.setRequestPort(8080);
-        given().formParam("grant_type", "client_credentials")
-                .formParam("client_id", "unknown")
-                .formParam("client_secret", "unknown").
-        when().post("/realms/master/protocol/openid-connect/token")
-                .then()
-                .statusCode(401);
+        runClientCredentialGrantWithUnknownClientId(distribution);
 
         distribution.setRequestPort(9000);
         when().get("/metrics").then()
                 .statusCode(200)
                 .body(containsString("keycloak_user_events_total{error=\"client_not_found\",event=\"client_login\",realm=\"master\"}"));
 
+    }
+
+    @Test
+    @Launch({ "start-dev", "--metrics-enabled=true", "--features=user-event-metrics", "--user-event-metrics-enabled=false" })
+    void testMetricsEndpointWithoutUserEventMetrics(KeycloakDistribution distribution) {
+        runClientCredentialGrantWithUnknownClientId(distribution);
+
+        distribution.setRequestPort(9000);
+        when().get("/metrics").then()
+                .statusCode(200)
+                .body(not(containsString("keycloak_user_events_total{error=\"client_not_found\",event=\"client_login\",realm=\"master\"}")));
+
+    }
+
+    private static void runClientCredentialGrantWithUnknownClientId(KeycloakDistribution distribution) {
+        distribution.setRequestPort(8080);
+        given().formParam("grant_type", "client_credentials")
+                .formParam("client_id", "unknown")
+                .formParam("client_secret", "unknown").
+                when().post("/realms/master/protocol/openid-connect/token")
+                .then()
+                .statusCode(401);
     }
 
     @Test
