@@ -131,7 +131,7 @@ public class AdminEventBuilder {
     private AdminEventBuilder addListeners(KeycloakSession session) {
         HashSet<String> realmListeners = new HashSet<>(realm.getEventsListenersStream().toList());
         session.getKeycloakSessionFactory().getProviderFactoriesStream(EventListenerProvider.class)
-                .filter(providerFactory -> ((EventListenerProviderFactory) providerFactory).isEnabled(session))
+                .filter(providerFactory -> realmListeners.contains(providerFactory.getId()) || ((EventListenerProviderFactory) providerFactory).isGlobal())
                 .forEach(providerFactory -> {
                     realmListeners.remove(providerFactory.getId());
                     if (!listeners.containsKey(providerFactory.getId())) {

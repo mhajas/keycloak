@@ -79,10 +79,6 @@ public class MicrometerUserEventMetricsEventListenerProviderFactory implements E
         return ID;
     }
 
-    @Override
-    public boolean isEnabled(KeycloakSession session) {
-        return true;
-    }
 
     @Override
     public boolean isGlobal() {

@@ -82,7 +82,7 @@ public class EventBuilder {
     private static List<EventListenerProvider> getEventListeners(KeycloakSession session, RealmModel realm) {
         HashSet<String> realmListeners = new HashSet<>(realm.getEventsListenersStream().toList());
         List<EventListenerProvider> result = session.getKeycloakSessionFactory().getProviderFactoriesStream(EventListenerProvider.class)
-                .filter(providerFactory -> ((EventListenerProviderFactory) providerFactory).isEnabled(session))
+                .filter(providerFactory -> realmListeners.contains(providerFactory.getId()) || ((EventListenerProviderFactory) providerFactory).isGlobal())
                 .map(providerFactory -> {
                     realmListeners.remove(providerFactory.getId());
                     return session.getProvider(EventListenerProvider.class, providerFactory.getId());
