@@ -60,19 +60,19 @@ public class EventMetricsProviderTest extends AbstractKeycloakTest {
             List<String> args = new ArrayList<>();
             args.add("--features=user-event-metrics");
             args.add("--metrics-enabled=true");
-            args.add("--events-metrics-user-metrics-enabled=true");
+            args.add("--event-metrics-user-enabled=true");
             if (tags != null) {
-                args.add("--events-metrics-user-metrics-tags=" + tags);
+                args.add("--event-metrics-user-tags=" + tags);
             }
             if (events != null) {
-                args.add("--events-metrics-user-metrics-events=" + events);
+                args.add("--event-metrics-user-events=" + events);
             }
             container.setAdditionalBuildArgs(args);
         }
         else {
             setConfigProperty("keycloak.features", "user-event-metrics");
             setConfigProperty("keycloak.metrics-enabled", "true");
-            setConfigProperty("keycloak.events-metrics-user-metrics-enabled", "true");
+            setConfigProperty("keycloak.event-metrics-user-enabled", "true");
         }
     }
 
