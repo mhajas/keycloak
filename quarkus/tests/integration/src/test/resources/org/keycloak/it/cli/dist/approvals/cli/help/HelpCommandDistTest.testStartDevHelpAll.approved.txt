@@ -449,14 +449,14 @@ Tracing (Preview):
 
 Events (Preview):
 
---user-event-metrics-enabled <true|false>
+--events-metrics-user-metrics-enabled <true|false>
                      Preview: Create metrics based on user events. Default: false. Available only
                        when metrics are enabled and feature user-event-metrics is enabled.
---user-event-metrics-events <events>
+--events-metrics-user-metrics-events <events>
                      Preview: Comma-separated list of events to be collected for event metrics.
                        Reduce the number of metrics. If empty or not set, all events create a
                        metric. Available only when user event metrics are enabled.
---user-event-metrics-tags <tags>
+--events-metrics-user-metrics-tags <tags>
                      Preview: Comma-separated list of tags to be collected for event metrics. By
                        default only 'realm' is enabled to avoid a high metrics cardinality.
                        Possible values are: realm, idp, clientId. Default: realm. Available only

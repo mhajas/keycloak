@@ -82,7 +82,7 @@ public class MetricsDistTest {
     }
 
     @Test
-    @Launch({ "start-dev", "--metrics-enabled=true", "--features=user-event-metrics", "--user-event-metrics-enabled=true" })
+    @Launch({ "start-dev", "--metrics-enabled=true", "--features=user-event-metrics", "--events-metrics-user-enabled=true" })
     void testMetricsEndpointWithUserEventMetrics(KeycloakDistribution distribution) {
         runClientCredentialGrantWithUnknownClientId(distribution);
 
@@ -94,7 +94,7 @@ public class MetricsDistTest {
     }
 
     @Test
-    @Launch({ "start-dev", "--metrics-enabled=true", "--features=user-event-metrics", "--user-event-metrics-enabled=false" })
+    @Launch({ "start-dev", "--metrics-enabled=true", "--features=user-event-metrics", "--events-metrics-user-enabled=false" })
     void testMetricsEndpointWithoutUserEventMetrics(KeycloakDistribution distribution) {
         runClientCredentialGrantWithUnknownClientId(distribution);
 

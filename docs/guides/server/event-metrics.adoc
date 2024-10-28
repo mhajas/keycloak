@@ -7,7 +7,7 @@
 title="Enabling {project_name} Event Metrics"
 summary="Learn how to enable and use {project_name} Event Metrics"
 preview="true"
-includedOptions="metrics-enabled user-event-metrics-*">
+includedOptions="metrics-enabled events-metrics-user-*">
 
 Event metrics can provide admins an overview of the different activities in a {project_name} instance.
 For now, only metrics for user events are captured.
@@ -25,22 +25,22 @@ To start collecting metrics, enable the feature `user-event-metrics`, enable met
 
 The following shows the required startup parameters:
 
-<@kc.start parameters="--features=user-event-metrics --metrics-enabled=true --user-event-metrics-enabled=true ..."/>
+<@kc.start parameters="--features=user-event-metrics --metrics-enabled=true --events-metrics-user-enabled=true ..."/>
 
 By default, there is a separate metric for each realm.
-To break down the metric by client and identity provider, you can add those metrics dimension using the configuration option `user-event-metrics-tags`.
+To break down the metric by client and identity provider, you can add those metrics dimension using the configuration option `events-metrics-user-tags`.
 This can be useful on installations with a small number of clients and IDPs.
 This is not recommended for installations with a large number of clients or IDPs as it will increase the memory usage of {project_name} and as it will increase the load on your monitoring system.
 
 The following shows how to configure {project_name} to break down the metrics by all three metrics dimensions:
 
-<@kc.start parameters="... --user-event-metrics-tags=realm,idp,clientId ..."/>
+<@kc.start parameters="... --events-metrics-user-tags=realm,idp,clientId ..."/>
 
 You can limit the events for which {project_name} will expose metrics.
 
 The following example limits the events collected to `LOGIN` and `LOGOUT` events:
 
-<@kc.start parameters="... --user-event-metrics-events=login,logout ..."/>
+<@kc.start parameters="... --events-metrics-user-events=login,logout ..."/>
 
 All error events will be collected with the primary event type and will have the `error` tag filled with the error code.
 
