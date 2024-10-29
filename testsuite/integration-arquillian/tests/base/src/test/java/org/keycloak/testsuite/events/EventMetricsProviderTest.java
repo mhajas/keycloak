@@ -20,6 +20,7 @@ package org.keycloak.testsuite.events;
 import io.micrometer.core.instrument.Metrics;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Test;
 import org.keycloak.events.Details;
 import org.keycloak.events.Errors;
@@ -147,6 +148,18 @@ public class EventMetricsProviderTest extends AbstractKeycloakTest {
                     Metrics.globalRegistry.counter("keycloak.user", "event", "refresh_token", "error", "client_not_found", "realm", TEST, "client.id", "unknown", "idp", "").count() == 1);
         });
 
+    }
+
+    @After
+    public void resetHostnameSettings() {
+        if (suiteContext.getAuthServerInfo().isQuarkus()) {
+            AbstractQuarkusDeployableContainer container = (AbstractQuarkusDeployableContainer) suiteContext.getAuthServerInfo().getArquillianContainer().getDeployableContainer();
+            container.resetConfiguration();
+        } else {
+            setConfigProperty("keycloak.features", null);
+            setConfigProperty("keycloak.metrics-enabled", null);
+            setConfigProperty("keycloak.event-metrics-user-enabled", null);
+        }
     }
 
 }

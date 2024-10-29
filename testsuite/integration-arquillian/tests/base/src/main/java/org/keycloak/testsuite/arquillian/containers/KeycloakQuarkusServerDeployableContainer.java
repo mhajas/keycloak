@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -301,7 +302,9 @@ public class KeycloakQuarkusServerDeployableContainer extends AbstractQuarkusDep
                     }
                 }
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                if (!Objects.equals("Stream closed", e.getMessage())) {
+                    throw new RuntimeException(e);
+                }
             }
         }
 
