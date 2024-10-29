@@ -22,6 +22,7 @@ import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Test;
+import org.keycloak.common.Profile;
 import org.keycloak.events.Details;
 import org.keycloak.events.Errors;
 import org.keycloak.events.EventBuilder;
@@ -29,6 +30,7 @@ import org.keycloak.events.EventType;
 import org.keycloak.models.RealmModel;
 import org.keycloak.representations.idm.RealmRepresentation;
 import org.keycloak.testsuite.AbstractKeycloakTest;
+import org.keycloak.testsuite.arquillian.annotation.EnableFeature;
 import org.keycloak.testsuite.arquillian.containers.AbstractQuarkusDeployableContainer;
 import org.keycloak.testsuite.util.RealmBuilder;
 
@@ -40,6 +42,7 @@ import static org.keycloak.testsuite.auth.page.AuthRealm.TEST;
 /**
  * @author aschwart
  */
+@EnableFeature(Profile.Feature.USER_EVENT_METRICS)
 public class EventMetricsProviderTest extends AbstractKeycloakTest {
 
     private final static String CLIENT_ID = "CLIENT_ID";
@@ -59,7 +62,6 @@ public class EventMetricsProviderTest extends AbstractKeycloakTest {
         if (suiteContext.getAuthServerInfo().isQuarkus()) {
             AbstractQuarkusDeployableContainer container = (AbstractQuarkusDeployableContainer) suiteContext.getAuthServerInfo().getArquillianContainer().getDeployableContainer();
             List<String> args = new ArrayList<>();
-            args.add("--features=user-event-metrics");
             args.add("--metrics-enabled=true");
             args.add("--event-metrics-user-enabled=true");
             if (tags != null) {
@@ -71,7 +73,6 @@ public class EventMetricsProviderTest extends AbstractKeycloakTest {
             container.setAdditionalBuildArgs(args);
         }
         else {
-            setConfigProperty("keycloak.features", "user-event-metrics");
             setConfigProperty("keycloak.metrics-enabled", "true");
             setConfigProperty("keycloak.event-metrics-user-enabled", "true");
         }
@@ -156,7 +157,6 @@ public class EventMetricsProviderTest extends AbstractKeycloakTest {
             AbstractQuarkusDeployableContainer container = (AbstractQuarkusDeployableContainer) suiteContext.getAuthServerInfo().getArquillianContainer().getDeployableContainer();
             container.resetConfiguration();
         } else {
-            setConfigProperty("keycloak.features", null);
             setConfigProperty("keycloak.metrics-enabled", null);
             setConfigProperty("keycloak.event-metrics-user-enabled", null);
         }
