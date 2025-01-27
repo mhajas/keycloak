@@ -52,4 +52,33 @@ You should always confirm the configuration change by conducting a performance t
 ** <@links.observability id="metrics-for-troubleshooting-embedded-caches-multi-site"/>
 ** <@links.observability id="metrics-for-troubleshooting-external-infinispan-multi-site"/>
 
+
+== Grafana dashboards
+
+[source,json,role="scrollable-code",id="keycloak-status"]
+----
+include::partials/keycloak-status.json[]
+----
+
+++++
+<style>
+pre {
+  max-height: 200px;
+}
+</style>
+<button id="download-btn">Download JSON</button>
+<script>
+  document.getElementById('download-btn').addEventListener('click', function () {
+    const jsonData = JSON.parse(document.getElementById("keycloak-status").textContent);
+    const file = new Blob([JSON.stringify(jsonData, null, 2)], {type: 'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(file);
+    a.download = 'keycloak-status.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+</script>
+++++
+
+
 </@tmpl.guide>
