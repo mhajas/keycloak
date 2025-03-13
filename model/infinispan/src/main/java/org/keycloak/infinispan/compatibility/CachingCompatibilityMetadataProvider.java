@@ -2,6 +2,7 @@ package org.keycloak.infinispan.compatibility;
 
 import java.util.Map;
 import org.infinispan.commons.util.Version;
+import org.keycloak.Config;
 import org.keycloak.common.Profile;
 import org.keycloak.common.util.MultiSiteUtils;
 import org.keycloak.compatibility.CompatibilityMetadataProvider;
@@ -39,7 +40,8 @@ public class CachingCompatibilityMetadataProvider implements CompatibilityMetada
         return Map.of(
                 "mode", "embedded",
                 "persistence", Boolean.toString(Profile.isFeatureEnabled(Profile.Feature.PERSISTENT_USER_SESSIONS)),
-                "version", Version.getVersion()
+                "version", Version.getVersion(),
+                "test", Config.scope("credential", "keycloak-password").getBoolean("metrics-enabled", false).toString()
         );
     }
 }

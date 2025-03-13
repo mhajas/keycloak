@@ -21,8 +21,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.ServiceLoader;
 import java.util.stream.Collectors;
+
+import org.keycloak.Config;
 import org.keycloak.compatibility.CompatibilityMetadataProvider;
+import org.keycloak.config.ConfigProviderFactory;
 import org.keycloak.quarkus.runtime.cli.PropertyException;
 import org.keycloak.util.JsonSerialization;
 import picocli.CommandLine;
@@ -42,6 +47,17 @@ public class UpdateCompatibilityMetadata extends AbstractUpdatesCommand {
 
     @Override
     int executeAction() {
+
+        // Initialize config
+        ServiceLoader<ConfigProviderFactory> loader = ServiceLoader.load(ConfigProviderFactory.class, UpdateCompatibilityMetadata.class.getClassLoader());
+
+        try {
+            ConfigProviderFactory factory = loader.iterator().next();
+            Config.init(factory.create().orElseThrow(() -> new RuntimeException("Failed to load Keycloak configuration")));
+        } catch (NoSuchElementException e) {
+            throw new RuntimeException("No valid ConfigProvider found");
+        }
+
         var metadata = loadAllProviders()
                 .values()
                 .stream()
