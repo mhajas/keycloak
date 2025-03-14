@@ -205,7 +205,7 @@ public abstract class AbstractQuarkusDeployableContainer implements DeployableCo
         if ("local".equals(cacheMode)) {
             commands.add("--cache=local");
             // Save ~2s for each Quarkus startup, when we know ISPN cluster is empty. See https://github.com/keycloak/keycloak/issues/21033
-            commands.add("-Djgroups.join_timeout=10");
+            commands.add("-Djgroups.join_timeout=1000");
         } else {
             commands.add("--cache=ispn");
             commands.add("--cache-config-file=cluster-" + cacheMode + ".xml");
