@@ -208,6 +208,7 @@ public abstract class AbstractQuarkusDeployableContainer implements DeployableCo
             commands.add("-Djgroups.join_timeout=10");
         } else {
             commands.add("--cache=ispn");
+            commands.add("--cache-embedded-mtls-enabled=false");
             commands.add("--cache-config-file=cluster-" + cacheMode + ".xml");
 
             var stack = System.getProperty("auth.server.quarkus.cluster.stack");
