@@ -48,6 +48,15 @@ public abstract class AbstractInvalidationClusterTest<T, TR> extends AbstractClu
     }
 
     public void crud(boolean backendFailover) {
+
+        for (int i = 0; i < 30; i++) {
+            log.info("Failure " + i);
+            failure();
+            log.info("Failback " + i);
+            failback();
+            log.info("Finished " + i);
+        }
+
         T testEntity = createTestEntityRepresentation();
 
         // CREATE
