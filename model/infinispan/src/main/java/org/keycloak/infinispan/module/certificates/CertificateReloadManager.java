@@ -235,7 +235,7 @@ public class CertificateReloadManager implements Lifecycle {
                 return;
             }
             var crt = certificateHolder.getCertificateInUse();
-            var delay = delayUntilNextRotation(crt.getCertificate().getNotBefore().toInstant(), crt.getCertificate().getNotAfter().toInstant());
+            var delay = delayUntilNextRotation(crt.getCertificate().getNotBefore().toInstant().plus(Duration.ofMillis(100000)), crt.getCertificate().getNotAfter().toInstant());
             logger.debugf("Next rotation in %s", delay);
             if (delay.isZero()) {
                 blockingManager.runBlocking(this::rotateCertificate, "rotate");
