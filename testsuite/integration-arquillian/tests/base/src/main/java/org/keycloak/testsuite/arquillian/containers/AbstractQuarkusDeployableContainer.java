@@ -208,6 +208,7 @@ public abstract class AbstractQuarkusDeployableContainer implements DeployableCo
         } else {
             commands.add("--cache=ispn");
             commands.add("--cache-config-file=cluster-" + cacheMode + ".xml");
+            commands.add("--log-level=org.keycloak.cluster.infinispan:trace");
 
             var stack = System.getProperty("auth.server.quarkus.cluster.stack");
             if (stack != null)
