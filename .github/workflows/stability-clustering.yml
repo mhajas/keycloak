@@ -44,4 +44,4 @@ jobs:
 
       - name: Run cluster tests
         run: |
-          ./mvnw test ${{ env.SUREFIRE_RETRY }} -Pauth-server-cluster-quarkus,db-postgres "-Dwebdriver.chrome.driver=$CHROMEWEBDRIVER/chromedriver" -Dsession.cache.owners=2 -Dtest=**.cluster.**#crudWith* -pl testsuite/integration-arquillian/tests/base
+          ./mvnw test ${{ env.SUREFIRE_RETRY }} -Pauth-server-cluster-quarkus,db-postgres "-Dwebdriver.chrome.driver=$CHROMEWEBDRIVER/chromedriver" -Dsession.cache.owners=2 -Dtest=RoleInvalidationClusterTest#testClusterFormed -pl testsuite/integration-arquillian/tests/base

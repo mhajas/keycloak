@@ -28,14 +28,17 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.ReflectionToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 import org.junit.Before;
+import org.junit.Test;
 import org.keycloak.admin.client.resource.RoleByIdResource;
 import org.keycloak.admin.client.resource.RoleResource;
 import org.keycloak.admin.client.resource.RolesResource;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.testsuite.arquillian.ContainerInfo;
+import org.keycloak.testsuite.client.KeycloakTestingClient;
 import org.keycloak.testsuite.util.RoleBuilder;
 
 import jakarta.ws.rs.NotFoundException;
+import org.keycloak.testsuite.util.WaitUtils;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -186,6 +189,29 @@ public class RoleInvalidationClusterTest extends AbstractInvalidationClusterTest
             }
         }
         assertFalse(entityDiffers);
+    }
+
+    @Test
+    public void testClusterFormed() {
+
+        for (int i = 0; i < 100; i++) {
+            log.infof("Iteration %d start", i);
+            log.info("---------- Killing node");
+            failure();
+            log.info("---------- Node killed");
+            WaitUtils.pause(100);
+            log.info("---------- Starting node");
+            failback();
+            log.info("---------- Node started");
+            WaitUtils.pause(100);
+
+            for (ContainerInfo node : suiteContext.getAuthServerBackendsInfo()) {
+                KeycloakTestingClient testingClientFor = getTestingClientFor(node);
+
+                testingClientFor.server().run(CheckClusterSize::clusterSize);
+            }
+            log.infof("Iteration %d end", i);
+        }
     }
 
     private RoleRepresentation.Composites sortFieldsComposites(RoleRepresentation.Composites composites) {
