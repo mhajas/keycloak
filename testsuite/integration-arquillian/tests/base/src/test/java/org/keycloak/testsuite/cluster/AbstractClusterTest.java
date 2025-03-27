@@ -143,6 +143,11 @@ public abstract class AbstractClusterTest extends AbstractKeycloakTest {
         backendTestingClients.remove(node);
         log.info("Killing backend node: " + node);
         controller.kill(node.getQualifier());
+        // Existing node can still resend messages to killed node which can then
+        //  collide with startup of the killed node.
+        // Waiting some time until existing node stops retransmitting the message
+        //  See https://issues.redhat.com/browse/JGRP-2870
+        pause(2000);
     }
 
     protected Keycloak getAdminClientFor(ContainerInfo node) {
