@@ -76,7 +76,7 @@ public class JGroupsJdbcPingStackConfigurator implements JGroupsStackConfigurato
                 "delete_single_sql", String.format("DELETE from %s WHERE address=?", tableName),
                 "insert_single_sql", String.format("INSERT INTO %s values (?, ?, ?, ?, ?)", tableName),
                 "select_all_pingdata_sql", String.format("SELECT address, name, ip, coord FROM %s WHERE cluster_name=?", tableName),
-                "remove_all_data_on_view_change", "true",
+                "remove_all_data_on_view_change", "false",
                 "register_shutdown_hook", "false",
                 "stack.combine", "REPLACE",
                 "stack.position", discoveryProtocol
