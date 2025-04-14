@@ -39,6 +39,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
+import static org.keycloak.cluster.ClusterProvider.DCNotify.ALL_DCS;
 import static org.keycloak.cluster.infinispan.InfinispanClusterProvider.TASK_KEY_PREFIX;
 
 /**
@@ -99,7 +100,7 @@ public class InfinispanNotificationsManager {
         if (events == null || events.isEmpty()) {
             return;
         }
-        var wrappedEvent = WrapperClusterEvent.wrap(taskKey, events, myAddress, mySite, dcNotify, ignoreSender);
+        var wrappedEvent = WrapperClusterEvent.wrap(taskKey, events, myAddress, mySite, ALL_DCS, ignoreSender);
 
         String eventKey = UUID.randomUUID().toString();
 

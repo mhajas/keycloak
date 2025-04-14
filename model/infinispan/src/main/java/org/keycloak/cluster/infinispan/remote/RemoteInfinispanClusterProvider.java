@@ -38,6 +38,7 @@ import org.keycloak.cluster.infinispan.LockEntry;
 import org.keycloak.cluster.infinispan.TaskCallback;
 import org.keycloak.common.util.Retry;
 
+import static org.keycloak.cluster.ClusterProvider.DCNotify.ALL_DCS;
 import static org.keycloak.cluster.infinispan.InfinispanClusterProvider.TASK_KEY_PREFIX;
 import static org.keycloak.cluster.infinispan.remote.RemoteInfinispanClusterProviderFactory.putIfAbsentWithRetries;
 
@@ -114,12 +115,12 @@ public class RemoteInfinispanClusterProvider implements ClusterProvider {
 
     @Override
     public void notify(String taskKey, ClusterEvent event, boolean ignoreSender, DCNotify dcNotify) {
-        data.notificationManager().notify(taskKey, Collections.singleton(event), ignoreSender, dcNotify);
+        data.notificationManager().notify(taskKey, Collections.singleton(event), ignoreSender, ALL_DCS);
     }
 
     @Override
     public void notify(String taskKey, Collection<? extends ClusterEvent> events, boolean ignoreSender, DCNotify dcNotify) {
-        data.notificationManager().notify(taskKey, events, ignoreSender, dcNotify);
+        data.notificationManager().notify(taskKey, events, ignoreSender, ALL_DCS);
     }
 
     @Override
