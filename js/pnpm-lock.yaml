@@ -27,8 +27,8 @@ importers:
         specifier: ^10.1.1
         version: 10.1.1(eslint@9.21.0)
       eslint-plugin-cypress:
-        specifier: ^4.1.0
-        version: 4.1.0(eslint@9.21.0)
+        specifier: ^4.3.0
+        version: 4.3.0(eslint@9.21.0)
       eslint-plugin-lodash:
         specifier: ^8.0.0
         version: 8.0.0(eslint@9.21.0)
@@ -2685,8 +2685,8 @@ packages:
     peerDependencies:
       eslint: '>=7.0.0'
 
-  eslint-plugin-cypress@4.1.0:
-    resolution: {integrity: sha512-JhqkMY02mw74USwK9OFhectx3YSj6Co1NgWBxlGdKvlqiAp9vdEuQqt33DKGQFvvGS/NWtduuhWXWNnU29xDSg==}
+  eslint-plugin-cypress@4.3.0:
+    resolution: {integrity: sha512-CgS/S940MJlT8jtnWGKI0LvZQBGb/BB0QCpgBOxFMM/Z6znD+PZUwBhCTwHKN2GEr5AOny3xB92an0QfzBGooQ==}
     peerDependencies:
       eslint: '>=9'
 
@@ -4951,6 +4951,7 @@ packages:
 
   vite-plugin-dts@4.5.1:
     resolution: {integrity: sha512-Yo1dHT05B2nD47AVB7b0+wK1FPFpJJnUf/muRF7+tP+sbPFRhLs70TTRGwJw7NDBwAUAmSwhrD+ZPTe4P6Wv9w==}
+    deprecated: This version has some issues. Please upgrade to v4.5.3.
     peerDependencies:
       typescript: '*'
       vite: '*'
@@ -7638,7 +7639,7 @@ snapshots:
     dependencies:
       eslint: 9.21.0
 
-  eslint-plugin-cypress@4.1.0(eslint@9.21.0):
+  eslint-plugin-cypress@4.3.0(eslint@9.21.0):
     dependencies:
       eslint: 9.21.0
       globals: 15.15.0
