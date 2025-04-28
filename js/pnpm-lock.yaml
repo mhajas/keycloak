@@ -33,8 +33,8 @@ importers:
         specifier: ^8.0.0
         version: 8.0.0(eslint@9.21.0)
       eslint-plugin-mocha:
-        specifier: ^10.5.0
-        version: 10.5.0(eslint@9.21.0)
+        specifier: ^11.0.0
+        version: 11.0.0(eslint@9.21.0)
       eslint-plugin-playwright:
         specifier: ^2.2.0
         version: 2.2.0(eslint@9.21.0)
@@ -887,6 +887,12 @@ packages:
 
   '@eslint-community/eslint-utils@4.4.1':
     resolution: {integrity: sha512-s3O3waFUrMV8P/XaF/+ZTp1X9XBZW1a4B97ZnjQF2KYWaFD2A8KyFBsrsfSjEmjn3RGWAIuvlneuZm3CUK3jbA==}
+    engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
+    peerDependencies:
+      eslint: ^6.0.0 || ^7.0.0 || >=8.0.0
+
+  '@eslint-community/eslint-utils@4.6.1':
+    resolution: {integrity: sha512-KTsJMmobmbrFLe3LDh0PC2FXpcSYJt/MLjlkh/9LEnmKYLSYmT/0EW9JWANjeoemiuZrmogti0tW5Ch+qNUYDw==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
     peerDependencies:
       eslint: ^6.0.0 || ^7.0.0 || >=8.0.0
@@ -2696,11 +2702,8 @@ packages:
     peerDependencies:
       eslint: '>=9.0.0'
 
-  eslint-plugin-mocha@10.5.0:
-    resolution: {integrity: sha512-F2ALmQVPT1GoP27O1JTZGrV9Pqg8k79OeIuvw63UxMtQKREZtmkK1NFgkZQ2TW7L2JSSFKHFPTtHu5z8R9QNRw==}
-    engines: {node: '>=14.0.0'}
-    peerDependencies:
-      eslint: '>=7.0.0'
+  eslint-plugin-mocha@11.0.0:
+    resolution: {integrity: sha512-P8zdSu9+avzLozms0kBlWNxqfqABlowidjugdT3AYpvmaKRQjULaM8CXisUiKa5jY5rJYQdd4coehjJ+ICprnw==}
 
   eslint-plugin-playwright@2.2.0:
     resolution: {integrity: sha512-qSQpAw7RcSzE3zPp8FMGkthaCWovHZ/BsXtpmnGax9vQLIovlh1bsZHEa2+j2lv9DWhnyeLM/qZmp7ffQZfQvg==}
@@ -2743,16 +2746,6 @@ packages:
   eslint-scope@8.2.0:
     resolution: {integrity: sha512-PHlWUfG6lvPc3yvP5A4PNyBL1W8fkDUccmI21JUu/+GKZBoH/W5u6usENXUrWFRsyoW5ACUjFGgAFQp5gUlb/A==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
-
-  eslint-utils@3.0.0:
-    resolution: {integrity: sha512-uuQC43IGctw68pJA1RgbQS8/NP7rch6Cwd4j3ZBtgo4/8Flj4eGE7ZYSZRN3iq5pVUv6GPdW5Z1RFleo84uLDA==}
-    engines: {node: ^10.0.0 || ^12.0.0 || >= 14.0.0}
-    peerDependencies:
-      eslint: '>=5'
-
-  eslint-visitor-keys@2.1.0:
-    resolution: {integrity: sha512-0rSmRBzXgDzIsD6mGdJgevzgezI534Cer5L/vyMX0kHzT/jiB43jRhd9YUlMGYLQy2zprNmoT8qasCGtY+QaKw==}
-    engines: {node: '>=10'}
 
   eslint-visitor-keys@3.4.3:
     resolution: {integrity: sha512-wpc+LXeiyiisxPlEkUzU6svyS1frIO3Mgxj1fdy7Pm8Ygzguax2N3Fa/D/ag1WqbOprdI+uY6wMUl8/a2G+iag==}
@@ -4146,9 +4139,6 @@ packages:
   quote-unquote@1.0.0:
     resolution: {integrity: sha512-twwRO/ilhlG/FIgYeKGFqyHhoEhqgnKVkcmqMKi2r524gz3ZbDTcyFt38E9xjJI2vT+KbRNHVbnJ/e0I25Azwg==}
 
-  rambda@7.5.0:
-    resolution: {integrity: sha512-y/M9weqWAH4iopRd7EHDEQQvpFPHj1AA3oHozE9tfITHUtTR7Z9PSlIRRG2l1GuW7sefC1cXFfIcF+cgnShdBA==}
-
   ramda@0.29.1:
     resolution: {integrity: sha512-OfxIeWzd4xdUNxlWhgFazxsA/nl3mS4/jGZI5n00uWOoSSFRhC1b6gl6xvmzUamgmqELraWp0J/qqVlXYPDPyA==}
 
@@ -4951,6 +4941,7 @@ packages:
 
   vite-plugin-dts@4.5.1:
     resolution: {integrity: sha512-Yo1dHT05B2nD47AVB7b0+wK1FPFpJJnUf/muRF7+tP+sbPFRhLs70TTRGwJw7NDBwAUAmSwhrD+ZPTe4P6Wv9w==}
+    deprecated: This version has some issues. Please upgrade to v4.5.3.
     peerDependencies:
       typescript: '*'
       vite: '*'
@@ -5612,6 +5603,11 @@ snapshots:
     optional: true
 
   '@eslint-community/eslint-utils@4.4.1(eslint@9.21.0)':
+    dependencies:
+      eslint: 9.21.0
+      eslint-visitor-keys: 3.4.3
+
+  '@eslint-community/eslint-utils@4.6.1(eslint@9.21.0)':
     dependencies:
       eslint: 9.21.0
       eslint-visitor-keys: 3.4.3
@@ -6547,7 +6543,7 @@ snapshots:
 
   '@typescript-eslint/utils@8.26.1(eslint@9.21.0)(typescript@5.8.2)':
     dependencies:
-      '@eslint-community/eslint-utils': 4.4.1(eslint@9.21.0)
+      '@eslint-community/eslint-utils': 4.6.1(eslint@9.21.0)
       '@typescript-eslint/scope-manager': 8.26.1
       '@typescript-eslint/types': 8.26.1
       '@typescript-eslint/typescript-estree': 8.26.1(typescript@5.8.2)
@@ -7648,12 +7644,12 @@ snapshots:
       eslint: 9.21.0
       lodash: 4.17.21
 
-  eslint-plugin-mocha@10.5.0(eslint@9.21.0):
+  eslint-plugin-mocha@11.0.0(eslint@9.21.0):
     dependencies:
-      eslint: 9.21.0
-      eslint-utils: 3.0.0(eslint@9.21.0)
-      globals: 13.24.0
-      rambda: 7.5.0
+      '@eslint-community/eslint-utils': 4.6.1(eslint@9.21.0)
+      globals: 15.15.0
+    transitivePeerDependencies:
+      - eslint
 
   eslint-plugin-playwright@2.2.0(eslint@9.21.0):
     dependencies:
@@ -7711,13 +7707,6 @@ snapshots:
     dependencies:
       esrecurse: 4.3.0
       estraverse: 5.3.0
-
-  eslint-utils@3.0.0(eslint@9.21.0):
-    dependencies:
-      eslint: 9.21.0
-      eslint-visitor-keys: 2.1.0
-
-  eslint-visitor-keys@2.1.0: {}
 
   eslint-visitor-keys@3.4.3: {}
 
@@ -9223,8 +9212,6 @@ snapshots:
   queue-microtask@1.2.3: {}
 
   quote-unquote@1.0.0: {}
-
-  rambda@7.5.0: {}
 
   ramda@0.29.1: {}
 
