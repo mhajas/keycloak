@@ -18,10 +18,10 @@ public class JBossLogConsumer implements Consumer<OutputFrame> {
         OutputFrame.OutputType type = outputFrame.getType();
         switch (type) {
             case STDOUT:
-                logger.debug(outputFrame.getUtf8StringWithoutLineEnding());
+                logger.fatal(outputFrame.getUtf8StringWithoutLineEnding());
                 break;
             case STDERR:
-                logger.warn(outputFrame.getUtf8StringWithoutLineEnding());
+                logger.fatal(outputFrame.getUtf8StringWithoutLineEnding());
                 break;
         }
     }
