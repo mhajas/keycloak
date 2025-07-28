@@ -176,10 +176,10 @@ importers:
         version: 5.4.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@uiw/react-textarea-code-editor':
         specifier: ^3.1.0
-        version: 3.1.0(@babel/runtime@7.26.9)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 3.1.0(@babel/runtime@7.28.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       admin-ui:
         specifier: 'file:'
-        version: '@keycloak/keycloak-admin-ui@file:apps/admin-ui(@babel/runtime@7.26.9)(@types/react@18.3.18)(typescript@5.8.2)'
+        version: '@keycloak/keycloak-admin-ui@file:apps/admin-ui(@babel/runtime@7.28.2)(@types/react@18.3.18)(typescript@5.8.2)'
       file-saver:
         specifier: ^2.0.5
         version: 2.0.5
@@ -233,14 +233,14 @@ importers:
         specifier: ^10.0.3
         version: 10.0.3(cypress@14.1.0)
       '@testing-library/dom':
-        specifier: ^10.4.0
-        version: 10.4.0
+        specifier: ^10.4.1
+        version: 10.4.1
       '@testing-library/jest-dom':
         specifier: ^6.6.3
         version: 6.6.3
       '@testing-library/react':
         specifier: ^16.2.0
-        version: 16.2.0(@testing-library/dom@10.4.0)(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 16.2.0(@testing-library/dom@10.4.1)(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@types/dagre':
         specifier: ^0.7.52
         version: 0.7.52
@@ -573,6 +573,10 @@ packages:
     resolution: {integrity: sha512-RJlIHRueQgwWitWgF8OdFYGZX328Ax5BCemNGlqHfplnRT9ESi8JkFlvaVYbS+UubVY6dpv87Fs2u5M29iNFVQ==}
     engines: {node: '>=6.9.0'}
 
+  '@babel/code-frame@7.27.1':
+    resolution: {integrity: sha512-cjQ7ZlQ0Mv3b47hABuTevyTuYN4i+loJKGeV9flcCgIK37cCXRh+L1bd3iBHlynerhQ7BhCkn2BPbQUL+rGqFg==}
+    engines: {node: '>=6.9.0'}
+
   '@babel/compat-data@7.26.8':
     resolution: {integrity: sha512-oH5UPLMWR3L2wEFLnFJ1TZXqHufiTKAiLfqw5zkhS4dKXLJ10yVztfil/twG8EDTA4F/tvVNw9nOl4ZMslB8rQ==}
     engines: {node: '>=6.9.0'}
@@ -639,6 +643,10 @@ packages:
     resolution: {integrity: sha512-Ed61U6XJc3CVRfkERJWDz4dJwKe7iLmmJsbOGu9wSloNSFttHV0I8g6UAgb7qnK5ly5bGLPd4oXZlxCdANBOWQ==}
     engines: {node: '>=6.9.0'}
 
+  '@babel/helper-validator-identifier@7.27.1':
+    resolution: {integrity: sha512-D2hP9eA+Sqx1kBZgzxZh0y1trbuU+JoDkiEwqhQ36nodYqJwyEIhPSdMNd7lOm/4io72luTPWH20Yda0xOuUow==}
+    engines: {node: '>=6.9.0'}
+
   '@babel/helper-validator-option@7.25.9':
     resolution: {integrity: sha512-e/zv1co8pp55dNdEcCynfj9X7nyUKUXoUEwfXqaZt0omVOmDe9oOTdKStH4GmAw6zxMFs50ZayuMfHDKlO7Tfw==}
     engines: {node: '>=6.9.0'}
@@ -667,6 +675,10 @@ packages:
 
   '@babel/runtime@7.26.9':
     resolution: {integrity: sha512-aA63XwOkcl4xxQa3HjPMqOP6LiK0ZDv3mUPYEFXkpHbaFjtGggE1A61FjFzJnB+p7/oy2gA8E+rcBNl/zC1tMg==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/runtime@7.28.2':
+    resolution: {integrity: sha512-KHp2IflsnGywDjBWDkR9iEqiWSpc8GIi0lgTT3mOElT0PP1tG26P4tmFI2YvAdzgq9RGyoHZQEIEdZy6Ec5xCA==}
     engines: {node: '>=6.9.0'}
 
   '@babel/template@7.26.9':
@@ -1500,8 +1512,8 @@ packages:
     peerDependencies:
       cypress: ^12.0.0 || ^13.0.0 || ^14.0.0
 
-  '@testing-library/dom@10.4.0':
-    resolution: {integrity: sha512-pemlzrSESWbdAloYml3bAJMEfNh1Z7EduzqPKprCH5S341frlpYnUEW0H72dLxa6IsYr+mPno20GiSm+h9dEdQ==}
+  '@testing-library/dom@10.4.1':
+    resolution: {integrity: sha512-o4PXJQidqJl82ckFaXUeoAW+XysPLauYI43Abki5hABd853iMhitooc6znOnczgbTYmEP6U6/y1ZyKAIsvMKGg==}
     engines: {node: '>=18'}
 
   '@testing-library/jest-dom@6.6.3':
@@ -4951,6 +4963,7 @@ packages:
 
   vite-plugin-dts@4.5.1:
     resolution: {integrity: sha512-Yo1dHT05B2nD47AVB7b0+wK1FPFpJJnUf/muRF7+tP+sbPFRhLs70TTRGwJw7NDBwAUAmSwhrD+ZPTe4P6Wv9w==}
+    deprecated: This version has some issues. Please upgrade to v4.5.3.
     peerDependencies:
       typescript: '*'
       vite: '*'
@@ -5315,12 +5328,18 @@ snapshots:
       js-tokens: 4.0.0
       picocolors: 1.1.1
 
+  '@babel/code-frame@7.27.1':
+    dependencies:
+      '@babel/helper-validator-identifier': 7.27.1
+      js-tokens: 4.0.0
+      picocolors: 1.1.1
+
   '@babel/compat-data@7.26.8': {}
 
   '@babel/core@7.26.9':
     dependencies:
       '@ampproject/remapping': 2.3.0
-      '@babel/code-frame': 7.26.2
+      '@babel/code-frame': 7.27.1
       '@babel/generator': 7.26.9
       '@babel/helper-compilation-targets': 7.26.5
       '@babel/helper-module-transforms': 7.26.0(@babel/core@7.26.9)
@@ -5388,7 +5407,7 @@ snapshots:
     dependencies:
       '@babel/core': 7.26.9
       '@babel/helper-module-imports': 7.25.9
-      '@babel/helper-validator-identifier': 7.25.9
+      '@babel/helper-validator-identifier': 7.27.1
       '@babel/traverse': 7.26.9
     transitivePeerDependencies:
       - supports-color
@@ -5419,6 +5438,8 @@ snapshots:
 
   '@babel/helper-validator-identifier@7.25.9': {}
 
+  '@babel/helper-validator-identifier@7.27.1': {}
+
   '@babel/helper-validator-option@7.25.9': {}
 
   '@babel/helpers@7.26.9':
@@ -5447,15 +5468,17 @@ snapshots:
     dependencies:
       regenerator-runtime: 0.14.1
 
+  '@babel/runtime@7.28.2': {}
+
   '@babel/template@7.26.9':
     dependencies:
-      '@babel/code-frame': 7.26.2
+      '@babel/code-frame': 7.27.1
       '@babel/parser': 7.26.9
       '@babel/types': 7.26.9
 
   '@babel/traverse@7.26.9':
     dependencies:
-      '@babel/code-frame': 7.26.2
+      '@babel/code-frame': 7.27.1
       '@babel/generator': 7.26.9
       '@babel/parser': 7.26.9
       '@babel/template': 7.26.9
@@ -5468,7 +5491,7 @@ snapshots:
   '@babel/types@7.26.9':
     dependencies:
       '@babel/helper-string-parser': 7.25.9
-      '@babel/helper-validator-identifier': 7.25.9
+      '@babel/helper-validator-identifier': 7.27.1
 
   '@colors/colors@1.5.0':
     optional: true
@@ -5712,7 +5735,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.0
 
-  '@keycloak/keycloak-admin-ui@file:apps/admin-ui(@babel/runtime@7.26.9)(@types/react@18.3.18)(typescript@5.8.2)':
+  '@keycloak/keycloak-admin-ui@file:apps/admin-ui(@babel/runtime@7.28.2)(@types/react@18.3.18)(typescript@5.8.2)':
     dependencies:
       '@dagrejs/dagre': 1.1.4
       '@keycloak/keycloak-admin-client': link:libs/keycloak-admin-client
@@ -5722,7 +5745,7 @@ snapshots:
       '@patternfly/react-icons': 5.4.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles': 5.4.1
       '@patternfly/react-table': 5.4.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@uiw/react-textarea-code-editor': 3.1.0(@babel/runtime@7.26.9)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-textarea-code-editor': 3.1.0(@babel/runtime@7.28.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       file-saver: 2.0.5
       flat: 6.0.1
       i18next: 24.2.2(typescript@5.8.2)
@@ -6236,18 +6259,18 @@ snapshots:
   '@testing-library/cypress@10.0.3(cypress@14.1.0)':
     dependencies:
       '@babel/runtime': 7.26.9
-      '@testing-library/dom': 10.4.0
+      '@testing-library/dom': 10.4.1
       cypress: 14.1.0
 
-  '@testing-library/dom@10.4.0':
+  '@testing-library/dom@10.4.1':
     dependencies:
-      '@babel/code-frame': 7.26.2
-      '@babel/runtime': 7.26.9
+      '@babel/code-frame': 7.27.1
+      '@babel/runtime': 7.28.2
       '@types/aria-query': 5.0.4
       aria-query: 5.3.0
-      chalk: 4.1.2
       dom-accessibility-api: 0.5.16
       lz-string: 1.5.0
+      picocolors: 1.1.1
       pretty-format: 27.5.1
 
   '@testing-library/jest-dom@6.6.3':
@@ -6260,10 +6283,10 @@ snapshots:
       lodash: 4.17.21
       redent: 3.0.0
 
-  '@testing-library/react@16.2.0(@testing-library/dom@10.4.0)(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@testing-library/react@16.2.0(@testing-library/dom@10.4.1)(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@babel/runtime': 7.26.9
-      '@testing-library/dom': 10.4.0
+      '@testing-library/dom': 10.4.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
     optionalDependencies:
@@ -6561,9 +6584,9 @@ snapshots:
       '@typescript-eslint/types': 8.26.1
       eslint-visitor-keys: 4.2.0
 
-  '@uiw/react-textarea-code-editor@3.1.0(@babel/runtime@7.26.9)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@uiw/react-textarea-code-editor@3.1.0(@babel/runtime@7.28.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@babel/runtime': 7.26.9
+      '@babel/runtime': 7.28.2
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       rehype: 13.0.2
