@@ -176,10 +176,10 @@ importers:
         version: 5.4.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@uiw/react-textarea-code-editor':
         specifier: ^3.1.0
-        version: 3.1.0(@babel/runtime@7.26.9)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 3.1.0(@babel/runtime@7.28.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       admin-ui:
         specifier: 'file:'
-        version: '@keycloak/keycloak-admin-ui@file:apps/admin-ui(@babel/runtime@7.26.9)(@types/react@18.3.18)(typescript@5.8.2)'
+        version: '@keycloak/keycloak-admin-ui@file:apps/admin-ui(@babel/runtime@7.28.3)(@types/react@18.3.18)(typescript@5.8.2)'
       file-saver:
         specifier: ^2.0.5
         version: 2.0.5
@@ -230,8 +230,8 @@ importers:
         specifier: ^2.3.0
         version: 2.3.0(cypress@14.1.0)
       '@testing-library/cypress':
-        specifier: ^10.0.3
-        version: 10.0.3(cypress@14.1.0)
+        specifier: ^10.1.0
+        version: 10.1.0(cypress@14.1.0)
       '@testing-library/dom':
         specifier: ^10.4.0
         version: 10.4.0
@@ -667,6 +667,10 @@ packages:
 
   '@babel/runtime@7.26.9':
     resolution: {integrity: sha512-aA63XwOkcl4xxQa3HjPMqOP6LiK0ZDv3mUPYEFXkpHbaFjtGggE1A61FjFzJnB+p7/oy2gA8E+rcBNl/zC1tMg==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/runtime@7.28.3':
+    resolution: {integrity: sha512-9uIQ10o0WGdpP6GDhXcdOJPJuDgFtIDtN/9+ArJQ2NAfAmiuhTQdzkaTGR33v43GYS2UrSA0eX2pPPHoFVvpxA==}
     engines: {node: '>=6.9.0'}
 
   '@babel/template@7.26.9':
@@ -1494,11 +1498,11 @@ packages:
   '@swc/types@0.1.18':
     resolution: {integrity: sha512-NZghLaQvF3eFdj2DUjGkpwaunbZYaRcxciHINnwA4n3FrLAI8hKFOBqs2wkcOiLQfWkIdfuG6gBkNFrkPNji5g==}
 
-  '@testing-library/cypress@10.0.3':
-    resolution: {integrity: sha512-TeZJMCNtiS59cPWalra7LgADuufO5FtbqQBYxuAgdX6ZFAR2D9CtQwAG8VbgvFcchW3K414va/+7P4OkQ80UVg==}
+  '@testing-library/cypress@10.1.0':
+    resolution: {integrity: sha512-tNkNtYRqPQh71xXKuMizr146zlellawUfDth7A/urYU4J66g0VGZ063YsS0gqS79Z58u1G/uo9UxN05qvKXMag==}
     engines: {node: '>=12', npm: '>=6'}
     peerDependencies:
-      cypress: ^12.0.0 || ^13.0.0 || ^14.0.0
+      cypress: ^12.0.0 || ^13.0.0 || ^14.0.0 || ^15.0.0
 
   '@testing-library/dom@10.4.0':
     resolution: {integrity: sha512-pemlzrSESWbdAloYml3bAJMEfNh1Z7EduzqPKprCH5S341frlpYnUEW0H72dLxa6IsYr+mPno20GiSm+h9dEdQ==}
@@ -4951,6 +4955,7 @@ packages:
 
   vite-plugin-dts@4.5.1:
     resolution: {integrity: sha512-Yo1dHT05B2nD47AVB7b0+wK1FPFpJJnUf/muRF7+tP+sbPFRhLs70TTRGwJw7NDBwAUAmSwhrD+ZPTe4P6Wv9w==}
+    deprecated: This version has some issues. Please upgrade to v4.5.3.
     peerDependencies:
       typescript: '*'
       vite: '*'
@@ -5447,6 +5452,8 @@ snapshots:
     dependencies:
       regenerator-runtime: 0.14.1
 
+  '@babel/runtime@7.28.3': {}
+
   '@babel/template@7.26.9':
     dependencies:
       '@babel/code-frame': 7.26.2
@@ -5712,7 +5719,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.0
 
-  '@keycloak/keycloak-admin-ui@file:apps/admin-ui(@babel/runtime@7.26.9)(@types/react@18.3.18)(typescript@5.8.2)':
+  '@keycloak/keycloak-admin-ui@file:apps/admin-ui(@babel/runtime@7.28.3)(@types/react@18.3.18)(typescript@5.8.2)':
     dependencies:
       '@dagrejs/dagre': 1.1.4
       '@keycloak/keycloak-admin-client': link:libs/keycloak-admin-client
@@ -5722,7 +5729,7 @@ snapshots:
       '@patternfly/react-icons': 5.4.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles': 5.4.1
       '@patternfly/react-table': 5.4.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@uiw/react-textarea-code-editor': 3.1.0(@babel/runtime@7.26.9)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/react-textarea-code-editor': 3.1.0(@babel/runtime@7.28.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       file-saver: 2.0.5
       flat: 6.0.1
       i18next: 24.2.2(typescript@5.8.2)
@@ -6233,9 +6240,9 @@ snapshots:
     dependencies:
       '@swc/counter': 0.1.3
 
-  '@testing-library/cypress@10.0.3(cypress@14.1.0)':
+  '@testing-library/cypress@10.1.0(cypress@14.1.0)':
     dependencies:
-      '@babel/runtime': 7.26.9
+      '@babel/runtime': 7.28.3
       '@testing-library/dom': 10.4.0
       cypress: 14.1.0
 
@@ -6561,9 +6568,9 @@ snapshots:
       '@typescript-eslint/types': 8.26.1
       eslint-visitor-keys: 4.2.0
 
-  '@uiw/react-textarea-code-editor@3.1.0(@babel/runtime@7.26.9)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@uiw/react-textarea-code-editor@3.1.0(@babel/runtime@7.28.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@babel/runtime': 7.26.9
+      '@babel/runtime': 7.28.3
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       rehype: 13.0.2
