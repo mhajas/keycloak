@@ -227,8 +227,8 @@ importers:
         version: 4.0.1(react-router-dom@6.30.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
     devDependencies:
       '@4tw/cypress-drag-drop':
-        specifier: ^2.3.0
-        version: 2.3.0(cypress@14.1.0)
+        specifier: ^2.3.1
+        version: 2.3.1(cypress@14.1.0)
       '@testing-library/cypress':
         specifier: ^10.0.3
         version: 10.0.3(cypress@14.1.0)
@@ -484,10 +484,10 @@ importers:
 
 packages:
 
-  '@4tw/cypress-drag-drop@2.3.0':
-    resolution: {integrity: sha512-r6/Um+GLidi9mFTx8qiFf1ECMNmwLTLp+CgKVLpYZvJ2aV6mYoe1Uv8Iq1AwqRhhIAdf04aFJ0xzGEO1gnOm1g==}
+  '@4tw/cypress-drag-drop@2.3.1':
+    resolution: {integrity: sha512-ht9Mx0eK+j4UO7fZvHNyCGOQEIj4d5+CZDYdxUCHGL4yvEhdDBH6PT4Lt12Ct+O+8qK8K1K31p7iiOghA8ewxQ==}
     peerDependencies:
-      cypress: 2 - 14
+      cypress: '>=2'
 
   '@actions/core@1.11.1':
     resolution: {integrity: sha512-hXJCSrkwfA46Vd9Z3q4cpEpHB1rL5NG04+/rbqW9d3+CSvtB1tYe8UTpAlixa1vj0m/ULglfEK2UKxMGxCxv5A==}
@@ -4951,6 +4951,7 @@ packages:
 
   vite-plugin-dts@4.5.1:
     resolution: {integrity: sha512-Yo1dHT05B2nD47AVB7b0+wK1FPFpJJnUf/muRF7+tP+sbPFRhLs70TTRGwJw7NDBwAUAmSwhrD+ZPTe4P6Wv9w==}
+    deprecated: This version has some issues. Please upgrade to v4.5.3.
     peerDependencies:
       typescript: '*'
       vite: '*'
@@ -5235,7 +5236,7 @@ ignoredOptionalDependencies:
 
 snapshots:
 
-  '@4tw/cypress-drag-drop@2.3.0(cypress@14.1.0)':
+  '@4tw/cypress-drag-drop@2.3.1(cypress@14.1.0)':
     dependencies:
       cypress: 14.1.0
 
