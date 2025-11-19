@@ -114,8 +114,8 @@ importers:
         specifier: ^15.4.1
         version: 15.4.1(i18next@24.2.2(typescript@5.8.2))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-router-dom:
-        specifier: ^6.30.0
-        version: 6.30.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^6.30.2
+        version: 6.30.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
       '@keycloak/keycloak-admin-client':
         specifier: workspace:*
@@ -217,14 +217,14 @@ importers:
         specifier: ^15.4.1
         version: 15.4.1(i18next@24.2.2(typescript@5.8.2))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-router-dom:
-        specifier: ^6.30.0
-        version: 6.30.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^6.30.2
+        version: 6.30.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       reactflow:
         specifier: ^11.11.4
         version: 11.11.4(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       use-react-router-breadcrumbs:
         specifier: ^4.0.1
-        version: 4.0.1(react-router-dom@6.30.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
+        version: 4.0.1(react-router-dom@6.30.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
     devDependencies:
       '@4tw/cypress-drag-drop':
         specifier: ^2.3.0
@@ -1158,8 +1158,8 @@ packages:
       react: '>=17'
       react-dom: '>=17'
 
-  '@remix-run/router@1.23.0':
-    resolution: {integrity: sha512-O3rHJzAQKamUz1fvE0Qaw0xSFqsA/yafi2iqeE0pvdFtCO1viYx8QL6f3Ln/aCCTLxs68SLf0KPM9eSeM8yBnA==}
+  '@remix-run/router@1.23.1':
+    resolution: {integrity: sha512-vDbaOzF7yT2Qs4vO6XV1MHcJv+3dgR1sT+l3B8xxOVhUC336prMvqrvsLL/9Dnw2xr6Qhz4J0dmS0llNAbnUmQ==}
     engines: {node: '>=14.0.0'}
 
   '@rollup/plugin-commonjs@28.0.3':
@@ -2107,6 +2107,7 @@ packages:
   bootstrap@3.4.1:
     resolution: {integrity: sha512-yN5oZVmRCwe5aKwzRj6736nSmKDX7pLYwsXiCj/EYmo16hODaBiT4En5btW/jhBF/seV+XMx3aYwukYC3A49DA==}
     engines: {node: '>=6'}
+    deprecated: This version of Bootstrap is no longer supported. Please upgrade to the latest version.
 
   brace-expansion@1.1.11:
     resolution: {integrity: sha512-iCuPHDFgrHX7H2vEI/5xpz07zSHB00TpugqhmYtVmMO6518mCuRMoOYFldEBl0g187ufozdaHgWKcYFb61qGiA==}
@@ -4191,15 +4192,15 @@ packages:
   react-is@17.0.2:
     resolution: {integrity: sha512-w2GsyukL62IJnlaff/nRegPQR94C/XXamvMWmSHRJ4y7Ts/4ocGRmTHvOs8PSE6pB3dWOrD/nueuU5sduBsQ4w==}
 
-  react-router-dom@6.30.0:
-    resolution: {integrity: sha512-x30B78HV5tFk8ex0ITwzC9TTZMua4jGyA9IUlH1JLQYQTFyxr/ZxwOJq7evg1JX1qGVUcvhsmQSKdPncQrjTgA==}
+  react-router-dom@6.30.2:
+    resolution: {integrity: sha512-l2OwHn3UUnEVUqc6/1VMmR1cvZryZ3j3NzapC2eUXO1dB0sYp5mvwdjiXhpUbRb21eFow3qSxpP8Yv6oAU824Q==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
       react: '>=16.8'
       react-dom: '>=16.8'
 
-  react-router@6.30.0:
-    resolution: {integrity: sha512-D3X8FyH9nBcTSHGdEKurK7r8OYE1kKFn3d/CF+CoxbSHkxU7o37+Uh7eAHRXr6k2tSExXYO++07PeXJtA/dEhQ==}
+  react-router@6.30.2:
+    resolution: {integrity: sha512-H2Bm38Zu1bm8KUE5NVWRMzuIyAV8p/JrOaBJAwVmp37AXG72+CZJlEBw6pdn9i5TBgLMhNDgijS4ZlblpHyWTA==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
       react: '>=16.8'
@@ -4951,6 +4952,7 @@ packages:
 
   vite-plugin-dts@4.5.1:
     resolution: {integrity: sha512-Yo1dHT05B2nD47AVB7b0+wK1FPFpJJnUf/muRF7+tP+sbPFRhLs70TTRGwJw7NDBwAUAmSwhrD+ZPTe4P6Wv9w==}
+    deprecated: This version has some issues. Please upgrade to v4.5.3.
     peerDependencies:
       typescript: '*'
       vite: '*'
@@ -5735,9 +5737,9 @@ snapshots:
       react-dom: 18.3.1(react@18.3.1)
       react-hook-form: 7.54.2(react@18.3.1)
       react-i18next: 15.4.1(i18next@24.2.2(typescript@5.8.2))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      react-router-dom: 6.30.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react-router-dom: 6.30.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       reactflow: 11.11.4(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      use-react-router-breadcrumbs: 4.0.1(react-router-dom@6.30.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
+      use-react-router-breadcrumbs: 4.0.1(react-router-dom@6.30.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
     transitivePeerDependencies:
       - '@babel/runtime'
       - '@types/react'
@@ -5986,7 +5988,7 @@ snapshots:
       - '@types/react'
       - immer
 
-  '@remix-run/router@1.23.0': {}
+  '@remix-run/router@1.23.1': {}
 
   '@rollup/plugin-commonjs@28.0.3(rollup@4.35.0)':
     dependencies:
@@ -9262,16 +9264,16 @@ snapshots:
 
   react-is@17.0.2: {}
 
-  react-router-dom@6.30.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  react-router-dom@6.30.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
-      '@remix-run/router': 1.23.0
+      '@remix-run/router': 1.23.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
-      react-router: 6.30.0(react@18.3.1)
+      react-router: 6.30.2(react@18.3.1)
 
-  react-router@6.30.0(react@18.3.1):
+  react-router@6.30.2(react@18.3.1):
     dependencies:
-      '@remix-run/router': 1.23.0
+      '@remix-run/router': 1.23.1
       react: 18.3.1
 
   react@18.3.1:
@@ -10086,10 +10088,10 @@ snapshots:
 
   url-template@3.1.1: {}
 
-  use-react-router-breadcrumbs@4.0.1(react-router-dom@6.30.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1):
+  use-react-router-breadcrumbs@4.0.1(react-router-dom@6.30.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1):
     dependencies:
       react: 18.3.1
-      react-router-dom: 6.30.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react-router-dom: 6.30.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
   use-sync-external-store@1.4.0(react@18.3.1):
     dependencies:
