@@ -96,8 +96,8 @@ importers:
         specifier: ^6.0.0
         version: 6.0.0
       keycloak-js:
-        specifier: ^26.2.0
-        version: 26.2.0
+        specifier: ^26.2.2
+        version: 26.2.2
       lodash-es:
         specifier: ^4.17.21
         version: 4.17.21
@@ -196,8 +196,8 @@ importers:
         specifier: ^3.10.1
         version: 3.10.1
       keycloak-js:
-        specifier: ^26.2.0
-        version: 26.2.0
+        specifier: ^26.2.2
+        version: 26.2.2
       lodash-es:
         specifier: ^4.17.21
         version: 4.17.21
@@ -390,8 +390,8 @@ importers:
         specifier: ^24.2.2
         version: 24.2.2(typescript@5.8.2)
       keycloak-js:
-        specifier: ^26.2.0
-        version: 26.2.0
+        specifier: ^26.2.2
+        version: 26.2.2
       lodash-es:
         specifier: ^4.17.21
         version: 4.17.21
@@ -2107,6 +2107,7 @@ packages:
   bootstrap@3.4.1:
     resolution: {integrity: sha512-yN5oZVmRCwe5aKwzRj6736nSmKDX7pLYwsXiCj/EYmo16hODaBiT4En5btW/jhBF/seV+XMx3aYwukYC3A49DA==}
     engines: {node: '>=6'}
+    deprecated: This version of Bootstrap is no longer supported. Please upgrade to the latest version.
 
   brace-expansion@1.1.11:
     resolution: {integrity: sha512-iCuPHDFgrHX7H2vEI/5xpz07zSHB00TpugqhmYtVmMO6518mCuRMoOYFldEBl0g187ufozdaHgWKcYFb61qGiA==}
@@ -3540,8 +3541,8 @@ packages:
   jszip@3.10.1:
     resolution: {integrity: sha512-xXDvecyTpGLrqFrvkrUSoxxfJI5AH7U8zxxtVclpsUtMCq4JQ290LY8AW5c7Ggnr/Y/oK+bQMbqK2qmtk3pN4g==}
 
-  keycloak-js@26.2.0:
-    resolution: {integrity: sha512-CrFcXTN+d6J0V/1v3Zpioys6qHNWE6yUzVVIsCUAmFn9H14GZ0vuYod+lt+SSpMgWGPuneDZBSGBAeLBFuqjsw==}
+  keycloak-js@26.2.2:
+    resolution: {integrity: sha512-ug7pNZ1xNkd7PPkerOJCEU2VnUhS7CYStDOCFJgqCNQ64h53ppxaKrh4iXH0xM8hFu5b1W6e6lsyYWqBMvaQFg==}
 
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
@@ -4951,6 +4952,7 @@ packages:
 
   vite-plugin-dts@4.5.1:
     resolution: {integrity: sha512-Yo1dHT05B2nD47AVB7b0+wK1FPFpJJnUf/muRF7+tP+sbPFRhLs70TTRGwJw7NDBwAUAmSwhrD+ZPTe4P6Wv9w==}
+    deprecated: This version has some issues. Please upgrade to v4.5.3.
     peerDependencies:
       typescript: '*'
       vite: '*'
@@ -5728,7 +5730,7 @@ snapshots:
       i18next: 24.2.2(typescript@5.8.2)
       i18next-fetch-backend: 6.0.0
       jszip: 3.10.1
-      keycloak-js: 26.2.0
+      keycloak-js: 26.2.2
       lodash-es: 4.17.21
       p-debounce: 4.0.0
       react: 18.3.1
@@ -8598,7 +8600,7 @@ snapshots:
       readable-stream: 2.3.8
       setimmediate: 1.0.5
 
-  keycloak-js@26.2.0: {}
+  keycloak-js@26.2.2: {}
 
   keyv@4.5.4:
     dependencies:
