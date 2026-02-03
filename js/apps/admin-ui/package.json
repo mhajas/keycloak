@@ -125,7 +125,7 @@
     "@types/lodash-es": "^4.17.12",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
-    "@vitejs/plugin-react-swc": "^3.8.0",
+    "@vitejs/plugin-react-swc": "^4.2.3",
     "cypress": "^14.1.0",
     "cypress-axe": "^1.6.0",
     "cypress-split": "^1.24.14",
